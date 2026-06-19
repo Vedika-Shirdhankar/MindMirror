@@ -10,7 +10,7 @@ import FutureLetters from './pages/FutureLetters.jsx'
 import Settings from './pages/Settings.jsx'
 import Analytics from './pages/Analytics.jsx'
 import MindGames from './pages/MindGames.jsx'
-import Auth from './pages/Auth.jsx'
+import Landing from './pages/Landing.jsx'
 import { AuthProvider, useAuth } from './lib/AuthContext.jsx'
 
 function ProtectedShell() {
@@ -24,7 +24,7 @@ function ProtectedShell() {
     )
   }
 
-  if (!user) return <Auth />
+  if (!user) return <Landing />
 
   return (
     <Layout user={user}>
