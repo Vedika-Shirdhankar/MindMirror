@@ -9,15 +9,11 @@ async function connectDB() {
 
   try {
     mongoose.set('strictQuery', true);
-    console.log("URI loaded:", uri ? "YES" : "NO");
-console.log("URI starts with:", uri?.substring(0, 20));
-
-await mongoose.connect(uri);
     await mongoose.connect(uri);
     console.log(`✅ MongoDB connected: ${mongoose.connection.host}/${mongoose.connection.name}`);
   } catch (err) {
     console.error('❌ MongoDB connection failed:', err.message);
-    console.log('Continuing without database connection...');
+    process.exit(1);
   }
 
   mongoose.connection.on('disconnected', () => {

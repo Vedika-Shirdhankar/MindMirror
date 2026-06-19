@@ -4,6 +4,7 @@ const User = require('../models/User');
 const { analyzeJournalEntry } = require('../utils/aiAnalysis');
 const { CRISIS_RESOURCES } = require('../utils/crisisResources');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { generateEmbedding, cosineSimilarity } = require('../utils/embeddings');
 
 // GET /api/journal
 async function getEntries(req, res, next) {
@@ -59,6 +60,11 @@ async function createEntry(req, res, next) {
       copingUsed: copingUsed || [],
       ...analysis,
     });
+
+    // Generate and save embedding asynchronously — never block the response
+    generateEmbedding(text.trim())
+      .then(vec => JournalEntry.updateOne({ _id: entry._id }, { embedding: vec }))
+      .catch(e => console.warn('[embeddings] Failed to generate embedding:', e.message));
 
     const responseBody = { entry, aiError };
 
@@ -152,4 +158,48 @@ Return ONLY a JSON object (no markdown code blocks, no preamble, no commentary) 
   }
 }
 
-module.exports = { getEntries, createEntry, deleteEntry, markResolved, buildThoughtLadder };
+// POST /api/journal/search
+// Semantic search: embed the query, cosine-rank all user entries with embeddings.
+async function semanticSearch(req, res, next) {
+  try {
+    const { query } = req.body;
+    if (!query?.trim()) return res.status(400).json({ error: 'Search query is required.' });
+
+    // Get query embedding
+    let queryVec;
+    try {
+      queryVec = await generateEmbedding(query.trim());
+    } catch (e) {
+      return res.status(503).json({ error: 'Embedding service unavailable. Check GEMINI_API_KEY.' });
+    }
+
+    // Fetch all entries that already have embeddings (select: false field needs explicit +embedding)
+    const entries = await JournalEntry.find({ user: req.userId })
+      .select('+embedding text date themes mood_score mood summary sentiment resolved')
+      .lean();
+
+    const scored = entries
+      .filter(e => e.embedding?.length)
+      .map(e => ({
+        _id: e._id,
+        text: e.text,
+        date: e.date,
+        themes: e.themes,
+        mood_score: e.mood_score ?? e.mood,
+        summary: e.summary,
+        sentiment: e.sentiment,
+        resolved: e.resolved,
+        score: cosineSimilarity(queryVec, e.embedding),
+      }))
+      .filter(e => e.score > 0.5) // Only surface meaningfully similar results
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10)
+      .map(e => { delete e.embedding; return e; }); // never send vectors to client
+
+    res.json({ results: scored, total: scored.length });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getEntries, createEntry, deleteEntry, markResolved, buildThoughtLadder, semanticSearch };

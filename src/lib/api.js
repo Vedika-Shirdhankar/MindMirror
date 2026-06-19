@@ -139,6 +139,14 @@ export async function deleteEntry(id) {
   });
 }
 
+export async function searchEntries(query) {
+  const data = await request('/journal/search', {
+    method: 'POST',
+    body: JSON.stringify({ query }),
+  });
+  return data.results || [];
+}
+
 // 3. AI Companion Chat Operations
 export async function getChatHistory() {
   const data = await request('/chat/history');

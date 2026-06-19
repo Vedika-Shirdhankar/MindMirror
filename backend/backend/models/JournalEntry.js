@@ -37,6 +37,11 @@ const journalEntrySchema = new mongoose.Schema(
     resolved: { type: Boolean, default: false },
     resolvedNote: { type: String, default: '' },
 
+    // ── Semantic embedding (Gemini text-embedding-004, 768-dim) ──
+    // Stored for in-process cosine similarity search.
+    // select: false keeps it out of normal queries for performance.
+    embedding: { type: [Number], select: false },
+
     date: { type: Date, default: Date.now },
   },
   { timestamps: true }
