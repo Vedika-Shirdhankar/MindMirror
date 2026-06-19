@@ -35,7 +35,7 @@ Given a NEW journal entry and the user's past entries (for context), analyze the
   "themes": [],
   "triggers": [],
   "sentiment": "",
-  "mood_score": 0,
+  "mood_score": 5,
   "summary": "",
   "coping_suggestions": [],
   "trend": "",
@@ -48,7 +48,7 @@ FIELD RULES:
 - "themes": array of strings, ONLY from this fixed list: ${VALID_THEMES.join(', ')}. Pick 1-3 that genuinely apply.
 - "triggers": array of strings, ONLY from this fixed list: ${VALID_TRIGGERS.join(', ')}. Pick what's actually implied by the text.
 - "sentiment": exactly one of "positive", "neutral", "negative", "mixed".
-- "mood_score": integer 0-10, where 0 = completely calm/at peace and 10 = severe acute distress. This is a DISTRESS score, not a happiness score.
+- "mood_score": integer 1-10, where 1 = completely calm/at peace and 10 = severe acute distress. This is a DISTRESS score, not a happiness score. NEVER return 0.
 - "summary": ONE sentence, warm and non-judgmental, reflecting back what the person is going through. Do not diagnose. Do not use clinical labels.
 - "coping_suggestions": array of 2-4 short, concrete, personalized coping strategy strings (e.g. "A 10-minute walk outside", "Write down one fact vs. one fear about this situation"). Base these on what's worked for this user before if their history shows it; otherwise suggest evidence-based general strategies. Never suggest anything involving pain, physical discomfort, or self-harm substitutes.
 - "trend": exactly one of "improving", "worsening", "stable", "unknown". Compare this entry's implied distress to the trajectory of past entries provided. Use "unknown" if there isn't enough history.
@@ -113,7 +113,9 @@ function sanitizeAnalysis(raw, previousEntries) {
   const themes = Array.isArray(raw.themes) ? raw.themes.filter(t => VALID_THEMES.includes(t)).slice(0, 3) : [];
   const triggers = Array.isArray(raw.triggers) ? raw.triggers.filter(t => VALID_TRIGGERS.includes(t)).slice(0, 4) : [];
   const sentiment = ['positive', 'neutral', 'negative', 'mixed'].includes(raw.sentiment) ? raw.sentiment : 'neutral';
-  const mood_score = clampInt(raw.mood_score, 0, 10, 5);
+  // mood_score must be 1-10 to match the JournalEntry schema minimum of 1 on the `mood` field.
+  // Clamp to [1,10] — never allow 0 (Gemini sometimes returns 0 for very calm entries).
+  const mood_score = clampInt(raw.mood_score, 1, 10, 5);
   const summary = typeof raw.summary === 'string' ? raw.summary.slice(0, 300) : '';
   const coping_suggestions = Array.isArray(raw.coping_suggestions) ? raw.coping_suggestions.slice(0, 4).map(s => String(s).slice(0, 200)) : [];
   const trend = TRENDS.includes(raw.trend) ? raw.trend : 'unknown';

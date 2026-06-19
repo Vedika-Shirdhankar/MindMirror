@@ -36,7 +36,7 @@ async function createEntry(req, res, next) {
       .lean();
 
     let analysis = {
-      themes: [], triggers: [], sentiment: 'neutral', mood_score: mood || 5,
+      themes: [], triggers: [], sentiment: 'neutral', mood_score: mood ?? 5,
       summary: '', coping_suggestions: [], trend: 'unknown',
       related_memories: [], risk_level: 'none', needs_support: false,
     };
@@ -53,10 +53,16 @@ async function createEntry(req, res, next) {
       aiError = 'No Gemini API key configured on the server. Configure GEMINI_API_KEY in backend .env to enable AI analysis.';
     }
 
+    // `mood` from req.body is optional; fall back to AI-derived mood_score.
+    // Clamp to [1,10] as a last-resort safeguard — Mongoose schema min is 1,
+    // and Gemini can occasionally return 0 for very calm entries.
+    const rawMood = mood ?? analysis.mood_score ?? 5;
+    const safeMood = Math.min(10, Math.max(1, Number.isFinite(+rawMood) ? +rawMood : 5));
+
     const entry = await JournalEntry.create({
       user: req.userId,
       text: text.trim(),
-      mood: mood || analysis.mood_score,
+      mood: safeMood,
       copingUsed: copingUsed || [],
       ...analysis,
     });

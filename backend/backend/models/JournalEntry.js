@@ -23,7 +23,7 @@ const journalEntrySchema = new mongoose.Schema(
     themes: [{ type: String }],
     triggers: [{ type: String }],
     sentiment: { type: String, enum: ['positive', 'neutral', 'negative', 'mixed', ''], default: '' },
-    mood_score: { type: Number, min: 0, max: 10 },
+    mood_score: { type: Number, min: 1, max: 10 },
     summary: { type: String, default: '' },
     coping_suggestions: [{ type: String }],
     trend: { type: String, enum: ['improving', 'worsening', 'stable', 'unknown', ''], default: '' },
