@@ -1,114 +1,190 @@
-# MindMirror 🪞
+# 🧠 MindMirror
 
-An AI companion that remembers your emotional journey and helps you see how far you've come.
+MindMirror is an AI-powered mental wellness and self-reflection platform designed to help users understand their emotions, manage overthinking, and build healthier thought patterns.
 
-## What it does
-
-MindMirror is a mental wellness web app built around **emotional memory** — when you share a struggle, the AI surfaces similar past moments you survived, helping you see patterns of resilience rather than getting lost in catastrophic thinking.
-
-### Features
-
-| Feature | Description |
-|---|---|
-| 🤖 **AI Companion** | Warm, emotionally intelligent chat that surfaces past memories |
-| 📓 **Journal** | Log entries with mood score, emotional themes, and coping strategies |
-| 🕐 **Timeline** | Visual emotional history grouped by month |
-| 📊 **Patterns** | Recurring theme detection with radar + bar charts |
-| 🌱 **Growth Dashboard** | Mood trend chart, recovery stats, and coping effectiveness |
-| 🪜 **Thought Ladder** | Break down catastrophic thinking into facts vs predictions |
-| 💌 **Future Letters** | Write messages to yourself for hard times |
+The application combines AI-assisted journaling, emotional analytics, thought reframing, future self-reflection, AI companionship, and mindfulness games into a single interactive experience.
 
 ---
 
-## Setup
+# ✨ Features Overview
 
-### 1. Install dependencies
+| Feature                 | Description                                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 📝 AI Journal           | Create journal entries with AI-powered emotional analysis, sentiment detection, trigger identification, and coping suggestions. |
+| 🤖 AI Companion         | Chat with an empathetic AI assistant powered by Google Gemini for reflection and emotional support.                             |
+| 🪜 Thought Ladder       | Reframe negative thoughts into balanced perspectives using CBT-inspired techniques.                                             |
+| 📊 Analytics Dashboard  | Visualize emotional trends, recurring themes, triggers, and personal growth over time.                                          |
+| 📈 Growth Tracking      | Monitor emotional progress and wellness improvements through interactive charts.                                                |
+| 📨 Future Letters       | Write letters to your future self for motivation, reflection, and encouragement.                                                |
+| 🎮 Mind Games           | Interactive activities designed to reduce stress, anxiety, and overthinking.                                                    |
+| ☁️ Thought Cloud Burst  | Release intrusive thoughts by popping floating thought bubbles.                                                                 |
+| 👾 Anxiety Monster      | Reduce anxiety by completing calming exercises and shrinking the monster.                                                       |
+| 🌱 Gratitude Garden     | Build a virtual garden through gratitude practice and positive reflection.                                                      |
+| 🔐 JWT Authentication   | Secure signup, login, and protected user-specific data.                                                                         |
+| 🗄️ MongoDB Atlas       | Cloud database for storing users, journals, chats, and future letters.                                                          |
+| ⚡ Gemini AI Integration | Google Gemini-powered emotional analysis, journaling insights, and companion responses.                                         |
+| 📱 Responsive UI        | Mobile-friendly and desktop-friendly interface built with React and Tailwind CSS.                                               |
+
+---
+
+# 🏗️ Tech Stack
+
+| Category           | Technologies                                           |
+| ------------------ | ------------------------------------------------------ |
+| Frontend           | React, Vite, React Router, Tailwind CSS, Framer Motion |
+| Backend            | Node.js, Express.js                                    |
+| Database           | MongoDB Atlas, Mongoose                                |
+| Authentication     | JWT, bcrypt                                            |
+| AI                 | Google Gemini API                                      |
+| Charts & Analytics | Recharts                                               |
+| Icons              | Lucide React                                           |
+| Version Control    | Git & GitHub                                           |
+
+---
+
+# 📂 Project Structure
+
+```text
+mindmirror/
+│
+├── src/
+│   ├── pages/
+│   ├── components/
+│   ├── context/
+│   ├── lib/
+│   └── styles/
+│
+├── backend/
+│   ├── config/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   ├── utils/
+│   └── server.js
+│
+├── public/
+├── package.json
+└── README.md
+```
+
+---
+
+# 🚀 Core Modules
+
+### AI Journal
+
+* Emotional analysis
+* Mood detection
+* Theme extraction
+* Trigger identification
+* Coping recommendations
+
+### AI Companion
+
+* Conversational emotional support
+* Reflection prompts
+* Personalized interactions
+
+### Thought Ladder
+
+* Cognitive restructuring
+* Thought reframing
+* CBT-inspired exercises
+
+### Analytics & Growth
+
+* Mood trends
+* Emotional insights
+* Trigger frequency analysis
+* Growth visualization
+
+### Future Letters
+
+* Self-reflection
+* Motivation storage
+* Personal reminders
+
+### Mind Games
+
+* Thought Cloud Burst
+* Anxiety Monster
+* Gratitude Garden
+* Grounding Exercises
+* Thought Traffic
+
+---
+
+# ⚙️ Environment Variables
+
+Create a `.env` file inside the backend directory:
+
+```env
+PORT=4000
+
+MONGODB_URI=YOUR_MONGODB_CONNECTION_STRING
+
+JWT_SECRET=YOUR_JWT_SECRET
+
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+```
+
+---
+
+# 🔧 Installation
+
+### Clone Repository
+
+```bash
+git clone https://github.com/your-username/MindMirror.git
+cd MindMirror
+```
+
+### Frontend Setup
 
 ```bash
 npm install
-```
-
-### 2. Run locally
-
-```bash
 npm run dev
 ```
 
-Open `http://localhost:5173`
-
-### 3. Get an API key
-
-Get a free Anthropic API key from [console.anthropic.com](https://console.anthropic.com/settings/keys)
-
-Enter it in the app's **Settings** page. The key is stored only in your browser.
-
----
-
-## Build for production
+### Backend Setup
 
 ```bash
-npm run build
-npm run preview
-```
-
-Deploy the `dist/` folder to any static host (Vercel, Netlify, GitHub Pages).
-
----
-
-## Tech stack
-
-- **React 18** + **Vite**
-- **Tailwind CSS** for styling
-- **React Router** for navigation
-- **Recharts** for data visualization
-- **Anthropic Claude API** for AI features
-- **localStorage** for data persistence (no backend needed)
-
----
-
-## Privacy
-
-All your data lives in your browser's `localStorage`. Nothing is stored on any server. The only external calls made are to Anthropic's API when you use the AI companion, thought ladder, or pattern insights — and only the content of your messages is sent (not your name or other personal details).
-
-You can delete all data anytime from Settings.
-
----
-
-## Project structure
-
-```
-src/
-  lib/
-    store.js       ← localStorage data layer + analytics helpers
-    companion.js   ← Anthropic API calls (chat, thought ladder, insights)
-  pages/
-    Companion.jsx  ← AI chat interface
-    Journal.jsx    ← Entry writing and listing
-    Timeline.jsx   ← Month-by-month emotional history
-    Patterns.jsx   ← Theme frequency charts + AI insights
-    Growth.jsx     ← Stats dashboard and mood trend
-    ThoughtLadder.jsx ← Cognitive distortion breakdown tool
-    FutureLetters.jsx ← Letters to future self
-    Settings.jsx   ← API key, privacy, data management
-    Onboarding.jsx ← First-time setup flow
-  components/
-    Layout.jsx     ← Sidebar navigation
-  styles/
-    globals.css    ← Custom CSS + Tailwind directives
+cd backend
+npm install
+npm run dev
 ```
 
 ---
 
-## Extending the project
+# 🎯 Future Enhancements
 
-**Add a backend**: Replace `store.js` with API calls to a FastAPI + PostgreSQL backend for cross-device sync and proper user accounts.
-
-**Semantic memory**: Add vector embeddings (pgvector) so the AI retrieves semantically similar past entries rather than keyword-matching.
-
-**Push notifications**: Remind users to journal daily using browser notifications.
-
-**Mood check-in widget**: A minimal daily mood log without requiring full journal entries.
+* AI-powered mood prediction
+* Personalized wellness recommendations
+* Daily mindfulness challenges
+* Mobile application
+* Community support features
+* Advanced emotional analytics
+* Gamified mental wellness activities
+* AI-based habit tracking
 
 ---
 
-Built with ❤️ as a portfolio project exploring emotional AI and mental wellness.
+# 🌟 Motivation
+
+MindMirror was created to provide a safe space for self-reflection, emotional awareness, and mental wellness. By combining artificial intelligence with proven reflection techniques, the platform helps users better understand their emotions and develop healthier thinking patterns.
+
+---
+
+# 👩‍💻 Author
+
+**Vedika Shirdhankar**
+
+Computer Science Engineering Student
+Sardar Patel Institute of Technology (SPIT)
+
+---
+
+# 📜 License
+
+This project is intended for educational, research, and personal development purposes.
