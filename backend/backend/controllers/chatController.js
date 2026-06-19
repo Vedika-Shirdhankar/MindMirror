@@ -68,11 +68,18 @@ function buildMemoryContext(memories) {
       ? e.summary.trim()
       : (e.text || '').slice(0, 150).trim() + ((e.text || '').length > 150 ? '…' : '');
 
-    return (
-      `[${date}] Distress: ${distress}/10 | Sentiment: ${sentiment} | ` +
-      `Themes: ${themes} | Triggers: ${triggers}\n` +
-      `Reflection: "${reflection}"`
-    );
+    let entryStr = `[${date}] Distress: ${distress}/10 | Sentiment: ${sentiment} | ` +
+      `Themes: ${themes} | Triggers: ${triggers}`;
+
+    if (e.resolved) {
+      entryStr += ` | Status: Resolved`;
+      if (e.resolvedNote) {
+        entryStr += ` (Resolution strategy: "${e.resolvedNote}")`;
+      }
+    }
+
+    entryStr += `\nReflection: "${reflection}"`;
+    return entryStr;
   }).join('\n\n');
 }
 
@@ -98,9 +105,13 @@ function buildCompanionSystemPrompt(relevantMemories, recentEntries) {
       const date    = new Date(e.date).toISOString().split('T')[0];
       const distress = e.mood_score ?? e.mood ?? '?';
       const themes  = (e.themes || []).join(', ') || 'none';
+      let statusStr = e.resolved ? ' ✓ Resolved' : '';
+      if (e.resolved && e.resolvedNote) {
+        statusStr += ` (Resolution strategy: "${e.resolvedNote}")`;
+      }
       return (
         `[${date}] Distress: ${distress}/10 | Themes: ${themes} | ` +
-        `Trend: ${e.trend || 'n/a'}${e.resolved ? ' ✓ Resolved' : ''}`
+        `Trend: ${e.trend || 'n/a'}${statusStr}`
       );
     })
     .join('\n') || 'No recent entries yet.';
@@ -164,6 +175,10 @@ When journal memories are relevant, weave them in naturally:
 ✗ Never say "According to your journal entry on [date]..."
 ✗ Never quote journal entries verbatim.
 ✗ Never reference entries that aren't related to what the person just said.
+
+If the user talks about a topic or problem that is related to a previously resolved entry, you must:
+1. Prefer using their resolution strategies (from the "Resolution strategy" notes in the context) to offer guidance, remind them of what worked, and acknowledge how they resolved it.
+2. Explicitly explain HOW they resolved the issue previously (e.g., if the note says "Just letting go because dwelling on it was draining my thoughts", say something like: "You mentioned before that just letting go and not letting it drain you was what helped you move past it.").
 
 ─── SAFETY ────────────────────────────────────────────────────────────────────
 

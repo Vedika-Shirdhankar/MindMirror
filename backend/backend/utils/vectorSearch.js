@@ -68,6 +68,8 @@ async function vectorSearchAtlas(JournalEntry, { embedding, userId, excludeEntry
         mood_score: 1,
         mood: 1,
         summary: 1,
+        resolved: 1,
+        resolvedNote: 1,
         score: { $meta: 'vectorSearchScore' },
       },
     },
@@ -92,7 +94,7 @@ async function cosineSimilarityFallback(JournalEntry, { embedding, userId, exclu
     _id: { $ne: excludeEntryId },
     embedding: { $exists: true, $ne: [] },
   })
-    .select('text date themes mood_score mood summary embedding')
+    .select('text date themes mood_score mood summary resolved resolvedNote embedding')
     .lean();
 
   const scored = candidates

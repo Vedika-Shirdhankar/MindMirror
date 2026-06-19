@@ -98,6 +98,9 @@ export default function Journal() {
   const [lastSupport, setLastSupport] = useState(null)
   const [lastAiError, setLastAiError] = useState('')
   const [error, setError] = useState('')
+  const [resolvingId, setResolvingId] = useState(null)
+  const [resolvedNote, setResolvedNote] = useState('')
+  const [resolving, setResolving] = useState(false)
 
   useEffect(() => { loadEntries() }, [])
 
@@ -144,6 +147,22 @@ export default function Journal() {
       setEntries(prev => prev.filter(e => e._id !== id))
     } catch (e) {
       setError(e.message)
+    }
+  }
+
+  async function handleResolveSubmit(id) {
+    if (resolving) return
+    setResolving(true)
+    setError('')
+    try {
+      const updatedEntry = await api.markEntryResolved(id, resolvedNote.trim())
+      setEntries(prev => prev.map(e => e._id === id ? updatedEntry : e))
+      setResolvingId(null)
+      setResolvedNote('')
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setResolving(false)
     }
   }
 
@@ -212,7 +231,11 @@ export default function Journal() {
       ) : (
         <div className="flex flex-col gap-3">
           {entries.map(e => (
-            <div key={e._id} className="rounded-xl p-4 group" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div key={e._id} className="rounded-xl p-4 group transition-all"
+              style={{
+                background: e.resolved ? 'rgba(29, 158, 117, 0.02)' : 'rgba(255,255,255,0.04)',
+                border: e.resolved ? '1px solid rgba(29, 158, 117, 0.15)' : '1px solid rgba(255,255,255,0.07)'
+              }}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
@@ -223,11 +246,48 @@ export default function Journal() {
                     {e.resolved && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(29,158,117,0.1)', color: '#5DCAA5' }}>resolved</span>}
                   </div>
                   <p className="text-sm leading-relaxed" style={{ color: 'rgba(232,230,240,0.8)' }}>{e.text}</p>
+                  
+                  {e.resolved && e.resolvedNote && (
+                    <div className="mt-2 text-xs p-2.5 rounded-lg" style={{ background: 'rgba(29, 158, 117, 0.05)', border: '1px dashed rgba(29, 158, 117, 0.2)', color: 'rgba(232, 230, 240, 0.65)' }}>
+                      <span className="font-semibold text-emerald-400" style={{ color: '#5DCAA5', marginRight: '4px' }}>Resolution Note:</span>
+                      {e.resolvedNote}
+                    </div>
+                  )}
+
+                  {resolvingId === e._id && (
+                    <div className="mt-3 p-3 rounded-lg fade-up animate-in fade-in zoom-in duration-200" style={{ background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(29,158,117,0.3)' }}>
+                      <p className="text-xs mb-2 font-medium" style={{ color: '#5DCAA5' }}>Mark this entry as resolved?</p>
+                      <textarea
+                        value={resolvedNote}
+                        onChange={ev => setResolvedNote(ev.target.value)}
+                        placeholder="Optional note: what helped resolve this, or what did you learn?"
+                        rows={2}
+                        className="w-full text-xs outline-none resize-none leading-relaxed p-2 rounded-lg mb-2"
+                        style={{ background: 'rgba(0,0,0,0.2)', color: '#e8e6f0', border: '1px solid rgba(255,255,255,0.08)' }}
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <button onClick={() => { setResolvingId(null); setResolvedNote(''); }} className="px-3 py-1 rounded-lg text-xs border" style={{ borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(232,230,240,0.5)' }}>
+                          Cancel
+                        </button>
+                        <button onClick={() => handleResolveSubmit(e._id)} disabled={resolving} className="px-3 py-1 rounded-lg text-xs font-medium" style={{ background: '#1D9E75', color: 'white' }}>
+                          {resolving ? 'Resolving...' : 'Confirm'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <AnalysisCard entry={e} />
                 </div>
-                <button onClick={() => handleDelete(e._id)} className="opacity-0 group-hover:opacity-40 hover:!opacity-80 transition-opacity p-1.5 rounded-lg" style={{ color: '#E24B4A' }}>
-                  <Trash2 size={13} />
-                </button>
+                <div className="flex flex-col gap-1 items-center">
+                  {!e.resolved && (
+                    <button onClick={() => { setResolvingId(e._id); setResolvedNote(''); }} className="opacity-0 group-hover:opacity-40 hover:!opacity-80 transition-opacity p-1.5 rounded-lg" style={{ color: '#5DCAA5' }} title="Mark as resolved">
+                      <CheckCircle size={13} />
+                    </button>
+                  )}
+                  <button onClick={() => handleDelete(e._id)} className="opacity-0 group-hover:opacity-40 hover:!opacity-80 transition-opacity p-1.5 rounded-lg" style={{ color: '#E24B4A' }} title="Delete entry">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}

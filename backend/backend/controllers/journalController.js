@@ -181,7 +181,7 @@ async function semanticSearch(req, res, next) {
 
     // Fetch all entries that already have embeddings (select: false field needs explicit +embedding)
     const entries = await JournalEntry.find({ user: req.userId })
-      .select('+embedding text date themes mood_score mood summary sentiment resolved')
+      .select('+embedding text date themes mood_score mood summary sentiment resolved resolvedNote')
       .lean();
 
     const scored = entries
@@ -195,6 +195,7 @@ async function semanticSearch(req, res, next) {
         summary: e.summary,
         sentiment: e.sentiment,
         resolved: e.resolved,
+        resolvedNote: e.resolvedNote,
         score: cosineSimilarity(queryVec, e.embedding),
       }))
       .filter(e => e.score > 0.5) // Only surface meaningfully similar results

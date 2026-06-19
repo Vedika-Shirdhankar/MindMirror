@@ -139,6 +139,14 @@ export async function deleteEntry(id) {
   });
 }
 
+export async function markEntryResolved(id, resolvedNote = '') {
+  const data = await request(`/journal/${id}/resolve`, {
+    method: 'PATCH',
+    body: JSON.stringify({ resolvedNote }),
+  });
+  return data.entry;
+}
+
 export async function searchEntries(query) {
   const data = await request('/journal/search', {
     method: 'POST',
