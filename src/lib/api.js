@@ -65,9 +65,11 @@ export function logout() {
 async function request(path, options = {}) {
   const token = getToken();
   const headers = {
-    'Content-Type': 'application/json',
     ...(options.headers || {}),
   };
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -130,6 +132,7 @@ export async function addEntry({ text, copingUsed, mood }) {
     entry: data.entry,
     aiError: data.aiError,
     support: data.support,
+    recommendedVideos: data.recommendedVideos || [],
   };
 }
 
@@ -170,6 +173,7 @@ export async function sendChatMessage(content) {
     reply: data.reply,
     messages: data.messages,
     support: data.support,
+    recommendedVideos: data.recommendedVideos || [],
   };
 }
 
@@ -214,4 +218,28 @@ export async function updateProfile(name) {
     body: JSON.stringify({ name }),
   });
   return data.user;
+}
+
+// 8. Video Reflection Operations
+export async function getVideoReflections() {
+  const data = await request('/videos');
+  return data.videos || [];
+}
+
+export async function uploadVideoReflection(formData) {
+  const data = await request('/videos', {
+    method: 'POST',
+    body: formData,
+  });
+  return data.reflection;
+}
+
+export async function deleteVideoReflection(id) {
+  return request(`/videos/${id}`, {
+    method: 'DELETE',
+  });
+}
+// 9. Letter From MindMirror
+export async function getLetterFromMirror() {
+  return request('/letter-from-mirror');
 }

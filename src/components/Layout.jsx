@@ -1,20 +1,22 @@
 import { NavLink } from 'react-router-dom'
 import {
   MessageCircle, BookOpen, Clock, BarChart2, TrendingUp,
-  Layers, Mail, Settings, Heart, Lock, LogOut, PieChart, Gamepad2
+  Layers, Mail, Settings, Heart, Lock, LogOut, PieChart, Gamepad2, Video, Scroll
 } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext.jsx'
 
 const navItems = [
-  { to: '/companion',     icon: MessageCircle, label: 'Companion' },
-  { to: '/journal',       icon: BookOpen,      label: 'Journal' },
-  { to: '/timeline',      icon: Clock,         label: 'Timeline' },
-  { to: '/patterns',      icon: BarChart2,     label: 'Patterns' },
-  { to: '/growth',        icon: TrendingUp,    label: 'Growth' },
-  { to: '/analytics',     icon: PieChart,      label: 'Analytics' },
-  { to: '/mind-games',    icon: Gamepad2,      label: 'Mind Games' },
-  { to: '/thought-ladder',icon: Layers,        label: 'Thought Ladder' },
-  { to: '/letters',       icon: Mail,          label: 'Future Letters' },
+  { to: '/companion',          icon: MessageCircle, label: 'Companion' },
+  { to: '/journal',            icon: BookOpen,      label: 'Journal' },
+  { to: '/letter-from-mirror', icon: Scroll,        label: 'Letter From MindMirror' },
+  { to: '/videos',             icon: Video,         label: 'Video Reflections' },
+  { to: '/timeline',           icon: Clock,         label: 'Timeline' },
+  { to: '/patterns',           icon: BarChart2,     label: 'Patterns' },
+  { to: '/growth',             icon: TrendingUp,    label: 'Growth' },
+  { to: '/analytics',          icon: PieChart,      label: 'Analytics' },
+  { to: '/mind-games',         icon: Gamepad2,      label: 'Mind Games' },
+  { to: '/thought-ladder',     icon: Layers,        label: 'Thought Ladder' },
+  { to: '/letters',            icon: Mail,          label: 'Future Letters' },
 ]
 
 export default function Layout({ children, user }) {

@@ -5,6 +5,7 @@ const { analyzeJournalEntry } = require('../utils/aiAnalysis');
 const { CRISIS_RESOURCES } = require('../utils/crisisResources');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { generateEmbedding, cosineSimilarity } = require('../utils/embeddings');
+const { extractAndSaveActions } = require('../utils/actionExtractor');
 
 // GET /api/journal
 async function getEntries(req, res, next) {
@@ -67,12 +68,27 @@ async function createEntry(req, res, next) {
       ...analysis,
     });
 
-    // Generate and save embedding asynchronously — never block the response
-    generateEmbedding(text.trim())
-      .then(vec => JournalEntry.updateOne({ _id: entry._id }, { embedding: vec }))
-      .catch(e => console.warn('[embeddings] Failed to generate embedding:', e.message));
+    let recommendedVideos = [];
+    try {
+      const vec = await generateEmbedding(text.trim());
+      await JournalEntry.updateOne({ _id: entry._id }, { embedding: vec });
 
-    const responseBody = { entry, aiError };
+      const VideoReflection = require('../models/VideoReflection');
+      const { findSimilarVideos } = require('../utils/vectorSearch');
+      const videoResults = await findSimilarVideos(VideoReflection, {
+        embedding: vec,
+        userId: req.userId,
+        limit: 3
+      });
+      recommendedVideos = videoResults.map(r => r.video);
+    } catch (e) {
+      console.warn('[embeddings/recommendations] Failed:', e.message);
+    }
+
+    // Fire-and-forget: extract actions from the journal text
+    extractAndSaveActions(text.trim(), 'JournalEntry', entry._id, req.userId);
+
+    const responseBody = { entry, recommendedVideos, aiError };
 
     // Safety net: always attach crisis resources at the API layer when risk is flagged,
     // regardless of what the model included in its own summary text.
@@ -107,6 +123,12 @@ async function markResolved(req, res, next) {
       { new: true }
     );
     if (!entry) return res.status(404).json({ error: 'Entry not found.' });
+
+    // Fire-and-forget: extract resolution strategies as action memories
+    if (resolvedNote?.trim()) {
+      extractAndSaveActions(resolvedNote.trim(), 'ResolutionNote', entry._id, req.userId);
+    }
+
     res.json({ entry });
   } catch (err) {
     next(err);

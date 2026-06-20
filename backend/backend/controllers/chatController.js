@@ -1,201 +1,309 @@
 // controllers/chatController.js
 const Chat = require('../models/Chat');
 const JournalEntry = require('../models/JournalEntry');
+const User = require('../models/User');
+const ActionMemory = require('../models/ActionMemory');
 const { CRISIS_RESOURCES } = require('../utils/crisisResources');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { generateEmbedding } = require('../utils/embeddings');
-const { findSimilarEntries } = require('../utils/vectorSearch');
+const { findSimilarEntries, findSimilarVideos } = require('../utils/vectorSearch');
+const VideoReflection = require('../models/VideoReflection');
+const { extractAndSaveActions } = require('../utils/actionExtractor');
 
-// ── Memory Retrieval ──────────────────────────────────────────────────────────
-
-/**
- * Retrieves semantically relevant journal entries for the given message text.
- *
- * Flow:
- *   1. Generate an embedding for the user's message using Gemini text-embedding-004.
- *   2. Run findSimilarEntries (Atlas $vectorSearch → cosine fallback).
- *   3. Keep only entries above a 0.4 similarity threshold.
- *
- * Fallback:
- *   If embedding generation or vector search fails for any reason, silently
- *   returns the 5 most recent entries so the companion keeps working.
- *
- * @param {string} userId
- * @param {string} messageText
- * @returns {Promise<object[]>} array of lean JournalEntry docs
- */
-async function findRelevantMemories(userId, messageText) {
-  try {
-    const embedding = await generateEmbedding(messageText);
-    const results = await findSimilarEntries(JournalEntry, {
-      embedding,
-      userId,
-      limit: 5,
-    });
-    // Only surface entries with meaningful semantic similarity
-    const relevant = results.filter(r => r.score > 0.4).map(r => r.entry);
-    return relevant;
-  } catch (err) {
-    console.warn('[companion] Semantic memory unavailable, using recent entries:', err.message);
-    // Graceful fallback — companion must never fail
-    return JournalEntry.find({ user: userId })
-      .sort({ date: -1 })
-      .limit(5)
-      .lean();
-  }
-}
-
-// ── Prompt Building ───────────────────────────────────────────────────────────
+// ── Context Formatters ────────────────────────────────────────────────────────
 
 /**
- * Formats retrieved journal memories into a compact context block.
- * Prefers AI-generated summaries over raw text to keep tokens low.
- *
- * @param {object[]} memories
- * @returns {string}
+ * Formats semantically retrieved journal entries into a structured context block.
+ * Includes resolution strategies when present — these are highest-priority memory.
  */
 function buildMemoryContext(memories) {
-  if (!memories || !memories.length) return 'No relevant past entries found.';
+  if (!memories || !memories.length) return null;
 
   return memories.map(e => {
-    const date = new Date(e.date).toISOString().split('T')[0];
+    const date      = new Date(e.date).toISOString().split('T')[0];
     const distress  = e.mood_score ?? e.mood ?? '?';
     const themes    = (e.themes   || []).join(', ') || 'none';
     const triggers  = (e.triggers || []).join(', ') || 'none';
     const sentiment = e.sentiment || 'unknown';
-    // Prefer AI summary; fall back to first 150 chars of raw text
+
     const reflection = e.summary?.trim()
       ? e.summary.trim()
       : (e.text || '').slice(0, 150).trim() + ((e.text || '').length > 150 ? '…' : '');
 
-    let entryStr = `[${date}] Distress: ${distress}/10 | Sentiment: ${sentiment} | ` +
-      `Themes: ${themes} | Triggers: ${triggers}`;
+    let entryStr = `[${date}] Distress: ${distress}/10 | Sentiment: ${sentiment} | Themes: ${themes} | Triggers: ${triggers}`;
 
     if (e.resolved) {
-      entryStr += ` | Status: Resolved`;
+      entryStr += ' | ✓ RESOLVED';
       if (e.resolvedNote) {
-        entryStr += ` (Resolution strategy: "${e.resolvedNote}")`;
+        entryStr += `\n  → Resolution strategy: "${e.resolvedNote}"`;
       }
     }
 
-    entryStr += `\nReflection: "${reflection}"`;
+    entryStr += `\n  Summary: "${reflection}"`;
     return entryStr;
   }).join('\n\n');
 }
 
 /**
- * Builds the full Gemini system prompt with two context sections:
- *
- *   SEMANTICALLY RELEVANT MEMORIES — top 5 entries most similar to the
- *     current user message (retrieved via embedding search). These drive
- *     personalised, pattern-aware responses.
- *
- *   RECENT EMOTIONAL JOURNEY — last 5 entries chronologically, for
- *     trend and recency awareness even when they aren't semantically close.
- *
- * @param {object[]} relevantMemories - semantically retrieved entries
- * @param {object[]} recentEntries    - latest entries by date
- * @returns {string}
+ * Formats recent video reflections into context.
+ * The companion should understand what topics the user reflected on via video.
  */
-function buildCompanionSystemPrompt(relevantMemories, recentEntries) {
-  const memoryContext = buildMemoryContext(relevantMemories);
+function buildVideoContext(videos) {
+  if (!videos || !videos.length) return null;
+  return videos.map(v => {
+    const date = new Date(v.createdAt).toISOString().split('T')[0];
+    const note = v.note?.trim() ? `\n  Notes: "${v.note.trim()}"` : '';
+    return `[Video Reflection - ${date}] "${v.title}"${note}`;
+  }).join('\n\n');
+}
 
-  const recentContext = (recentEntries || []).slice(0, 5)
-    .map(e => {
-      const date    = new Date(e.date).toISOString().split('T')[0];
-      const distress = e.mood_score ?? e.mood ?? '?';
-      const themes  = (e.themes || []).join(', ') || 'none';
-      let statusStr = e.resolved ? ' ✓ Resolved' : '';
-      if (e.resolved && e.resolvedNote) {
-        statusStr += ` (Resolution strategy: "${e.resolvedNote}")`;
-      }
-      return (
-        `[${date}] Distress: ${distress}/10 | Themes: ${themes} | ` +
-        `Trend: ${e.trend || 'n/a'}${statusStr}`
-      );
-    })
-    .join('\n') || 'No recent entries yet.';
+/**
+ * Formats all video reflections (not just semantic matches) so the companion
+ * knows what videos exist even when there's no strong semantic hit.
+ */
+function buildAllVideosContext(videos) {
+  if (!videos || !videos.length) return null;
+  return videos.map(v => {
+    const date = new Date(v.createdAt).toISOString().split('T')[0];
+    return `• "${v.title}" (${date})${v.note?.trim() ? ` — ${v.note.trim().slice(0, 80)}` : ''}`;
+  }).join('\n');
+}
 
-  return `You are MindMirror — a thoughtful, emotionally intelligent companion. You feel like a close friend who genuinely knows the user, remembers what they've been through, and cares about how they're doing.
+/**
+ * Formats action memories into helpful/unhelpful categories.
+ * This teaches the companion what has and hasn't worked for this specific user.
+ */
+function buildActionContext(actions) {
+  if (!actions || !actions.length) return null;
 
-You are NOT a therapist. You do NOT run structured sessions. You do NOT ask questions after every message.
+  const helpful   = actions.filter(a => a.helpful);
+  const unhelpful = actions.filter(a => !a.helpful);
 
-─── WHO YOU ARE ───────────────────────────────────────────────────────────────
+  let str = '';
+  if (helpful.length) {
+    str += 'Actions that have helped this user:\n';
+    str += helpful.slice(0, 10).map(a =>
+      `  ✓ ${a.actionTaken}${a.outcome ? ` → ${a.outcome}` : ''}`
+    ).join('\n');
+  }
+  if (unhelpful.length) {
+    str += '\n\nActions that have NOT helped:\n';
+    str += unhelpful.slice(0, 5).map(a =>
+      `  ✗ ${a.actionTaken}${a.outcome ? ` → ${a.outcome}` : ''}`
+    ).join('\n');
+  }
+  return str.trim() || null;
+}
 
-You are warm, grounded, and direct. You speak like a real person — not a support bot. You use natural, everyday language. You're the kind of friend who listens well, notices patterns, says something real, and sometimes helps figure out what to do next.
+/**
+ * Formats the recent emotional trend from the last 5 journal entries.
+ */
+function buildRecentJourneyContext(recentEntries) {
+  if (!recentEntries || !recentEntries.length) return null;
 
-─── HOW TO RESPOND ────────────────────────────────────────────────────────────
+  return recentEntries.slice(0, 5).map(e => {
+    const date     = new Date(e.date).toISOString().split('T')[0];
+    const distress = e.mood_score ?? e.mood ?? '?';
+    const themes   = (e.themes || []).join(', ') || 'none';
+    let statusStr  = e.resolved ? ' ✓ Resolved' : '';
+    if (e.resolved && e.resolvedNote) {
+      statusStr += ` (Strategy: "${e.resolvedNote}")`;
+    }
+    return `[${date}] Distress: ${distress}/10 | Themes: ${themes} | Trend: ${e.trend || 'n/a'}${statusStr}`;
+  }).join('\n');
+}
 
-VARY your response style. Choose whichever fits the moment:
-• Acknowledgement   — just be present: "That sounds exhausting."
-• Validation        — name what you're hearing: "Of course that's weighing on you."
-• Reflection        — mirror back a pattern: "This feels like it's been building for a while."
-• Observation       — notice something: "You've actually navigated something similar before."
-• Gentle reframe    — a different angle, without dismissing: "One thing I notice is..."
-• Light humor       — only when the moment calls for it; never forced
-• Practical support — specific, realistic suggestions when the person seems stuck
+// ── System Prompt Builder ─────────────────────────────────────────────────────
 
-DO NOT end every message with a question. Questions should feel natural, not mandatory.
-When you do ask something, ask ONE thing that actually matters — not a filler question.
+/**
+ * Builds the V3 Companion system prompt.
+ *
+ * Core philosophy: "When I don't know you yet, I'll guide you.
+ *                   When I do know you, I'll remind you."
+ *
+ * Personalization levels are determined automatically by how much context exists:
+ *   Level 1 — No history: AI reasoning + practical guidance only
+ *   Level 2 — Some history: Weave in journal memories + patterns
+ *   Level 3 — Rich history: Full personal growth engine (journals + videos + resolutions + actions)
+ *
+ * Memory priority (highest → lowest):
+ *   Resolution Notes → Resolution Strategies → Relevant Videos → Journal Memories
+ *   → Emotional Trends → Successful Actions → General AI Guidance
+ */
+function buildCompanionSystemPrompt({
+  userName,
+  relevantMemories,
+  recentEntries,
+  relevantVideos,
+  allVideos,
+  actionMemories,
+}) {
+  const memoryContext    = buildMemoryContext(relevantMemories);
+  const videoContext     = buildVideoContext(relevantVideos);
+  const allVideosContext = buildAllVideosContext(allVideos);
+  const actionContext    = buildActionContext(actionMemories);
+  const recentContext    = buildRecentJourneyContext(recentEntries);
 
+  // Determine personalization level
+  const hasMemories  = !!memoryContext;
+  const hasVideos    = !!(videoContext || allVideosContext);
+  const hasActions   = !!actionContext;
+  const hasResolved  = relevantMemories?.some(m => m.resolved && m.resolvedNote);
+  const richHistory  = hasMemories && (hasVideos || hasActions || hasResolved);
+  const someHistory  = hasMemories || hasVideos;
+
+  // Build context section dynamically — only inject what exists
+  let contextSection = '';
+
+  if (memoryContext) {
+    contextSection += `\n\n── SEMANTICALLY RELEVANT JOURNAL MEMORIES ──────────────────────────────
+(Entries most similar to the current message. Use naturally, only when relevant. Never quote verbatim.)
+${memoryContext}`;
+  }
+
+  if (videoContext) {
+    contextSection += `\n\n── RELEVANT VIDEO REFLECTIONS ──────────────────────────────────────────
+(Videos the user recorded that are semantically relevant to the current message.)
+${videoContext}
+INSTRUCTION: If a video is relevant, refer to it naturally — e.g. "You recorded a video about this called '...' — your past self may have something useful to say." The app will display a watch button automatically.`;
+  }
+
+  if (allVideosContext && !videoContext) {
+    contextSection += `\n\n── ALL VIDEO REFLECTIONS ───────────────────────────────────────────────
+(Complete list of the user's recorded video reflections. No strong semantic match to current message, but be aware they exist.)
+${allVideosContext}`;
+  }
+
+  if (actionContext) {
+    contextSection += `\n\n── PERSONAL ACTION MEMORY ──────────────────────────────────────────────
+(Automatically extracted from this user's journals, resolutions, and videos. Use to recommend what has worked before and avoid what hasn't.)
+${actionContext}`;
+  }
+
+  if (recentContext) {
+    contextSection += `\n\n── RECENT EMOTIONAL JOURNEY ────────────────────────────────────────────
+(Last 5 entries, for trend and recency awareness.)
+${recentContext}`;
+  }
+
+  // Personalization level header for Gemini's reasoning
+  let personalizationGuidance = '';
+  if (richHistory) {
+    personalizationGuidance = `
+PERSONALIZATION LEVEL 3 — RICH HISTORY:
+You have journals, video reflections, resolution notes, and action memories for this user.
+Use all of it to give deeply personalised guidance. Connect their past self to their present self.
+Remind them what worked. Surface patterns they may not see themselves.`;
+  } else if (someHistory) {
+    personalizationGuidance = `
+PERSONALIZATION LEVEL 2 — SOME HISTORY:
+You have some journal memories and/or video reflections for this user.
+Weave these in naturally when relevant. Acknowledge patterns. Help them see their own growth.`;
+  } else {
+    personalizationGuidance = `
+PERSONALIZATION LEVEL 1 — NEW USER:
+You have little or no personal history for this user yet.
+Rely on AI reasoning, practical guidance, coping frameworks, and actionable next steps.
+IMPORTANT: Say something like "I don't have enough of your personal history yet to know what's worked before, but based on what you've shared..." — do NOT pretend to know their patterns.`;
+  }
+
+  return `You are MindMirror — a warm, intelligent, action-oriented personal companion for ${userName}.
+You are NOT a therapist. NOT a chatbot. NOT a journal summarizer.
+
+You are the bridge between ${userName}'s past self, present self, and future self.
+
+── CORE PHILOSOPHY ──────────────────────────────────────────────────────────────
+"When I don't know you yet, I'll guide you. When I do know you, I'll remind you."
+
+Never depend entirely on memory. Never depend entirely on AI reasoning alone.
+Always combine both. Memory should enhance your response, not replace it.
+${personalizationGuidance}
+
+── WHO YOU ARE ──────────────────────────────────────────────────────────────────
+You are warm, grounded, direct, and practical. You speak like a close friend who genuinely knows ${userName}, remembers their journey, and cares how they're doing. You notice patterns. You surface things they've forgotten. You help them move forward.
+
+── NAME USAGE ───────────────────────────────────────────────────────────────────
+Use "${userName}" occasionally and naturally — the way a real friend would.
+✓ "${userName}, I think you're being harder on yourself than the facts support."
+✓ "From what I've seen, ${userName}, you tend to do better once you take the first step."
+✗ Do NOT use the name in every message. That feels robotic.
+
+── HOW TO RESPOND ───────────────────────────────────────────────────────────────
+VARY your response style. Choose what fits the moment:
+• Acknowledgement — just be present: "That sounds exhausting."
+• Observation — notice a pattern: "This feels like it's been building for a while."
+• Reminder — connect to their past: "You've navigated something like this before."
+• Reframe — gentle new angle: "One thing I notice is..."
+• Practical guidance — specific next steps when they seem stuck
+• Encouragement — specific, earned, not empty
+
+RESPONSE FLOW (use only what is relevant):
+1. Understand the current situation
+2. Connect to relevant memories / videos / resolutions
+3. Remind what helped before (from resolved entries or action memories)
+4. Suggest concrete next actions
+5. End with encouragement or insight — NOT always a question
+
+── MEMORY & PERSONALIZATION ─────────────────────────────────────────────────────
+MEMORY PRIORITY ORDER (use in this order when building your response):
+1. Resolution notes + strategies (highest priority — real solutions that worked)
+2. Relevant video reflections (the user's past self speaking directly)
+3. Similar journal memories (patterns + emotional history)
+4. Action memories (what helped, what didn't)
+5. Recent emotional trend (for context and recency)
+6. General AI reasoning and guidance (always as a foundation)
+
+MEMORY RULES:
+✓ Weave memories in naturally: "You've written about this kind of pressure before."
+✓ Reference resolved issues: "You resolved something similar — what helped then was..."
+✓ Reference videos by title: "You recorded a video called '...' during a similar time."
+✓ Use action patterns: "One thing that consistently seems to help you is..."
+✗ NEVER say "According to your journal entry on [date]..."
+✗ NEVER quote journal entries verbatim
+✗ NEVER invent dates, memories, videos, or resolutions
+✗ NEVER reference things that aren't in the context provided
+
+CONFIDENCE SYSTEM — CRITICAL:
+If no relevant memories exist: say "I don't have enough of your personal history yet to know what's worked before, but..."
+If dates are missing from context: NEVER guess or invent them
+If no videos exist: NEVER pretend they do
+
+── PRACTICAL GUIDANCE ───────────────────────────────────────────────────────────
+The companion is action-oriented. For specific problems, suggest concrete next steps:
+
+Academic stress → Study plan, break into chunks, Pomodoro (25-min focused sessions)
+Overthinking → Identify controllable factors, write down the fear, take one small action
+Regret → Acceptance, lessons learned, forward focus — not rumination
+Decision anxiety → List options, pick ONE next step, avoid endless analysis
+Relationship issues → Name the feeling, identify what's in your control, talk or write it out
+Placement/career anxiety → Focus on preparation not prediction, one application at a time
+
+── QUESTIONS ────────────────────────────────────────────────────────────────────
+Do NOT end every message with a question. This is a common failure mode.
+Ask questions only when genuinely useful — when you need to understand more or when reflection would genuinely help.
 Sometimes the best response ends with:
-— a supportive statement ("That makes a lot of sense.")
-— an insight ("Sounds like the pressure isn't really about the exam itself.")
-— encouragement that's specific ("You sorted through something harder than this back in March.")
-— a concrete suggestion ("One thing that might help: just pick the one thing that's due soonest and start there.")
+— a statement: "That makes a lot of sense."
+— an insight: "Sounds like the pressure isn't really about the exam itself."
+— a specific action: "Pick the one task that's most overdue. Set a 25-minute timer. Just that."
+— earned encouragement: "You've sorted through something harder than this before."
 
-─── WHEN TO GIVE ADVICE ───────────────────────────────────────────────────────
-
-ONLY give practical suggestions after you've acknowledged the emotion first.
-Order: Listen → Understand → Reflect → Then suggest (if helpful).
-
-When to suggest:
-• The person seems stuck and is going in circles
-• They've asked what to do
-• Their journal history shows a recurring pattern you can speak to
-• A small concrete step would clearly help
-
-When you do suggest something, be SPECIFIC and REALISTIC:
-✓ "Pick the chapter that's worrying you most. Set a 25-minute timer. Just that."
-✓ "It might help to write down exactly what's scaring you — not to solve it, just to see it."
-✓ "You've felt this way before exams and got through it. What helped last time?"
-
-NEVER say:
-✗ "You've got this!"
-✗ "Believe in yourself!"
-✗ "Everything happens for a reason."
+── WHAT TO AVOID ────────────────────────────────────────────────────────────────
+✗ "You've got this!" (empty)
+✗ "Believe in yourself!" (hollow)
 ✗ "I understand how you feel." (show it, don't say it)
 ✗ "That must be really hard." (too clinical)
+✗ "Everything happens for a reason." (dismissive)
+✗ Bullet-point lists in emotional conversations
+✗ Repeating the same journal summary twice
+✗ Starting every response with "${userName},"
 
-─── MEMORY & PERSONALIZATION ──────────────────────────────────────────────────
+── SAFETY ───────────────────────────────────────────────────────────────────────
+If ${userName} expresses hopelessness, self-harm ideation, or genuine crisis:
+Respond with warmth first. Then mention in ONE sentence that iCall India (9152987821) is available — not as a lecture, just a door you're pointing to.
 
-When journal memories are relevant, weave them in naturally:
-✓ "You've written about this kind of pressure before — around placements, I think."
-✓ "Looking back, you actually worked through something similar in a pretty similar way."
-✗ Never say "According to your journal entry on [date]..."
-✗ Never quote journal entries verbatim.
-✗ Never reference entries that aren't related to what the person just said.
-
-If the user talks about a topic or problem that is related to a previously resolved entry, you must:
-1. Prefer using their resolution strategies (from the "Resolution strategy" notes in the context) to offer guidance, remind them of what worked, and acknowledge how they resolved it.
-2. Explicitly explain HOW they resolved the issue previously (e.g., if the note says "Just letting go because dwelling on it was draining my thoughts", say something like: "You mentioned before that just letting go and not letting it drain you was what helped you move past it.").
-
-─── SAFETY ────────────────────────────────────────────────────────────────────
-
-If the user expresses hopelessness, self-harm ideation, or genuine crisis:
-Respond with warmth first. Then, in ONE sentence, mention that reaching out to a crisis line (iCall India: 9152987821) is an option — not a lecture, just a door you're pointing to. The app will also show resources separately.
-
-─── FORMAT ────────────────────────────────────────────────────────────────────
-
-Keep responses concise — 2 to 5 sentences is usually right. Shorter is fine. Longer only when you're walking through something concrete. No bullet lists in emotional conversations.
-
-─── CONTEXT ───────────────────────────────────────────────────────────────────
-
-SEMANTICALLY RELEVANT MEMORIES (entries most similar to the current message — use naturally, only when relevant):
-${memoryContext}
-
-RECENT EMOTIONAL JOURNEY (last 5 entries, for trend awareness):
-${recentContext}`;
+── FORMAT ───────────────────────────────────────────────────────────────────────
+Keep responses concise — 2 to 5 sentences is usually right. Shorter is fine. Longer only when walking through something concrete with clear practical steps.
+${contextSection || '\n\n(No personal history available yet — use AI reasoning and practical guidance only.)'}`;
 }
 
 // ── Route Handlers ────────────────────────────────────────────────────────────
@@ -231,13 +339,69 @@ async function sendMessage(req, res, next) {
       return res.json({ reply: fallback, messages: chat.messages });
     }
 
-    // Retrieve semantically relevant memories + recent entries in parallel
-    const [relevantMemories, recentEntries] = await Promise.all([
-      findRelevantMemories(req.userId, content.trim()),
+    // ── Fetch user name ────────────────────────────────────────────────────────
+    const userDoc = await User.findById(req.userId).select('name').lean();
+    const userName = userDoc?.name?.split(' ')[0] || 'there';
+
+    // ── Generate query embedding (single generation, used everywhere) ──────────
+    let embedding = null;
+    try {
+      embedding = await generateEmbedding(content.trim());
+    } catch (e) {
+      console.warn('[companion] Failed to generate embedding:', e.message);
+    }
+
+    // ── Fetch all context in parallel ──────────────────────────────────────────
+    const [
+      relevantMemories,
+      recentEntries,
+      relevantVideos,
+      allVideos,
+      actionMemories,
+    ] = await Promise.all([
+      // Semantically similar journal entries
+      embedding
+        ? findSimilarEntries(JournalEntry, { embedding, userId: req.userId, limit: 5 })
+            .then(results => results.filter(r => r.score > 0.4).map(r => r.entry))
+            .catch(() => JournalEntry.find({ user: req.userId }).sort({ date: -1 }).limit(5).lean())
+        : JournalEntry.find({ user: req.userId }).sort({ date: -1 }).limit(5).lean(),
+
+      // Recent entries for trend awareness
       JournalEntry.find({ user: req.userId }).sort({ date: -1 }).limit(5).lean(),
+
+      // Semantically similar video reflections
+      embedding
+        ? findSimilarVideos(VideoReflection, { embedding, userId: req.userId, limit: 3 })
+            .then(results => results.filter(r => r.score > 0.4).map(r => r.video))
+            .catch(() => [])
+        : [],
+
+      // All videos (so companion knows they exist even with low similarity)
+      VideoReflection.find({ user: req.userId })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .select('title note createdAt')
+        .lean(),
+
+      // Personal action memory — what has/hasn't worked before
+      ActionMemory.find({ user: req.userId })
+        .sort({ createdAt: -1 })
+        .limit(30)
+        .lean(),
     ]);
 
-    const systemPrompt = buildCompanionSystemPrompt(relevantMemories, recentEntries);
+    // ── Fire-and-forget: extract actions from this chat message ────────────────
+    extractAndSaveActions(content.trim(), 'CompanionConversation', chat._id, req.userId);
+
+    // ── Build system prompt with V3 engine ────────────────────────────────────
+    const systemPrompt = buildCompanionSystemPrompt({
+      userName,
+      relevantMemories,
+      recentEntries,
+      relevantVideos,
+      allVideos,
+      actionMemories,
+    });
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
@@ -245,23 +409,27 @@ async function sendMessage(req, res, next) {
       systemInstruction: systemPrompt,
     });
 
-    // Translate stored messages to Gemini format (role must be 'user' or 'model')
+    // Translate stored messages → Gemini format
     const geminiContents = chat.messages.slice(-20).map(m => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }],
     }));
 
     const result = await model.generateContent({ contents: geminiContents });
-
-    const reply = result.response.text() || "I'm here. Can you tell me more?";
+    const reply = result.response.text() || "I'm here. What's on your mind?";
 
     chat.messages.push({ role: 'assistant', content: reply });
     await chat.save();
 
-    // Lightweight crisis keyword check on the user's raw message
+    // Crisis detection on user's raw message
     const riskFlag = /\b(suicide|kill myself|end my life|self harm|hurt myself|no reason to live)\b/i.test(content);
 
-    res.json({ reply, messages: chat.messages, support: riskFlag ? CRISIS_RESOURCES : undefined });
+    res.json({
+      reply,
+      messages: chat.messages,
+      support: riskFlag ? CRISIS_RESOURCES : undefined,
+      recommendedVideos: relevantVideos,
+    });
   } catch (err) {
     next(err);
   }

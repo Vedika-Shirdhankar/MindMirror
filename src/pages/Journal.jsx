@@ -35,7 +35,7 @@ function CrisisSupportBanner({ support }) {
   )
 }
 
-function AnalysisCard({ entry }) {
+function AnalysisCard({ entry, onPlayVideo }) {
   if (!entry.summary && !entry.themes?.length) return null
   const TrendIcon = TREND_ICON[entry.trend] || Minus
 
@@ -84,6 +84,32 @@ function AnalysisCard({ entry }) {
           ))}
         </div>
       )}
+
+      {entry.recommendedVideos?.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-white/5">
+          <p className="text-xs font-semibold mb-2.5 flex items-center gap-1.5 text-[#AFA9EC]">
+            <span>🎥</span> Your Past Self Has Something To Say
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {entry.recommendedVideos.map(video => (
+              <div key={video._id} className="rounded-xl overflow-hidden border border-white/5 bg-black/20 hover:border-white/10 transition-all flex flex-col group relative">
+                <div className="relative aspect-video bg-black/40 cursor-pointer" onClick={() => onPlayVideo(video)}>
+                  <video src={video.videoUrl} className="w-full h-full object-cover" preload="metadata" />
+                  <div className="absolute inset-0 bg-black/35 flex items-center justify-center group-hover:bg-black/55 transition-colors">
+                    <div className="w-9 h-9 rounded-full bg-[#7F77DD] flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                      <Play size={14} fill="white" color="white" className="ml-0.5" />
+                    </div>
+                  </div>
+                </div>
+                <div className="p-3 flex-1 flex flex-col justify-between">
+                  <h4 className="text-xs font-medium text-white/95 line-clamp-1 group-hover:text-[#AFA9EC] transition-colors">{video.title}</h4>
+                  <p className="text-[10px] text-white/40 mt-1">{format(new Date(video.createdAt), 'MMMM d, yyyy')}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -101,6 +127,7 @@ export default function Journal() {
   const [resolvingId, setResolvingId] = useState(null)
   const [resolvedNote, setResolvedNote] = useState('')
   const [resolving, setResolving] = useState(false)
+  const [playingVideo, setPlayingVideo] = useState(null)
 
   useEffect(() => { loadEntries() }, [])
 
@@ -127,8 +154,9 @@ export default function Journal() {
     setLastSupport(null)
     setLastAiError('')
     try {
-      const { entry, aiError, support } = await api.addEntry({ text: text.trim(), copingUsed: coping })
-      setEntries(prev => [entry, ...prev])
+      const { entry, recommendedVideos, aiError, support } = await api.addEntry({ text: text.trim(), copingUsed: coping })
+      const entryWithRecs = { ...entry, recommendedVideos };
+      setEntries(prev => [entryWithRecs, ...prev])
       if (aiError) setLastAiError(aiError)
       if (support) setLastSupport(support)
       setText('')
@@ -276,7 +304,7 @@ export default function Journal() {
                     </div>
                   )}
 
-                  <AnalysisCard entry={e} />
+                  <AnalysisCard entry={e} onPlayVideo={setPlayingVideo} />
                 </div>
                 <div className="flex flex-col gap-1 items-center">
                   {!e.resolved && (
@@ -294,6 +322,33 @@ export default function Journal() {
           {entries.length === 0 && (
             <p className="text-sm text-center py-12" style={{ color: 'rgba(232,230,240,0.35)' }}>No entries yet. Write your first one above.</p>
           )}
+        </div>
+      )}
+
+      {/* Playback Modal */}
+      {playingVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setPlayingVideo(null)}
+        >
+          <div className="relative w-full max-w-2xl bg-[#13121a] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto fade-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <button onClick={() => setPlayingVideo(null)} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-1.5 rounded-full hover:bg-white/10">
+              <span className="text-lg">×</span>
+            </button>
+            <h3 className="text-sm font-semibold pr-8 text-white">{playingVideo.title}</h3>
+            
+            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/5 relative">
+              <video src={playingVideo.videoUrl} controls autoPlay className="w-full h-full" />
+            </div>
+
+            {playingVideo.note && (
+              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 mt-2">
+                <p className="text-[10px] uppercase font-bold tracking-wider text-white/40 mb-1">Reflection Note</p>
+                <p className="text-xs leading-relaxed text-white/70 whitespace-pre-wrap">{playingVideo.note}</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

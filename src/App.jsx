@@ -11,6 +11,8 @@ import Settings from './pages/Settings.jsx'
 import Analytics from './pages/Analytics.jsx'
 import MindGames from './pages/MindGames.jsx'
 import Landing from './pages/Landing.jsx'
+import VideoReflections from './pages/VideoReflections.jsx'
+import LetterFromMirror from './pages/LetterFromMirror.jsx'
 import { AuthProvider, useAuth } from './lib/AuthContext.jsx'
 
 function ProtectedShell() {
@@ -32,6 +34,7 @@ function ProtectedShell() {
         <Route path="/" element={<Navigate to="/companion" replace />} />
         <Route path="/companion" element={<Companion />} />
         <Route path="/journal" element={<Journal />} />
+        <Route path="/videos" element={<VideoReflections />} />
         <Route path="/timeline" element={<Timeline />} />
         <Route path="/patterns" element={<Patterns />} />
         <Route path="/growth" element={<Growth />} />
@@ -39,6 +42,7 @@ function ProtectedShell() {
         <Route path="/mind-games" element={<MindGames />} />
         <Route path="/thought-ladder" element={<ThoughtLadder />} />
         <Route path="/letters" element={<FutureLetters />} />
+        <Route path="/letter-from-mirror" element={<LetterFromMirror />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/companion" replace />} />
       </Routes>

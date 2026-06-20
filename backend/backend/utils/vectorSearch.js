@@ -110,4 +110,35 @@ async function cosineSimilarityFallback(JournalEntry, { embedding, userId, exclu
   });
 }
 
-module.exports = { findSimilarEntries, VECTOR_INDEX_NAME };
+/**
+ * Finds top-K semantically similar video reflections for a user based on an embedding.
+ */
+async function findSimilarVideos(VideoReflection, { embedding, userId, limit = 3 }) {
+  try {
+    const candidates = await VideoReflection.find({
+      user: userId,
+      embedding: { $exists: true, $ne: [] }
+    })
+      .select('title note videoUrl createdAt embedding')
+      .lean();
+
+    const scored = candidates
+      .map(c => ({ video: c, score: cosineSimilarity(embedding, c.embedding) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
+
+    return scored.map(({ video, score }) => {
+      const { embedding: _omit, ...rest } = video;
+      return { video: rest, score };
+    });
+  } catch (err) {
+    console.warn('⚠️ Cosine similarity search for videos failed:', err.message);
+    const recent = await VideoReflection.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+    return recent.map(v => ({ video: v, score: 0 }));
+  }
+}
+
+module.exports = { findSimilarEntries, findSimilarVideos, VECTOR_INDEX_NAME };
