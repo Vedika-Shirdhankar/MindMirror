@@ -13,6 +13,7 @@ import MindGames from './pages/MindGames.jsx'
 import Landing from './pages/Landing.jsx'
 import VideoReflections from './pages/VideoReflections.jsx'
 import LetterFromMirror from './pages/LetterFromMirror.jsx'
+import LifeReport from './pages/LifeReport.jsx'
 import { AuthProvider, useAuth } from './lib/AuthContext.jsx'
 
 function ProtectedShell() {
@@ -43,6 +44,7 @@ function ProtectedShell() {
         <Route path="/thought-ladder" element={<ThoughtLadder />} />
         <Route path="/letters" element={<FutureLetters />} />
         <Route path="/letter-from-mirror" element={<LetterFromMirror />} />
+        <Route path="/life-report" element={<LifeReport />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/companion" replace />} />
       </Routes>

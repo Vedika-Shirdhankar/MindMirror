@@ -15,6 +15,7 @@ const analyticsRoutes = require('./routes/analyticsRoutes');
 const userRoutes = require('./routes/userRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 const letterFromMirrorRoutes = require('./routes/letterFromMirrorRoutes');
+const lifeReportRoutes = require('./routes/lifeReportRoutes');
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/letter-from-mirror', letterFromMirrorRoutes);
+app.use('/api/life-report', lifeReportRoutes);
 
 // 404 handler for unmatched API routes
 app.use('/api', (req, res) => res.status(404).json({ error: 'Route not found.' }));

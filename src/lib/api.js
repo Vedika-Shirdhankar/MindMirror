@@ -243,3 +243,8 @@ export async function deleteVideoReflection(id) {
 export async function getLetterFromMirror() {
   return request('/letter-from-mirror');
 }
+
+// 10. Life Report
+export async function getLifeReport() {
+  return request('/life-report');
+}

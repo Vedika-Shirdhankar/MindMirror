@@ -1,13 +1,14 @@
 import { NavLink } from 'react-router-dom'
 import {
   MessageCircle, BookOpen, Clock, BarChart2, TrendingUp,
-  Layers, Mail, Settings, Heart, Lock, LogOut, PieChart, Gamepad2, Video, Scroll
+  Layers, Mail, Settings, Heart, Lock, LogOut, PieChart, Gamepad2, Video, Scroll, Sparkles
 } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext.jsx'
 
 const navItems = [
   { to: '/companion',          icon: MessageCircle, label: 'Companion' },
   { to: '/journal',            icon: BookOpen,      label: 'Journal' },
+  { to: '/life-report',        icon: Sparkles,      label: 'Life Report' },
   { to: '/letter-from-mirror', icon: Scroll,        label: 'Letter From MindMirror' },
   { to: '/videos',             icon: Video,         label: 'Video Reflections' },
   { to: '/timeline',           icon: Clock,         label: 'Timeline' },
