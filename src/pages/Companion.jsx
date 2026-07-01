@@ -48,7 +48,7 @@ function Message({ msg, onPlayVideo }) {
           <p className="text-xs mt-1.5 opacity-30 px-1" style={{ color: '#e8e6f0' }}>{format(new Date(msg.createdAt), 'h:mm a')}</p>
         )}
         
-        {!isUser && msg.recommendedVideos?.length > 0 && (
+        {!isUser && msg.recommendedVideos?.length > 0 && !msg.pastSelfRecommendation && (
           <div className="mt-3 w-full max-w-sm rounded-xl p-3 bg-white/[0.02] border border-white/5">
             <p className="text-xs font-semibold mb-2 flex items-center gap-1 text-[#AFA9EC]">
               <span>🎥</span> Your Past Self Has Something To Say
@@ -70,6 +70,42 @@ function Message({ msg, onPlayVideo }) {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {!isUser && msg.pastSelfRecommendation && (
+          <div className="mt-3 w-full max-w-md rounded-xl p-4 bg-gradient-to-br from-[#7F77DD]/10 to-[#5DCAA5]/5 border border-[#7F77DD]/20 shadow-lg fade-up">
+            <p className="text-xs font-bold mb-3 flex items-center gap-1.5 text-[#AFA9EC] uppercase tracking-wider">
+              <span>🧠</span> Ask Past Self
+            </p>
+            <div className="flex gap-3 items-start group">
+              <div className="relative w-28 aspect-video bg-black/40 rounded-lg overflow-hidden cursor-pointer flex-shrink-0" onClick={() => onPlayVideo(msg.pastSelfRecommendation)}>
+                <video src={msg.pastSelfRecommendation.videoUrl} className="w-full h-full object-cover" preload="metadata" />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition-colors">
+                  <div className="w-8 h-8 rounded-full bg-[#7F77DD] flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                    <Play size={12} fill="white" color="white" className="ml-0.5" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-semibold text-white/90 leading-tight mb-1">{msg.pastSelfRecommendation.title}</h4>
+                <p className="text-[10px] text-[#AFA9EC] font-medium uppercase tracking-wider mb-2">{format(new Date(msg.pastSelfRecommendation.date), 'MMM d, yyyy')}</p>
+                
+                <div className="bg-black/30 rounded-md p-2 border border-white/5 relative">
+                  <span className="text-3xl text-white/10 absolute -top-2 left-1">"</span>
+                  <p className="text-xs text-white/70 italic leading-relaxed pl-3 relative z-10">"{msg.pastSelfRecommendation.transcriptSnippet}"</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
+              <p className="text-[10px] text-white/50">{msg.pastSelfRecommendation.reason}</p>
+              <button 
+                onClick={() => onPlayVideo(msg.pastSelfRecommendation)}
+                className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors bg-[#7F77DD]/20 hover:bg-[#7F77DD]/40 text-[#AFA9EC] flex items-center gap-1.5"
+              >
+                Watch Reflection
+              </button>
             </div>
           </div>
         )}
@@ -114,8 +150,8 @@ export default function Companion() {
     setLoading(true)
 
     try {
-      const { reply, recommendedVideos, support: supportData } = await api.sendChatMessage(text)
-      setMessages(prev => [...prev, { role: 'assistant', content: reply, createdAt: new Date(), recommendedVideos }])
+      const { reply, recommendedVideos, pastSelfRecommendation, support: supportData } = await api.sendChatMessage(text)
+      setMessages(prev => [...prev, { role: 'assistant', content: reply, createdAt: new Date(), recommendedVideos, pastSelfRecommendation }])
       if (supportData) setSupport(supportData)
     } catch (e) {
       setError(e.message || 'Something went wrong. Please try again.')

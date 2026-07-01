@@ -174,6 +174,7 @@ export async function sendChatMessage(content) {
     messages: data.messages,
     support: data.support,
     recommendedVideos: data.recommendedVideos || [],
+    pastSelfRecommendation: data.pastSelfRecommendation || null,
   };
 }
 
@@ -220,6 +221,14 @@ export async function updateProfile(name) {
   return data.user;
 }
 
+export async function updatePreferences(preferences) {
+  const data = await request('/users/me/preferences', {
+    method: 'PATCH',
+    body: JSON.stringify({ preferences }),
+  });
+  return data.user;
+}
+
 // 8. Video Reflection Operations
 export async function getVideoReflections() {
   const data = await request('/videos');
@@ -237,6 +246,12 @@ export async function uploadVideoReflection(formData) {
 export async function deleteVideoReflection(id) {
   return request(`/videos/${id}`, {
     method: 'DELETE',
+  });
+}
+
+export async function retryVideoAnalysis(id) {
+  return request(`/videos/${id}/retry-analysis`, {
+    method: 'POST',
   });
 }
 // 9. Letter From MindMirror

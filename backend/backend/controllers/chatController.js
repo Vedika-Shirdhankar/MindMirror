@@ -9,6 +9,7 @@ const { generateEmbedding } = require('../utils/embeddings');
 const { findSimilarEntries, findSimilarVideos } = require('../utils/vectorSearch');
 const VideoReflection = require('../models/VideoReflection');
 const { extractAndSaveActions } = require('../utils/actionExtractor');
+const { retrievePastSelfRecommendation } = require('../utils/pastSelfRetrieval');
 
 // ── Context Formatters ────────────────────────────────────────────────────────
 
@@ -44,17 +45,25 @@ function buildMemoryContext(memories) {
   }).join('\n\n');
 }
 
-/**
- * Formats recent video reflections into context.
- * The companion should understand what topics the user reflected on via video.
- */
-function buildVideoContext(videos) {
-  if (!videos || !videos.length) return null;
-  return videos.map(v => {
-    const date = new Date(v.createdAt).toISOString().split('T')[0];
-    const note = v.note?.trim() ? `\n  Notes: "${v.note.trim()}"` : '';
-    return `[Video Reflection - ${date}] "${v.title}"${note}`;
-  }).join('\n\n');
+function buildVideoContext(videos, pastSelfRec) {
+  let context = '';
+  if (videos && videos.length) {
+    context += videos.map(v => {
+      const date = new Date(v.createdAt).toISOString().split('T')[0];
+      const note = v.note?.trim() ? `\n  Notes: "${v.note.trim()}"` : '';
+      return `[Video Reflection - ${date}] "${v.title}"${note}`;
+    }).join('\n\n');
+  }
+
+  if (pastSelfRec) {
+    if (context) context += '\n\n';
+    const date = new Date(pastSelfRec.date).toISOString().split('T')[0];
+    context += `[HIGHLY RELEVANT PAST SELF VIDEO - ${date}] "${pastSelfRec.title}"
+  Reason for relevance: ${pastSelfRec.reason}
+  Exact Transcript Snippet: "${pastSelfRec.transcriptSnippet}"
+  INSTRUCTION: You MUST refer to this specific snippet and reason in your response to help the user. The UI will show a watch button.`;
+  }
+  return context || null;
 }
 
 /**
@@ -137,9 +146,10 @@ function buildCompanionSystemPrompt({
   relevantVideos,
   allVideos,
   actionMemories,
+  pastSelfRec
 }) {
   const memoryContext    = buildMemoryContext(relevantMemories);
-  const videoContext     = buildVideoContext(relevantVideos);
+  const videoContext     = buildVideoContext(relevantVideos, pastSelfRec);
   const allVideosContext = buildAllVideosContext(allVideos);
   const actionContext    = buildActionContext(actionMemories);
   const recentContext    = buildRecentJourneyContext(recentEntries);
@@ -358,6 +368,7 @@ async function sendMessage(req, res, next) {
       relevantVideos,
       allVideos,
       actionMemories,
+      pastSelfRec,
     ] = await Promise.all([
       // Semantically similar journal entries
       embedding
@@ -388,12 +399,14 @@ async function sendMessage(req, res, next) {
         .sort({ createdAt: -1 })
         .limit(30)
         .lean(),
+
+      // Ask Past Self System
+      retrievePastSelfRecommendation(content.trim(), req.userId)
     ]);
 
     // ── Fire-and-forget: extract actions from this chat message ────────────────
     extractAndSaveActions(content.trim(), 'CompanionConversation', chat._id, req.userId);
 
-    // ── Build system prompt with V3 engine ────────────────────────────────────
     const systemPrompt = buildCompanionSystemPrompt({
       userName,
       relevantMemories,
@@ -401,6 +414,7 @@ async function sendMessage(req, res, next) {
       relevantVideos,
       allVideos,
       actionMemories,
+      pastSelfRec
     });
 
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -429,6 +443,7 @@ async function sendMessage(req, res, next) {
       messages: chat.messages,
       support: riskFlag ? CRISIS_RESOURCES : undefined,
       recommendedVideos: relevantVideos,
+      pastSelfRecommendation: pastSelfRec,
     });
   } catch (err) {
     next(err);

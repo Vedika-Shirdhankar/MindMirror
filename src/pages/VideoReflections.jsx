@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Video, Upload, Trash2, Play, Square, Circle, RotateCcw, Camera, Loader, X, Calendar, Film } from 'lucide-react'
+import { Video, Upload, Trash2, Play, Square, Circle, RotateCcw, Camera, Loader, X, Calendar, Film, RefreshCw, AlertCircle, Brain, MessageSquare } from 'lucide-react'
 import * as api from '../lib/api.js'
 import { format } from 'date-fns'
 
@@ -184,6 +184,18 @@ export default function VideoReflections() {
       if (playingVideo?._id === id) setPlayingVideo(null)
     } catch (err) {
       setError(err.message || 'Failed to delete reflection.')
+    }
+  }
+
+  async function handleRetry(id) {
+    try {
+      // Optimistically set to processing
+      setReflections(prev => prev.map(r => r._id === id ? { ...r, processingStatus: 'processing' } : r))
+      await api.retryVideoAnalysis(id)
+    } catch (err) {
+      setError(err.message || 'Failed to retry analysis.')
+      // Revert optimism if failed
+      loadReflections()
     }
   }
 
@@ -423,16 +435,46 @@ export default function VideoReflections() {
               
               {/* Media Thumbnail */}
               <div className="relative aspect-video rounded-t-2xl overflow-hidden bg-black/40 border-b border-white/5 cursor-pointer"
-                onClick={() => setPlayingVideo(r)}
+                onClick={() => {
+                  if (r.processingStatus === 'processing') return;
+                  setPlayingVideo(r);
+                }}
               >
                 <video src={r.videoUrl} className="w-full h-full object-cover" preload="metadata" />
+                
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="w-12 h-12 rounded-full bg-[#7F77DD] flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
-                    <Play size={18} fill="white" color="white" className="ml-0.5" />
-                  </div>
+                  {r.processingStatus === 'processing' ? (
+                     <div className="flex flex-col items-center gap-2">
+                       <Loader size={24} className="animate-spin text-[#7F77DD]" />
+                       <span className="text-xs font-semibold text-white">Analyzing...</span>
+                     </div>
+                  ) : r.processingStatus === 'failed' ? (
+                     <div className="w-12 h-12 rounded-full bg-red-500/80 flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                       <AlertCircle size={18} fill="white" color="white" />
+                     </div>
+                  ) : (
+                     <div className="w-12 h-12 rounded-full bg-[#7F77DD] flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                       <Play size={18} fill="white" color="white" className="ml-0.5" />
+                     </div>
+                  )}
                 </div>
-                <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-[10px] px-2.5 py-1 rounded-md text-white/70 flex items-center gap-1 font-semibold uppercase tracking-wider">
-                  <Film size={10} /> Video
+                
+                <div className="absolute bottom-3 right-3 flex gap-2">
+                  {r.processingStatus === 'failed' && (
+                    <div className="bg-red-500/80 backdrop-blur-sm text-[10px] px-2.5 py-1 rounded-md text-white flex items-center gap-1 font-semibold uppercase tracking-wider">
+                      <AlertCircle size={10} /> AI Failed
+                    </div>
+                  )}
+                  {r.processingStatus === 'processing' && (
+                    <div className="bg-orange-500/80 backdrop-blur-sm text-[10px] px-2.5 py-1 rounded-md text-white flex items-center gap-1 font-semibold uppercase tracking-wider">
+                      <RefreshCw size={10} className="animate-spin" /> Processing
+                    </div>
+                  )}
+                  {(!r.processingStatus || r.processingStatus === 'completed') && (
+                    <div className="bg-black/60 backdrop-blur-sm text-[10px] px-2.5 py-1 rounded-md text-white/70 flex items-center gap-1 font-semibold uppercase tracking-wider">
+                      <Film size={10} /> Video
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -449,10 +491,20 @@ export default function VideoReflections() {
                   )}
                 </div>
 
-                <div className="flex justify-end pt-3 border-t border-white/5 mt-auto">
+                <div className="flex justify-between items-center pt-3 border-t border-white/5 mt-auto">
+                  {r.processingStatus === 'failed' ? (
+                    <button
+                      onClick={() => handleRetry(r._id)}
+                      className="text-xs font-semibold flex items-center gap-1.5 text-white bg-white/10 hover:bg-white/20 transition-colors px-3 py-1.5 rounded-lg"
+                    >
+                      <RefreshCw size={12} /> Retry AI Analysis
+                    </button>
+                  ) : (
+                    <div />
+                  )}
                   <button
                     onClick={() => handleDelete(r._id)}
-                    className="text-white/30 hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-white/5"
+                    className="text-white/30 hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-white/5 ml-auto"
                     title="Delete reflection"
                   >
                     <Trash2 size={13} />
@@ -498,6 +550,72 @@ export default function VideoReflections() {
               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 mt-2">
                 <p className="text-[10px] uppercase font-bold tracking-wider text-white/40 mb-1">Reflection Note</p>
                 <p className="text-xs leading-relaxed text-white/70 whitespace-pre-wrap">{playingVideo.note}</p>
+              </div>
+            )}
+
+            {/* AI Insights and Transcript */}
+            {playingVideo.processingStatus === 'completed' && (
+              <div className="space-y-4 mt-2">
+                
+                {/* AI Summary and Insight */}
+                <div className="bg-[#7F77DD]/10 border border-[#7F77DD]/20 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-[#7F77DD]/20 flex items-center justify-center shrink-0">
+                      <Brain size={16} className="text-[#AFA9EC]" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-[#e8e6f0] font-medium leading-relaxed">{playingVideo.summary}</p>
+                      {playingVideo.aiGeneratedInsights && (
+                        <p className="text-xs text-[#AFA9EC] mt-2 italic">"{playingVideo.aiGeneratedInsights}"</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Metadata Tags */}
+                <div className="flex flex-wrap gap-2">
+                  {playingVideo.themes?.map(theme => (
+                    <span key={theme} className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-white/10 bg-white/5 text-white/70">
+                      {theme.replace(/_/g, ' ')}
+                    </span>
+                  ))}
+                  {playingVideo.mood_score && (
+                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-[#7F77DD]/20 bg-[#7F77DD]/10 text-[#AFA9EC]">
+                      Distress: {playingVideo.mood_score}/10
+                    </span>
+                  )}
+                </div>
+
+                {/* Transcript */}
+                {playingVideo.transcript && (
+                  <div className="bg-black/30 border border-white/5 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageSquare size={14} className="text-white/40" />
+                      <p className="text-[10px] uppercase font-bold tracking-wider text-white/40">Transcript</p>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                      <p className="text-xs leading-relaxed text-white/60 whitespace-pre-wrap">{playingVideo.transcript}</p>
+                    </div>
+                  </div>
+                )}
+                
+              </div>
+            )}
+            
+            {playingVideo.processingStatus === 'failed' && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex flex-col items-center justify-center py-6 text-center">
+                <AlertCircle size={24} className="text-red-400 mb-2" />
+                <p className="text-sm font-semibold text-red-200">AI Analysis Failed</p>
+                <p className="text-xs text-red-400 mt-1 max-w-sm mb-4">We couldn't process the transcript and insights for this video. The video itself is safe.</p>
+                <button
+                  onClick={() => {
+                    handleRetry(playingVideo._id);
+                    setPlayingVideo(null);
+                  }}
+                  className="text-xs font-semibold flex items-center gap-1.5 text-white bg-red-500/20 hover:bg-red-500/30 transition-colors px-4 py-2 rounded-lg"
+                >
+                  <RefreshCw size={12} /> Retry Now
+                </button>
               </div>
             )}
           </div>

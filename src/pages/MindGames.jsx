@@ -88,7 +88,7 @@ export default function MindGames() {
     <div className="max-w-2xl mx-auto px-6 py-8">
       <div className="flex items-center gap-2 mb-1">
         <Gamepad2 size={18} color="#AFA9EC" />
-        <h1 className="text-xl font-semibold" style={{ color: '#e8e6f0' }}>Mind Games</h1>
+        <h1 className="text-xl font-semibold" style={{ color: '#e8e6f0' }}>Mind Games-Play and be Mindful</h1>
       </div>
       <p className="text-sm mb-7" style={{ color: 'rgba(232,230,240,0.45)' }}>
         Short, interactive exercises to interrupt overthinking, anxiety, and rumination — whenever you need a reset.(Must Try)

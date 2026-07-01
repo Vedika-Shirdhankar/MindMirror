@@ -119,7 +119,7 @@ async function findSimilarVideos(VideoReflection, { embedding, userId, limit = 3
       user: userId,
       embedding: { $exists: true, $ne: [] }
     })
-      .select('title note videoUrl createdAt embedding')
+      .select('title note videoUrl createdAt embedding transcript summary themes processingStatus')
       .lean();
 
     const scored = candidates

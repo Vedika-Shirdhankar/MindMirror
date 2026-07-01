@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { requireAuth } = require('../middleware/auth');
-const { uploadVideo, getVideos, deleteVideo, searchVideos } = require('../controllers/videoController');
+const { uploadVideo, getVideos, deleteVideo, searchVideos, retryAnalysis } = require('../controllers/videoController');
 
 // Ensure uploads folder exists
 const uploadDir = path.join(__dirname, '..', 'uploads');
@@ -36,5 +36,6 @@ router.get('/search', searchVideos);
 router.post('/', upload.single('video'), uploadVideo);
 router.get('/', getVideos);
 router.delete('/:id', deleteVideo);
+router.post('/:id/retry-analysis', retryAnalysis);
 
 module.exports = router;
