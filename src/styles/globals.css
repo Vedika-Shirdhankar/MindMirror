@@ -2,17 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-bg: #0f0f13;
+  --color-primary: #7F77DD;
+  --color-accent: #5DCAA5;
+  --color-surface: rgba(255, 255, 255, 0.04);
+  --color-text: #e8e6f0;
+  
+  --font-family: 'Inter';
+  --font-size-base: 16px;
+  
+  --border-radius: 0.75rem;
+  --padding-base: 1rem;
+  
+  --surface-backdrop: blur(12px);
+  --surface-border: 1px solid rgba(255, 255, 255, 0.08);
+  --surface-shadow: none;
+  
+  --anim-duration: 0.35s;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background: #0f0f13;
-  color: #e8e6f0;
+  font-family: var(--font-family), system-ui, sans-serif;
+  font-size: var(--font-size-base);
+  background: var(--color-bg);
+  color: var(--color-text);
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 ::-webkit-scrollbar {
@@ -22,19 +44,23 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #3C3489;
+  background: var(--color-primary);
   border-radius: 4px;
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-surface);
+  backdrop-filter: var(--surface-backdrop);
+  border: var(--surface-border);
+  box-shadow: var(--surface-shadow);
+  border-radius: var(--border-radius);
+  transition: all 0.3s ease;
 }
 
 .glass-purple {
   background: rgba(127, 119, 221, 0.1);
   border: 1px solid rgba(127, 119, 221, 0.2);
+  border-radius: var(--border-radius);
 }
 
 .memory-glow {
@@ -42,12 +68,13 @@ body {
 }
 
 .chat-bubble-user {
-  background: linear-gradient(135deg, #7F77DD, #534AB7);
+  background: var(--color-primary);
+  /* Optional gradient effect could be added if we parse primary */
 }
 
 .chat-bubble-ai {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-surface);
+  border: var(--surface-border);
 }
 
 .mood-high { background: rgba(226, 75, 74, 0.15); color: #f09595; border-color: rgba(226,75,74,0.3); }
@@ -59,7 +86,7 @@ body {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.fade-up { animation: fadeUp 0.35s ease both; }
+.fade-up { animation: fadeUp var(--anim-duration) ease both; }
 
 @keyframes pulse-soft {
   0%, 100% { opacity: 1; }

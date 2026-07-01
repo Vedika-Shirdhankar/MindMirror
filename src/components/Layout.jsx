@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   MessageCircle, BookOpen, Clock, BarChart2, TrendingUp,
-  Layers, Mail, Settings, Heart, Lock, LogOut, PieChart, Gamepad2, Video, Scroll, Sparkles
+  Layers, Mail, Settings, Heart, Lock, LogOut, PieChart, Gamepad2, Video, Scroll, Sparkles, Palette
 } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext.jsx'
 
@@ -24,15 +24,15 @@ export default function Layout({ children, user }) {
   const { logout } = useAuth()
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#0f0f13' }}>
+    <div className="flex h-screen overflow-hidden bg-background">
       {/* Sidebar */}
-      <aside className="w-56 flex-shrink-0 flex flex-col py-5 px-3 border-r overflow-y-auto" style={{ borderColor: 'rgba(255,255,255,0.07)', background: '#13121a' }}>
+      <aside className="w-56 flex-shrink-0 flex flex-col py-5 px-3 border-r overflow-y-auto bg-surface border-white/5">
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-2 mb-7">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#7F77DD' }}>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary">
             <Heart size={14} color="white" fill="white" />
           </div>
-          <span className="font-semibold text-sm" style={{ color: '#e8e6f0' }}>MindMirror</span>
+          <span className="font-semibold text-sm text-text">MindMirror</span>
         </div>
 
         {/* Nav */}
@@ -43,13 +43,9 @@ export default function Layout({ children, user }) {
               to={to}
               className={({ isActive }) =>
                 `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
-                  isActive ? 'font-medium' : 'opacity-60 hover:opacity-90 hover:bg-white/5'
+                  isActive ? 'font-medium bg-primary/10 text-primary' : 'opacity-60 hover:opacity-90 hover:bg-white/5 text-text'
                 }`
               }
-              style={({ isActive }) => ({
-                color: isActive ? '#AFA9EC' : '#e8e6f0',
-                background: isActive ? 'rgba(127,119,221,0.12)' : undefined,
-              })}
             >
               <Icon size={15} />
               {label}
@@ -58,30 +54,36 @@ export default function Layout({ children, user }) {
         </nav>
 
         {/* Bottom */}
-        <div className="flex flex-col gap-0.5 mt-4 pt-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-          <NavLink to="/settings" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm opacity-60 hover:opacity-90 hover:bg-white/5 transition-all" style={{ color: '#e8e6f0' }}>
+        <div className="flex flex-col gap-0.5 mt-4 pt-4 border-t border-white/5">
+          <NavLink to="/appearance" className={({ isActive }) => `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${isActive ? 'font-medium bg-primary/10 text-primary' : 'opacity-60 hover:opacity-90 hover:bg-white/5 text-text'}`}>
+            <Palette size={15} />
+            Appearance
+          </NavLink>
+          <NavLink to="/settings" className={({ isActive }) => `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${isActive ? 'font-medium bg-primary/10 text-primary' : 'opacity-60 hover:opacity-90 hover:bg-white/5 text-text'}`}>
             <Settings size={15} />
             Settings
           </NavLink>
-          <button onClick={logout} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm opacity-60 hover:opacity-90 hover:bg-white/5 transition-all text-left" style={{ color: '#e8e6f0' }}>
+          <button onClick={logout} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm opacity-60 hover:opacity-90 hover:bg-white/5 transition-all text-left text-text">
             <LogOut size={15} />
             Log out
           </button>
-          <div className="flex items-center gap-2.5 px-3 py-2 text-xs opacity-40" style={{ color: '#e8e6f0' }}>
+          <div className="flex items-center gap-2.5 px-3 py-2 text-xs opacity-40 text-text">
             <Lock size={12} />
             Data stored in MongoDB
           </div>
         </div>
 
         {/* User */}
-        <div className="mt-3 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)' }}>
-          <p className="text-xs font-medium" style={{ color: '#AFA9EC' }}>{user?.name || 'You'}</p>
-          <p className="text-xs opacity-40 truncate" style={{ color: '#e8e6f0' }}>{user?.email || 'Your journey'}</p>
+        <div className="mt-3 px-3 py-2 rounded-lg bg-surface border border-white/5">
+          <p className="text-xs font-medium text-primary">{user?.name || 'You'}</p>
+          <p className="text-xs opacity-40 truncate text-text">{user?.email || 'Your journey'}</p>
         </div>
       </aside>
 
       {/* Main */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto relative">
+        {/* Ambient background placeholder (can be injected via ThemeContext later) */}
+        <div className="absolute inset-0 pointer-events-none z-[-1]" style={{ background: 'var(--ambient-bg, transparent)' }}></div>
         {children}
       </main>
     </div>

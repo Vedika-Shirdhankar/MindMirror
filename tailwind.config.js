@@ -4,6 +4,13 @@ export default {
   theme: {
     extend: {
       colors: {
+        background: 'var(--color-bg)',
+        surface: 'var(--color-surface)',
+        primary: 'var(--color-primary)',
+        accent: 'var(--color-accent)',
+        text: 'var(--color-text)',
+        
+        // Keep original colors for backwards compatibility during refactor
         purple: {
           50: '#EEEDFE', 100: '#CECBF6', 200: '#AFA9EC',
           400: '#7F77DD', 600: '#534AB7', 800: '#3C3489', 900: '#26215C'
@@ -18,7 +25,13 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-family)', 'system-ui', 'sans-serif'],
+      },
+      borderRadius: {
+        'standard': 'var(--border-radius)',
+      },
+      animationDuration: {
+        'standard': 'var(--anim-duration)'
       }
     },
   },

@@ -6,14 +6,14 @@ import { format } from 'date-fns'
 function CrisisBanner({ support }) {
   if (!support) return null
   return (
-    <div className="rounded-xl p-4 mb-3 fade-up" style={{ background: 'rgba(226,75,74,0.1)', border: '1px solid rgba(226,75,74,0.3)' }}>
+    <div className="rounded-standard p-4 mb-3 fade-up bg-red-500/10 border border-red-500/30">
       <div className="flex items-center gap-2 mb-2">
-        <AlertTriangle size={14} color="#f09595" />
-        <p className="text-sm font-medium" style={{ color: '#f09595' }}>{support.message}</p>
+        <AlertTriangle size={14} className="text-red-400" />
+        <p className="text-sm font-medium text-red-400">{support.message}</p>
       </div>
       <div className="flex flex-wrap gap-2">
         {support.resources.map(r => (
-          <div key={r.name} className="text-xs px-3 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(232,230,240,0.8)' }}>
+          <div key={r.name} className="text-xs px-3 py-1.5 rounded-standard bg-surface text-text/80">
             <strong>{r.name}:</strong> {r.contact}
           </div>
         ))}
@@ -26,26 +26,18 @@ function Message({ msg, onPlayVideo }) {
   const isUser = msg.role === 'user'
   return (
     <div className={`flex gap-3 items-start fade-up ${isUser ? 'flex-row-reverse' : ''}`}>
-      <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-medium"
-        style={{
-          background: isUser ? 'rgba(29,158,117,0.2)' : 'rgba(127,119,221,0.2)',
-          color: isUser ? '#5DCAA5' : '#AFA9EC',
-          border: `1px solid ${isUser ? 'rgba(29,158,117,0.3)' : 'rgba(127,119,221,0.3)'}`,
-        }}>
+      <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-medium ${isUser ? 'bg-accent/20 text-accent border border-accent/30' : 'bg-primary/20 text-primary border border-primary/30'}`}>
         {isUser ? 'Me' : 'M'}
       </div>
       <div className={`max-w-[75%] ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
-        <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed`}
+        <div className={`px-4 py-3 text-sm leading-relaxed ${isUser ? 'chat-bubble-user text-white' : 'chat-bubble-ai text-text'}`}
           style={{
-            color: isUser ? 'white' : '#e8e6f0',
-            background: isUser ? 'linear-gradient(135deg, #7F77DD, #534AB7)' : 'rgba(255,255,255,0.05)',
-            border: isUser ? 'none' : '1px solid rgba(255,255,255,0.08)',
-            borderRadius: isUser ? '18px 4px 18px 18px' : '4px 18px 18px 18px',
+            borderRadius: isUser ? 'var(--border-radius) 4px var(--border-radius) var(--border-radius)' : '4px var(--border-radius) var(--border-radius) var(--border-radius)',
           }}>
           {msg.content}
         </div>
         {msg.createdAt && (
-          <p className="text-xs mt-1.5 opacity-30 px-1" style={{ color: '#e8e6f0' }}>{format(new Date(msg.createdAt), 'h:mm a')}</p>
+          <p className="text-xs mt-1.5 opacity-30 px-1 text-text">{format(new Date(msg.createdAt), 'h:mm a')}</p>
         )}
         
         {!isUser && msg.recommendedVideos?.length > 0 && !msg.pastSelfRecommendation && (
@@ -75,34 +67,34 @@ function Message({ msg, onPlayVideo }) {
         )}
 
         {!isUser && msg.pastSelfRecommendation && (
-          <div className="mt-3 w-full max-w-md rounded-xl p-4 bg-gradient-to-br from-[#7F77DD]/10 to-[#5DCAA5]/5 border border-[#7F77DD]/20 shadow-lg fade-up">
-            <p className="text-xs font-bold mb-3 flex items-center gap-1.5 text-[#AFA9EC] uppercase tracking-wider">
+          <div className="mt-3 w-full max-w-md rounded-standard p-4 bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/20 shadow-lg fade-up">
+            <p className="text-xs font-bold mb-3 flex items-center gap-1.5 text-primary uppercase tracking-wider">
               <span>🧠</span> Ask Past Self
             </p>
             <div className="flex gap-3 items-start group">
-              <div className="relative w-28 aspect-video bg-black/40 rounded-lg overflow-hidden cursor-pointer flex-shrink-0" onClick={() => onPlayVideo(msg.pastSelfRecommendation)}>
+              <div className="relative w-28 aspect-video bg-black/40 rounded-standard overflow-hidden cursor-pointer flex-shrink-0" onClick={() => onPlayVideo(msg.pastSelfRecommendation)}>
                 <video src={msg.pastSelfRecommendation.videoUrl} className="w-full h-full object-cover" preload="metadata" />
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition-colors">
-                  <div className="w-8 h-8 rounded-full bg-[#7F77DD] flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
                     <Play size={12} fill="white" color="white" className="ml-0.5" />
                   </div>
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold text-white/90 leading-tight mb-1">{msg.pastSelfRecommendation.title}</h4>
-                <p className="text-[10px] text-[#AFA9EC] font-medium uppercase tracking-wider mb-2">{format(new Date(msg.pastSelfRecommendation.date), 'MMM d, yyyy')}</p>
+                <h4 className="text-sm font-semibold text-text leading-tight mb-1">{msg.pastSelfRecommendation.title}</h4>
+                <p className="text-[10px] text-primary font-medium uppercase tracking-wider mb-2">{format(new Date(msg.pastSelfRecommendation.date), 'MMM d, yyyy')}</p>
                 
-                <div className="bg-black/30 rounded-md p-2 border border-white/5 relative">
+                <div className="bg-black/30 rounded-standard p-2 border border-white/5 relative">
                   <span className="text-3xl text-white/10 absolute -top-2 left-1">"</span>
-                  <p className="text-xs text-white/70 italic leading-relaxed pl-3 relative z-10">"{msg.pastSelfRecommendation.transcriptSnippet}"</p>
+                  <p className="text-xs text-text/70 italic leading-relaxed pl-3 relative z-10">"{msg.pastSelfRecommendation.transcriptSnippet}"</p>
                 </div>
               </div>
             </div>
             <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
-              <p className="text-[10px] text-white/50">{msg.pastSelfRecommendation.reason}</p>
+              <p className="text-[10px] text-text/50">{msg.pastSelfRecommendation.reason}</p>
               <button 
                 onClick={() => onPlayVideo(msg.pastSelfRecommendation)}
-                className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors bg-[#7F77DD]/20 hover:bg-[#7F77DD]/40 text-[#AFA9EC] flex items-center gap-1.5"
+                className="text-xs px-3 py-1.5 rounded-standard font-semibold transition-colors bg-primary/20 hover:bg-primary/40 text-primary flex items-center gap-1.5"
               >
                 Watch Reflection
               </button>
@@ -162,27 +154,27 @@ export default function Companion() {
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="px-6 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-        <h1 className="font-semibold text-base" style={{ color: '#e8e6f0' }}>Companion</h1>
-        <p className="text-xs mt-0.5" style={{ color: 'rgba(232,230,240,0.45)' }}>I remember your journey</p>
+      <div className="px-6 py-4 border-b border-border bg-surface/50 backdrop-blur-sm sticky top-0 z-10">
+        <h1 className="font-semibold text-base text-text">Companion</h1>
+        <p className="text-xs mt-0.5 text-text/50">I remember your journey</p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-5">
         {loadingHistory ? (
-          <p className="text-sm" style={{ color: 'rgba(232,230,240,0.4)' }}>Loading conversation…</p>
+          <p className="text-sm text-text/40">Loading conversation…</p>
         ) : (
           messages.map((msg, i) => <Message key={i} msg={msg} onPlayVideo={setPlayingVideo} />)
         )}
         {loading && (
           <div className="flex gap-3 items-start fade-up">
-            <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-medium" style={{ background: 'rgba(127,119,221,0.2)', color: '#AFA9EC', border: '1px solid rgba(127,119,221,0.3)' }}>M</div>
-            <div className="px-4 py-3 rounded-2xl" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px 18px 18px 18px' }}>
-              <span className="thinking text-sm" style={{ color: '#AFA9EC' }}>thinking…</span>
+            <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-medium bg-primary/20 text-primary border border-primary/30">M</div>
+            <div className="px-4 py-3 bg-surface border-border text-text" style={{ borderRadius: '4px var(--border-radius) var(--border-radius) var(--border-radius)' }}>
+              <span className="thinking text-sm text-primary">thinking…</span>
             </div>
           </div>
         )}
         {error && (
-          <div className="text-xs px-3 py-2 rounded-lg" style={{ background: 'rgba(226,75,74,0.1)', border: '1px solid rgba(226,75,74,0.2)', color: '#f09595' }}>{error}</div>
+          <div className="text-xs px-3 py-2 rounded-standard bg-red-500/10 border border-red-500/20 text-red-400">{error}</div>
         )}
         <div ref={bottomRef} />
       </div>
@@ -194,14 +186,14 @@ export default function Companion() {
       <div className="px-6 pb-2">
         <div className="flex gap-2 flex-wrap">
           {["I'm feeling anxious", "I need to vent", "Help me reframe this", "How have I grown?"].map(p => (
-            <button key={p} onClick={() => setInput(p)} className="text-xs px-3 py-1.5 rounded-full border transition-opacity hover:opacity-80" style={{ borderColor: 'rgba(127,119,221,0.3)', color: '#AFA9EC', background: 'rgba(127,119,221,0.07)' }}>
+            <button key={p} onClick={() => setInput(p)} className="text-xs px-3 py-1.5 rounded-full border border-primary/30 text-primary bg-primary/10 transition-opacity hover:opacity-80">
               {p}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="px-6 py-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+      <div className="px-6 py-4 border-t border-border bg-surface/50 backdrop-blur-sm">
         <div className="flex gap-3 items-end">
           <textarea
             value={input}
@@ -209,12 +201,12 @@ export default function Companion() {
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
             placeholder="Tell me what's on your mind…"
             rows={1}
-            className="flex-1 px-4 py-3 rounded-xl text-sm outline-none resize-none"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#e8e6f0', maxHeight: '120px', lineHeight: 1.5 }}
+            className="flex-1 px-4 py-3 rounded-standard text-sm outline-none resize-none bg-surface border border-white/10 text-text"
+            style={{ maxHeight: '120px', lineHeight: 1.5 }}
             onInput={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
           />
-          <button onClick={send} disabled={!input.trim() || loading} className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-80 disabled:opacity-30" style={{ background: '#7F77DD' }}>
-            <Send size={15} color="white" />
+          <button onClick={send} disabled={!input.trim() || loading} className="w-10 h-10 rounded-standard flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-80 disabled:opacity-30 bg-primary text-white">
+            <Send size={15} />
           </button>
         </div>
       </div>
