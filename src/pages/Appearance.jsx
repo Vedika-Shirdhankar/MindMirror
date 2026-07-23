@@ -8,7 +8,29 @@ import {
   Sun, Moon, Monitor, Palette, Sliders
 } from 'lucide-react';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers & Utilities ──────────────────────────────────────────────────────
+
+/** Calculate high contrast text color (black or white) based on hex background */
+function getContrastColor(hexColor) {
+  if (!hexColor || typeof hexColor !== 'string') return '#ffffff';
+  const hex = hexColor.replace('#', '');
+  if (hex.length !== 6) return '#ffffff';
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 128 ? '#000000' : '#ffffff';
+}
+
+/** Convert layout radius setting to CSS px */
+function getRadiusPx(radiusSetting) {
+  switch (radiusSetting) {
+    case 'small': return '6px';
+    case 'large': return '20px';
+    case 'medium':
+    default: return '12px';
+  }
+}
 
 /** Segmented pill control — no radio buttons */
 function SegmentedControl({ options, value, onChange, className = '' }) {
@@ -36,8 +58,11 @@ function SegmentedControl({ options, value, onChange, className = '' }) {
         return (
           <button
             key={id}
+            type="button"
             onClick={() => onChange(id)}
-            className={`relative z-10 flex-1 py-2 px-3 rounded-[0.6rem] text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-1.5 ${active ? 'text-text' : 'text-text/40 hover:text-text/70'}`}
+            className={`relative z-10 flex-1 py-2 px-3 rounded-[0.6rem] text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-1.5 ${
+              active ? 'text-text' : 'text-text/40 hover:text-text/70'
+            }`}
             aria-pressed={active}
           >
             {Icon && <Icon size={14} />}
@@ -49,26 +74,39 @@ function SegmentedControl({ options, value, onChange, className = '' }) {
   );
 }
 
-/** Modern toggle switch */
+/** Modern accessible toggle switch */
 function Toggle({ checked, onChange, label, description, id }) {
   return (
-    <label htmlFor={id} className="flex items-center justify-between gap-4 cursor-pointer group py-3 px-4 rounded-xl hover:bg-white/5 transition-colors">
+    <div
+      role="button"
+      tabIndex={0}
+      id={id}
+      aria-pressed={checked}
+      onClick={() => onChange(!checked)}
+      onKeyDown={(e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          onChange(!checked);
+        }
+      }}
+      className="flex items-center justify-between gap-4 cursor-pointer group py-3 px-4 rounded-xl hover:bg-white/5 transition-colors select-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+    >
       <div>
         <div className="text-sm font-medium text-text">{label}</div>
         {description && <div className="text-xs text-text/50 mt-0.5">{description}</div>}
       </div>
-      <button
-        id={id}
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary/50 ${checked ? 'bg-primary' : 'bg-white/15'}`}
+      <div
+        className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-all duration-300 ${
+          checked ? 'bg-primary' : 'bg-white/15'
+        }`}
       >
         <span
-          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ${checked ? 'translate-x-5' : 'translate-x-0'}`}
+          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ${
+            checked ? 'translate-x-5' : 'translate-x-0'
+          }`}
         />
-      </button>
-    </label>
+      </div>
+    </div>
   );
 }
 
@@ -103,10 +141,15 @@ function ThemeCard({ theme, isActive, onSelect }) {
 
   return (
     <button
+      type="button"
       onClick={() => onSelect(theme.id)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`relative group text-left rounded-2xl overflow-hidden border-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary/40 ${isActive ? 'border-primary shadow-lg shadow-primary/20 scale-[1.02]' : 'border-white/8 hover:border-white/25 hover:scale-[1.01]'}`}
+      className={`relative group text-left rounded-2xl overflow-hidden border-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+        isActive
+          ? 'border-primary shadow-lg shadow-primary/20 scale-[1.02]'
+          : 'border-white/8 hover:border-white/25 hover:scale-[1.01]'
+      }`}
       style={{ background: theme.background }}
       aria-label={`Select ${theme.name} theme`}
       aria-pressed={isActive}
@@ -125,7 +168,7 @@ function ThemeCard({ theme, isActive, onSelect }) {
         <div
           className="rounded-xl p-3 mb-2 transition-transform duration-300"
           style={{
-            background: theme.surfaceSolid,
+            background: theme.surfaceSolid || theme.surface,
             border: `1px solid ${theme.primary}25`,
             transform: hovered ? 'translateY(-2px)' : 'none',
           }}
@@ -195,12 +238,14 @@ function AIRecommendation({ recommendation, onApply, onDismiss }) {
         </div>
         <div className="flex flex-col gap-2 flex-shrink-0">
           <button
+            type="button"
             onClick={() => onApply(recommendation.themeId)}
             className="text-xs px-4 py-2 rounded-xl font-semibold bg-primary text-white hover:opacity-90 transition-opacity"
           >
             Apply
           </button>
           <button
+            type="button"
             onClick={onDismiss}
             className="text-xs px-4 py-2 rounded-xl font-medium text-text/50 hover:text-text/80 transition-colors border border-white/10"
           >
@@ -222,6 +267,7 @@ function AccentColorPicker({ value, onChange }) {
       {ACCENT_PRESETS.map(preset => (
         <button
           key={preset.id}
+          type="button"
           onClick={() => onChange(preset.color)}
           title={preset.label}
           className="relative w-8 h-8 rounded-full border-2 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-white/30"
@@ -239,8 +285,9 @@ function AccentColorPicker({ value, onChange }) {
         </button>
       ))}
 
-      {/* Custom color */}
+      {/* Custom color picker */}
       <button
+        type="button"
         onClick={() => inputRef.current?.click()}
         className="relative w-8 h-8 rounded-full border-2 border-dashed border-white/30 flex items-center justify-center hover:border-white/60 transition-colors"
         title="Custom color"
@@ -250,7 +297,7 @@ function AccentColorPicker({ value, onChange }) {
         <input
           ref={inputRef}
           type="color"
-          value={value}
+          value={value || '#7f77dd'}
           onChange={e => onChange(e.target.value)}
           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
           aria-label="Pick custom color"
@@ -268,16 +315,23 @@ function AccentColorPicker({ value, onChange }) {
 // ─── Realistic Live Preview ───────────────────────────────────────────────────
 
 function LivePreview({ preferences }) {
-  const theme = BUILT_IN_THEMES[preferences.theme] || BUILT_IN_THEMES.midnight;
+  const baseTheme = BUILT_IN_THEMES[preferences.theme] || BUILT_IN_THEMES.midnight;
+  const theme = preferences.theme === 'custom' && preferences.customTheme 
+    ? { ...baseTheme, ...preferences.customTheme } 
+    : baseTheme;
+
   const fontSize = preferences.typography?.fontSize || 'medium';
+  const fontFamily = preferences.typography?.fontFamily || 'sans';
   const cardStyle = preferences.layout?.cardStyle || 'glass';
   const density = preferences.layout?.density || 'comfortable';
+  const borderRadius = getRadiusPx(preferences.layout?.borderRadius);
+  const highContrast = preferences.accessibility?.highContrast || false;
 
   const cardBg = cardStyle === 'flat' || cardStyle === 'minimal'
-    ? `${theme.surfaceSolid}`
+    ? theme.surfaceSolid || theme.surface
     : cardStyle === 'elevated'
-    ? theme.surfaceSolid
-    : theme.surface ? theme.surfaceSolid : theme.surfaceSolid;
+    ? theme.surfaceSolid || theme.surface
+    : theme.surface || theme.surfaceSolid;
 
   const cardBorder = cardStyle === 'flat' || cardStyle === 'minimal'
     ? `1px solid ${theme.primary}15`
@@ -285,6 +339,10 @@ function LivePreview({ preferences }) {
 
   const p = density === 'compact' ? '10px' : density === 'spacious' ? '18px' : '14px';
   const textSizeBase = fontSize === 'small' ? 11 : fontSize === 'large' ? 14 : 12;
+
+  const textColor = highContrast ? '#ffffff' : theme.text;
+  const mutedTextColor = highContrast ? '#e0e0e0' : theme.textMuted || `${theme.text}80`;
+  const primaryBtnTextColor = getContrastColor(theme.primary);
 
   return (
     <div className="sticky top-6">
@@ -295,26 +353,37 @@ function LivePreview({ preferences }) {
 
       {/* App shell mock */}
       <div
-        className="rounded-2xl overflow-hidden border border-white/10 shadow-2xl"
-        style={{ background: theme.background, minHeight: 520 }}
+        className="rounded-2xl overflow-hidden border border-white/10 shadow-2xl transition-all duration-300"
+        style={{
+          background: theme.background,
+          fontFamily: fontFamily === 'dyslexic' ? 'OpenDyslexic, sans-serif' : fontFamily,
+          minHeight: 520,
+        }}
       >
-        {/* Fake sidebar */}
+        {/* Fake sidebar layout */}
         <div className="flex h-full" style={{ minHeight: 520 }}>
           <div
             className="w-16 flex-shrink-0 flex flex-col items-center py-4 gap-4"
-            style={{ background: theme.surfaceSolid, borderRight: `1px solid ${theme.primary}15` }}
+            style={{
+              background: theme.surfaceSolid || theme.surface,
+              borderRight: `1px solid ${theme.primary}15`,
+            }}
           >
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: theme.primary }}>
-              <span style={{ fontSize: 10 }}>✦</span>
+            <div
+              className="w-7 h-7 flex items-center justify-center transition-all"
+              style={{ background: theme.primary, borderRadius }}
+            >
+              <span style={{ fontSize: 10, color: primaryBtnTextColor }}>✦</span>
             </div>
             {['◉', '◈', '◎', '⊡'].map((ic, i) => (
               <div
                 key={i}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                className="w-8 h-8 flex items-center justify-center transition-all"
                 style={{
+                  borderRadius,
                   background: i === 0 ? `${theme.primary}25` : 'transparent',
-                  color: i === 0 ? theme.primary : `${theme.text}50`,
-                  fontSize: 13
+                  color: i === 0 ? theme.primary : mutedTextColor,
+                  fontSize: 13,
                 }}
               >
                 {ic}
@@ -324,16 +393,22 @@ function LivePreview({ preferences }) {
 
           {/* Main content area */}
           <div className="flex-1 overflow-hidden p-4 flex flex-col gap-3">
-
             {/* Page title */}
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-semibold mb-0.5" style={{ fontSize: textSizeBase + 2, color: theme.text }}>Journal</div>
-                <div style={{ fontSize: textSizeBase - 2, color: theme.textMuted }}>3 entries</div>
+                <div className="font-semibold mb-0.5" style={{ fontSize: textSizeBase + 2, color: textColor }}>
+                  Journal
+                </div>
+                <div style={{ fontSize: textSizeBase - 2, color: mutedTextColor }}>3 entries</div>
               </div>
               <div
-                className="px-3 py-1.5 rounded-lg font-medium"
-                style={{ background: theme.primary, color: '#fff', fontSize: textSizeBase - 1 }}
+                className="px-3 py-1.5 font-medium transition-all"
+                style={{
+                  background: theme.primary,
+                  color: primaryBtnTextColor,
+                  fontSize: textSizeBase - 1,
+                  borderRadius,
+                }}
               >
                 + New
               </div>
@@ -341,26 +416,42 @@ function LivePreview({ preferences }) {
 
             {/* Journal card */}
             <div
-              className="rounded-xl flex-shrink-0"
-              style={{ background: cardBg, border: cardBorder, padding: p }}
+              className="flex-shrink-0 transition-all"
+              style={{
+                background: cardBg,
+                border: cardBorder,
+                padding: p,
+                borderRadius,
+              }}
             >
               <div className="flex items-center gap-2 mb-2">
-                <div style={{ fontSize: textSizeBase - 1, color: theme.textMuted }}>Today</div>
+                <div style={{ fontSize: textSizeBase - 1, color: mutedTextColor }}>Today</div>
                 <div
                   className="px-2 py-0.5 rounded-full text-center"
-                  style={{ background: `${theme.primary}25`, color: theme.primary, fontSize: textSizeBase - 2 }}
+                  style={{
+                    background: `${theme.primary}25`,
+                    color: theme.primary,
+                    fontSize: textSizeBase - 2,
+                  }}
                 >
                   7/10
                 </div>
               </div>
-              <div style={{ fontSize: textSizeBase, color: theme.text, lineHeight: 1.5 }}>
+              <div style={{ fontSize: textSizeBase, color: textColor, lineHeight: 1.5 }}>
                 I've been feeling more grounded lately. Taking small steps every day...
               </div>
               <div className="flex gap-1.5 mt-3">
                 {['Growth', 'Calm'].map(tag => (
                   <div
                     key={tag}
-                    style={{ background: `${theme.accent}20`, color: theme.accent, fontSize: textSizeBase - 2, borderRadius: 6, padding: '2px 7px', fontWeight: 600 }}
+                    style={{
+                      background: `${theme.accent || theme.primary}20`,
+                      color: theme.accent || theme.primary,
+                      fontSize: textSizeBase - 2,
+                      borderRadius: '6px',
+                      padding: '2px 7px',
+                      fontWeight: 600,
+                    }}
                   >
                     {tag}
                   </div>
@@ -370,13 +461,27 @@ function LivePreview({ preferences }) {
 
             {/* AI Companion message */}
             <div
-              className="rounded-xl flex-shrink-0"
-              style={{ background: cardBg, border: cardBorder, padding: p }}
+              className="flex-shrink-0 transition-all"
+              style={{
+                background: cardBg,
+                border: cardBorder,
+                padding: p,
+                borderRadius,
+              }}
             >
-              <div style={{ fontSize: textSizeBase - 1, color: theme.primary, fontWeight: 600, marginBottom: 6 }}>✦ Companion</div>
+              <div style={{ fontSize: textSizeBase - 1, color: theme.primary, fontWeight: 600, marginBottom: 6 }}>
+                ✦ Companion
+              </div>
               <div
-                className="inline-block rounded-xl px-3 py-2"
-                style={{ background: `${theme.primary}20`, color: theme.text, fontSize: textSizeBase - 1, maxWidth: '85%', lineHeight: 1.5 }}
+                className="inline-block px-3 py-2 transition-all"
+                style={{
+                  background: `${theme.primary}20`,
+                  color: textColor,
+                  fontSize: textSizeBase - 1,
+                  maxWidth: '85%',
+                  lineHeight: 1.5,
+                  borderRadius,
+                }}
               >
                 It sounds like you're making real progress. What small win are you most proud of this week?
               </div>
@@ -384,19 +489,26 @@ function LivePreview({ preferences }) {
 
             {/* Timeline mini */}
             <div
-              className="rounded-xl flex-shrink-0"
-              style={{ background: cardBg, border: cardBorder, padding: p }}
+              className="flex-shrink-0 transition-all"
+              style={{
+                background: cardBg,
+                border: cardBorder,
+                padding: p,
+                borderRadius,
+              }}
             >
-              <div style={{ fontSize: textSizeBase - 1, color: theme.textMuted, fontWeight: 600, marginBottom: 8 }}>Mood Timeline</div>
+              <div style={{ fontSize: textSizeBase - 1, color: mutedTextColor, fontWeight: 600, marginBottom: 8 }}>
+                Mood Timeline
+              </div>
               <div className="flex items-end gap-1" style={{ height: 36 }}>
                 {[5, 7, 6, 8, 7, 9, 7].map((v, i) => (
                   <div
                     key={i}
-                    className="flex-1 rounded-sm transition-all"
+                    className="flex-1 transition-all"
                     style={{
                       height: `${(v / 10) * 100}%`,
                       background: i === 6 ? theme.primary : `${theme.primary}45`,
-                      borderRadius: 3
+                      borderRadius: '3px',
                     }}
                   />
                 ))}
@@ -418,7 +530,7 @@ export default function Appearance() {
   const [recommendation, setRecommendation] = useState(null);
   const [dismissed, setDismissed] = useState(() => localStorage.getItem('mm_rec_dismissed') === 'true');
 
-  // Simulated AI recommendation based on time of day / basic heuristic
+  // Simulated AI recommendation based on time of day
   useEffect(() => {
     if (dismissed) return;
     const hour = new Date().getHours();
@@ -452,7 +564,7 @@ export default function Appearance() {
     <div className="min-h-screen pb-20" style={{ background: 'var(--color-bg)' }}>
       {/* ─── Hero Header ──────────────────────────────────── */}
       <div className="relative overflow-hidden">
-        {/* Animated gradient blob */}
+        {/* Dynamic ambient header glow */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -464,7 +576,7 @@ export default function Appearance() {
           <div className="flex items-start gap-4">
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl shadow-lg"
-              style={{ background: `linear-gradient(135deg, ${activeTheme.primary}, ${activeTheme.accent})` }}
+              style={{ background: `linear-gradient(135deg, ${activeTheme.primary}, ${activeTheme.accent || activeTheme.primary})` }}
             >
               🎨
             </div>
@@ -476,17 +588,20 @@ export default function Appearance() {
             </div>
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${activeTheme.primary}30, transparent)` }} />
+        <div
+          className="absolute bottom-0 left-0 right-0 h-px"
+          style={{ background: `linear-gradient(to right, transparent, ${activeTheme.primary}30, transparent)` }}
+        />
       </div>
 
       {/* ─── Main Layout ──────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-6 pt-8">
         <div className="flex flex-col xl:flex-row gap-8">
 
-          {/* Settings Column */}
+          {/* Settings Controls Column */}
           <div className="flex-1 min-w-0 flex flex-col gap-6">
 
-            {/* AI Recommendation */}
+            {/* AI Recommendation Banner */}
             {recommendation && (
               <AIRecommendation
                 recommendation={recommendation}
@@ -525,6 +640,7 @@ export default function Appearance() {
               />
               {preferences.theme === 'custom' && (
                 <button
+                  type="button"
                   onClick={() => setPartialPreferences('theme', null, 'midnight')}
                   className="mt-4 text-xs text-text/50 hover:text-text/80 transition-colors flex items-center gap-1"
                 >
@@ -559,11 +675,18 @@ export default function Appearance() {
                     return (
                       <button
                         key={font.id}
+                        type="button"
                         onClick={() => setPartialPreferences('typography', 'fontFamily', font.id)}
-                        className={`relative px-5 py-3 rounded-xl border transition-all duration-200 text-sm ${active ? 'border-primary bg-primary/15 text-text' : 'border-white/10 bg-black/20 text-text/60 hover:text-text hover:border-white/25'}`}
+                        className={`relative px-5 py-3 rounded-xl border transition-all duration-200 text-sm ${
+                          active
+                            ? 'border-primary bg-primary/15 text-text'
+                            : 'border-white/10 bg-black/20 text-text/60 hover:text-text hover:border-white/25'
+                        }`}
                         style={{ fontFamily: font.id }}
                       >
-                        <div className="text-lg font-bold leading-none mb-0.5" style={{ fontFamily: font.id }}>{font.sample}</div>
+                        <div className="text-lg font-bold leading-none mb-0.5" style={{ fontFamily: font.id }}>
+                          {font.sample}
+                        </div>
                         <div className="text-[10px] font-semibold uppercase tracking-wider">{font.name}</div>
                         {active && (
                           <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
@@ -599,12 +722,22 @@ export default function Appearance() {
                       return (
                         <button
                           key={d}
+                          type="button"
                           onClick={() => setPartialPreferences('layout', 'density', d)}
-                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 text-sm capitalize text-left ${active ? 'border-primary bg-primary/10 text-text' : 'border-white/8 bg-black/20 text-text/60 hover:border-white/20'}`}
+                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 text-sm capitalize text-left ${
+                            active ? 'border-primary bg-primary/10 text-text' : 'border-white/8 bg-black/20 text-text/60 hover:border-white/20'
+                          }`}
                         >
                           <div className="flex flex-col gap-[3px] flex-shrink-0">
                             {Array.from({ length: d === 'compact' ? 3 : d === 'spacious' ? 2 : 3 }).map((_, i) => (
-                              <div key={i} className="h-[3px] rounded-full bg-current opacity-60" style={{ width: d === 'compact' ? 14 : d === 'spacious' ? 18 : 14, marginBottom: d === 'spacious' ? 2 : 0 }} />
+                              <div
+                                key={i}
+                                className="h-[3px] rounded-full bg-current opacity-60"
+                                style={{
+                                  width: d === 'compact' ? 14 : d === 'spacious' ? 18 : 14,
+                                  marginBottom: d === 'spacious' ? 2 : 0,
+                                }}
+                              />
                             ))}
                           </div>
                           {d}
@@ -623,10 +756,23 @@ export default function Appearance() {
                       return (
                         <button
                           key={s}
+                          type="button"
                           onClick={() => setPartialPreferences('layout', 'cardStyle', s)}
-                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 text-sm capitalize text-left ${active ? 'border-primary bg-primary/10 text-text' : 'border-white/8 bg-black/20 text-text/60 hover:border-white/20'}`}
+                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 text-sm capitalize text-left ${
+                            active ? 'border-primary bg-primary/10 text-text' : 'border-white/8 bg-black/20 text-text/60 hover:border-white/20'
+                          }`}
                         >
-                          <div className={`w-6 h-5 rounded-md flex-shrink-0 ${s === 'glass' ? 'bg-white/10 border border-white/20' : s === 'elevated' ? 'bg-white/15 shadow-sm' : s === 'flat' ? 'bg-white/8 border border-white/10' : 'bg-transparent border border-white/20'}`} />
+                          <div
+                            className={`w-6 h-5 rounded-md flex-shrink-0 ${
+                              s === 'glass'
+                                ? 'bg-white/10 border border-white/20'
+                                : s === 'elevated'
+                                ? 'bg-white/15 shadow-sm'
+                                : s === 'flat'
+                                ? 'bg-white/8 border border-white/10'
+                                : 'bg-transparent border border-white/20'
+                            }`}
+                          />
                           {s}
                           {active && <Check size={13} className="ml-auto text-primary" />}
                         </button>
@@ -644,11 +790,17 @@ export default function Appearance() {
                       return (
                         <button
                           key={r}
+                          type="button"
                           onClick={() => setPartialPreferences('layout', 'borderRadius', r)}
-                          className={`flex items-center gap-3 p-3 border transition-all duration-200 text-sm capitalize text-left ${active ? 'border-primary bg-primary/10 text-text' : 'border-white/8 bg-black/20 text-text/60 hover:border-white/20'}`}
+                          className={`flex items-center gap-3 p-3 border transition-all duration-200 text-sm capitalize text-left ${
+                            active ? 'border-primary bg-primary/10 text-text' : 'border-white/8 bg-black/20 text-text/60 hover:border-white/20'
+                          }`}
                           style={{ borderRadius: 12 }}
                         >
-                          <div className="w-6 h-5 bg-current opacity-20 flex-shrink-0 border-2 border-current" style={{ borderRadius: radius }} />
+                          <div
+                            className="w-6 h-5 bg-current opacity-20 flex-shrink-0 border-2 border-current"
+                            style={{ borderRadius: radius }}
+                          />
                           {r}
                           {active && <Check size={13} className="ml-auto text-primary" />}
                         </button>
@@ -692,7 +844,7 @@ export default function Appearance() {
 
           </div>
 
-          {/* Live Preview Column */}
+          {/* Sticky Live Preview Column */}
           <div className="xl:w-80 w-full flex-shrink-0">
             <LivePreview preferences={preferences} />
           </div>

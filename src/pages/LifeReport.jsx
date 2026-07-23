@@ -62,7 +62,7 @@ export default function LifeReport() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-6" style={{ background: '#0f0f13' }}>
+      <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-6" style={{ background: 'var(--color-bg)' }}>
         <div className="relative mb-12">
           <div className="w-20 h-20 rounded-full flex items-center justify-center bg-[#7F77DD]/10 border border-[#7F77DD]/30">
             <Sparkles size={32} className="text-[#AFA9EC] animate-pulse" />
@@ -79,7 +79,7 @@ export default function LifeReport() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-6" style={{ background: '#0f0f13' }}>
+      <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-6" style={{ background: 'var(--color-bg)' }}>
         <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-6 text-red-400">
           <ShieldAlert size={24} />
         </div>
@@ -103,7 +103,7 @@ export default function LifeReport() {
   const letterParagraphs = letter ? letter.split(/\n{2,}/).filter(Boolean) : []
 
   return (
-    <div className="min-h-full py-8 px-4 sm:px-8 relative" style={{ background: '#0f0f13', color: '#e8e6f0' }}>
+    <div className="min-h-full py-8 px-4 sm:px-8 relative" style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}>
       
       {/* Global CSS Style tag to handle custom A4 Multi-page printing/PDF export perfectly */}
       <style>{`
@@ -165,10 +165,10 @@ export default function LifeReport() {
             <div>
               <div className="flex items-center gap-2 mb-1.5">
                 <Sparkles size={16} className="text-[#AFA9EC]" />
-                <span className="text-xs font-semibold tracking-wider uppercase text-[#AFA9EC]">Flagship Feature</span>
+                <span className="text-xs font-semibold tracking-wider uppercase text-[#AFA9EC]">Your Growth Story</span>
               </div>
-              <h1 className="text-2xl font-semibold tracking-tight">Personal Life Report</h1>
-              <p className="text-xs text-white/40 mt-0.5">A reflective synthesis of your history and growth patterns</p>
+              <h1 className="text-2xl font-bold tracking-tight">See How Far You've Come</h1>
+              <p className="text-xs text-text/50 mt-1">A gentle reflection on your growth, resilience, and personal victories.</p>
             </div>
 
             <div className="flex gap-2">

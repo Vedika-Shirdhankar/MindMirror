@@ -15,6 +15,7 @@ import VideoReflections from './pages/VideoReflections.jsx'
 import LetterFromMirror from './pages/LetterFromMirror.jsx'
 import LifeReport from './pages/LifeReport.jsx'
 import Appearance from './pages/Appearance.jsx'
+import WhyMindMirror from './pages/WhyMindMirror.jsx'
 import { AuthProvider, useAuth } from './lib/AuthContext.jsx'
 
 function ProtectedShell() {
@@ -48,6 +49,7 @@ function ProtectedShell() {
         <Route path="/life-report" element={<LifeReport />} />
         <Route path="/appearance" element={<Appearance />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/why" element={<WhyMindMirror onGetStarted={() => window.location.href = '/companion'} />} />
         <Route path="*" element={<Navigate to="/companion" replace />} />
       </Routes>
     </Layout>

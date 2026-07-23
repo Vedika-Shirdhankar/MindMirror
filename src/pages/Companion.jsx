@@ -1,19 +1,19 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, AlertTriangle, Play, X } from 'lucide-react'
+import { Send, AlertTriangle, Play, X, Heart, Sparkles } from 'lucide-react'
 import * as api from '../lib/api.js'
 import { format } from 'date-fns'
 
 function CrisisBanner({ support }) {
   if (!support) return null
   return (
-    <div className="rounded-standard p-4 mb-3 fade-up bg-red-500/10 border border-red-500/30">
+    <div className="rounded-2xl p-4 mb-3 fade-up bg-red-500/10 border border-red-500/30 text-red-300">
       <div className="flex items-center gap-2 mb-2">
-        <AlertTriangle size={14} className="text-red-400" />
-        <p className="text-sm font-medium text-red-400">{support.message}</p>
+        <AlertTriangle size={15} className="text-red-400" />
+        <p className="text-sm font-semibold">{support.message}</p>
       </div>
       <div className="flex flex-wrap gap-2">
         {support.resources.map(r => (
-          <div key={r.name} className="text-xs px-3 py-1.5 rounded-standard bg-surface text-text/80">
+          <div key={r.name} className="text-xs px-3 py-1.5 rounded-xl bg-white/10 text-white/90 font-medium">
             <strong>{r.name}:</strong> {r.contact}
           </div>
         ))}
@@ -25,40 +25,60 @@ function CrisisBanner({ support }) {
 function Message({ msg, onPlayVideo }) {
   const isUser = msg.role === 'user'
   return (
-    <div className={`flex gap-3 items-start fade-up ${isUser ? 'flex-row-reverse' : ''}`}>
-      <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-medium ${isUser ? 'bg-accent/20 text-accent border border-accent/30' : 'bg-primary/20 text-primary border border-primary/30'}`}>
-        {isUser ? 'Me' : 'M'}
+    <div className={`flex gap-3.5 items-start fade-up ${isUser ? 'flex-row-reverse' : ''}`}>
+      <div
+        className={`w-9 h-9 rounded-2xl flex-shrink-0 flex items-center justify-center text-xs font-bold shadow-md ${
+          isUser
+            ? 'bg-gradient-to-tr from-accent to-emerald-400 text-white'
+            : 'bg-gradient-to-tr from-primary to-indigo-500 text-white'
+        }`}
+      >
+        {isUser ? 'Me' : <Heart size={14} fill="white" />}
       </div>
-      <div className={`max-w-[75%] ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
-        <div className={`px-4 py-3 text-sm leading-relaxed ${isUser ? 'chat-bubble-user text-white' : 'chat-bubble-ai text-text'}`}
-          style={{
-            borderRadius: isUser ? 'var(--border-radius) 4px var(--border-radius) var(--border-radius)' : '4px var(--border-radius) var(--border-radius) var(--border-radius)',
-          }}>
+      <div className={`max-w-[78%] ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
+        <div
+          className={`px-5 py-3.5 text-sm leading-relaxed ${
+            isUser
+              ? 'chat-bubble-user text-white rounded-3xl rounded-tr-sm'
+              : 'chat-bubble-ai text-text rounded-3xl rounded-tl-sm shadow-sm'
+          }`}
+        >
           {msg.content}
         </div>
+
         {msg.createdAt && (
-          <p className="text-xs mt-1.5 opacity-30 px-1 text-text">{format(new Date(msg.createdAt), 'h:mm a')}</p>
+          <p className="text-[11px] mt-1.5 opacity-40 px-2 text-text font-medium">
+            {format(new Date(msg.createdAt), 'h:mm a')}
+          </p>
         )}
-        
+
         {!isUser && msg.recommendedVideos?.length > 0 && !msg.pastSelfRecommendation && (
-          <div className="mt-3 w-full max-w-sm rounded-xl p-3 bg-white/[0.02] border border-white/5">
-            <p className="text-xs font-semibold mb-2 flex items-center gap-1 text-[#AFA9EC]">
-              <span>🎥</span> Your Past Self Has Something To Say
+          <div className="mt-3 w-full max-w-sm rounded-2xl p-4 bg-white/5 border border-white/10 shadow-lg">
+            <p className="text-xs font-semibold mb-2.5 flex items-center gap-1.5 text-primary">
+              <span>🎥</span> Your Past Self Left Advice For You
             </p>
             <div className="flex flex-col gap-2">
               {msg.recommendedVideos.map(video => (
-                <div key={video._id} className="flex gap-3 rounded-lg overflow-hidden border border-white/5 bg-black/20 hover:border-white/10 transition-all p-2 items-center group relative">
-                  <div className="relative w-20 aspect-video bg-black/40 rounded overflow-hidden cursor-pointer flex-shrink-0" onClick={() => onPlayVideo(video)}>
+                <div
+                  key={video._id}
+                  className="flex gap-3 rounded-xl overflow-hidden border border-white/10 bg-black/20 hover:border-white/20 transition-all p-2 items-center group relative cursor-pointer"
+                  onClick={() => onPlayVideo(video)}
+                >
+                  <div className="relative w-20 aspect-video bg-black/40 rounded-lg overflow-hidden flex-shrink-0">
                     <video src={video.videoUrl} className="w-full h-full object-cover" preload="metadata" />
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/50 transition-colors">
-                      <div className="w-7 h-7 rounded-full bg-[#7F77DD] flex items-center justify-center shadow-lg">
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition-colors">
+                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
                         <Play size={10} fill="white" color="white" className="ml-0.5" />
                       </div>
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-xs font-medium text-white/90 truncate group-hover:text-[#AFA9EC] transition-colors">{video.title}</h4>
-                    <p className="text-[10px] text-white/40 mt-0.5">{format(new Date(video.createdAt), 'MMM d, yyyy')}</p>
+                    <h4 className="text-xs font-semibold text-text truncate group-hover:text-primary transition-colors">
+                      {video.title}
+                    </h4>
+                    <p className="text-[10px] text-text/40 mt-0.5">
+                      {format(new Date(video.createdAt), 'MMM d, yyyy')}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -67,12 +87,15 @@ function Message({ msg, onPlayVideo }) {
         )}
 
         {!isUser && msg.pastSelfRecommendation && (
-          <div className="mt-3 w-full max-w-md rounded-standard p-4 bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/20 shadow-lg fade-up">
+          <div className="mt-3 w-full max-w-md rounded-2xl p-4 bg-gradient-to-br from-primary/15 to-accent/10 border border-primary/25 shadow-xl fade-up">
             <p className="text-xs font-bold mb-3 flex items-center gap-1.5 text-primary uppercase tracking-wider">
-              <span>🧠</span> Ask Past Self
+              <span>🧠</span> Memory Reconnection
             </p>
             <div className="flex gap-3 items-start group">
-              <div className="relative w-28 aspect-video bg-black/40 rounded-standard overflow-hidden cursor-pointer flex-shrink-0" onClick={() => onPlayVideo(msg.pastSelfRecommendation)}>
+              <div
+                className="relative w-28 aspect-video bg-black/40 rounded-xl overflow-hidden cursor-pointer flex-shrink-0"
+                onClick={() => onPlayVideo(msg.pastSelfRecommendation)}
+              >
                 <video src={msg.pastSelfRecommendation.videoUrl} className="w-full h-full object-cover" preload="metadata" />
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition-colors">
                   <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
@@ -81,20 +104,23 @@ function Message({ msg, onPlayVideo }) {
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold text-text leading-tight mb-1">{msg.pastSelfRecommendation.title}</h4>
-                <p className="text-[10px] text-primary font-medium uppercase tracking-wider mb-2">{format(new Date(msg.pastSelfRecommendation.date), 'MMM d, yyyy')}</p>
-                
-                <div className="bg-black/30 rounded-standard p-2 border border-white/5 relative">
-                  <span className="text-3xl text-white/10 absolute -top-2 left-1">"</span>
-                  <p className="text-xs text-text/70 italic leading-relaxed pl-3 relative z-10">"{msg.pastSelfRecommendation.transcriptSnippet}"</p>
+                <h4 className="text-sm font-bold text-text leading-tight mb-1">{msg.pastSelfRecommendation.title}</h4>
+                <p className="text-[10px] text-primary font-semibold uppercase tracking-wider mb-2">
+                  {format(new Date(msg.pastSelfRecommendation.date), 'MMM d, yyyy')}
+                </p>
+
+                <div className="bg-black/25 rounded-xl p-2.5 border border-white/5 relative">
+                  <p className="text-xs text-text/80 italic leading-relaxed pl-2 relative z-10">
+                    "{msg.pastSelfRecommendation.transcriptSnippet}"
+                  </p>
                 </div>
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
-              <p className="text-[10px] text-text/50">{msg.pastSelfRecommendation.reason}</p>
-              <button 
+            <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
+              <p className="text-[10px] text-text/50 font-medium">{msg.pastSelfRecommendation.reason}</p>
+              <button
                 onClick={() => onPlayVideo(msg.pastSelfRecommendation)}
-                className="text-xs px-3 py-1.5 rounded-standard font-semibold transition-colors bg-primary/20 hover:bg-primary/40 text-primary flex items-center gap-1.5"
+                className="text-xs px-3.5 py-1.5 rounded-xl font-bold transition-all bg-primary text-white hover:opacity-90 flex items-center gap-1.5 shadow-md shadow-primary/20"
               >
                 Watch Reflection
               </button>
@@ -122,7 +148,17 @@ export default function Companion() {
   async function loadHistory() {
     try {
       const history = await api.getChatHistory()
-      setMessages(history.length ? history : [{ role: 'assistant', content: "Hello. I'm here and I'm listening. How are you feeling right now?", createdAt: new Date() }])
+      setMessages(
+        history.length
+          ? history
+          : [
+              {
+                role: 'assistant',
+                content: "Welcome back. I'm right here with you. Take a deep breath — how are you feeling today?",
+                createdAt: new Date(),
+              },
+            ]
+      )
     } catch (e) {
       setError(e.message)
     } finally {
@@ -143,7 +179,10 @@ export default function Companion() {
 
     try {
       const { reply, recommendedVideos, pastSelfRecommendation, support: supportData } = await api.sendChatMessage(text)
-      setMessages(prev => [...prev, { role: 'assistant', content: reply, createdAt: new Date(), recommendedVideos, pastSelfRecommendation }])
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: reply, createdAt: new Date(), recommendedVideos, pastSelfRecommendation },
+      ])
       if (supportData) setSupport(supportData)
     } catch (e) {
       setError(e.message || 'Something went wrong. Please try again.')
@@ -153,85 +192,126 @@ export default function Companion() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="px-6 py-4 border-b border-border bg-surface/50 backdrop-blur-sm sticky top-0 z-10">
-        <h1 className="font-semibold text-base text-text">Companion</h1>
-        <p className="text-xs mt-0.5 text-text/50">I remember your journey</p>
+    <div className="flex flex-col h-screen max-w-4xl mx-auto px-4 sm:px-6">
+      {/* Header */}
+      <div className="py-5 border-b border-white/10 bg-surface/40 backdrop-blur-md sticky top-0 z-10 flex items-center justify-between rounded-b-2xl">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white shadow-md shadow-primary/20">
+            <Heart size={18} fill="white" />
+          </div>
+          <div>
+            <h1 className="font-bold text-base text-text">Someone who remembers what helped before</h1>
+            <p className="text-xs text-text/50 font-normal">A safe, non-judgmental space to talk and reflect</p>
+          </div>
+        </div>
+        <div className="hidden sm:flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full bg-accent/15 text-accent border border-accent/30">
+          <Sparkles size={13} />
+          Memory-Aware
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-5">
+      {/* Messages Feed */}
+      <div className="flex-1 overflow-y-auto py-6 flex flex-col gap-5">
         {loadingHistory ? (
-          <p className="text-sm text-text/40">Loading conversation…</p>
+          <p className="text-sm text-text/40 text-center py-10">Preparing your space…</p>
         ) : (
           messages.map((msg, i) => <Message key={i} msg={msg} onPlayVideo={setPlayingVideo} />)
         )}
+
+        {/* Typing indicator */}
         {loading && (
-          <div className="flex gap-3 items-start fade-up">
-            <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-medium bg-primary/20 text-primary border border-primary/30">M</div>
-            <div className="px-4 py-3 bg-surface border-border text-text" style={{ borderRadius: '4px var(--border-radius) var(--border-radius) var(--border-radius)' }}>
-              <span className="thinking text-sm text-primary">thinking…</span>
+          <div className="flex gap-3.5 items-start fade-up">
+            <div className="w-9 h-9 rounded-2xl flex-shrink-0 flex items-center justify-center bg-gradient-to-tr from-primary to-indigo-500 text-white shadow-md">
+              <Heart size={14} fill="white" />
+            </div>
+            <div className="px-5 py-3.5 bg-surface border border-white/10 text-text rounded-3xl rounded-tl-sm flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+              <span className="text-xs text-text/60 font-medium">Reflecting with your story…</span>
             </div>
           </div>
         )}
+
         {error && (
-          <div className="text-xs px-3 py-2 rounded-standard bg-red-500/10 border border-red-500/20 text-red-400">{error}</div>
+          <div className="text-xs p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400">{error}</div>
         )}
         <div ref={bottomRef} />
       </div>
 
-      <div className="px-6">
-        <CrisisBanner support={support} />
-      </div>
+      {/* Crisis Banner */}
+      <CrisisBanner support={support} />
 
-      <div className="px-6 pb-2">
+      {/* Quick Prompts */}
+      <div className="pb-3">
         <div className="flex gap-2 flex-wrap">
-          {["I'm feeling anxious", "I need to vent", "Help me reframe this", "How have I grown?"].map(p => (
-            <button key={p} onClick={() => setInput(p)} className="text-xs px-3 py-1.5 rounded-full border border-primary/30 text-primary bg-primary/10 transition-opacity hover:opacity-80">
+          {["I'm feeling anxious today", "I need to vent about work", "Help me reframe this thought", "How have I grown over time?"].map(p => (
+            <button
+              key={p}
+              onClick={() => setInput(p)}
+              className="text-xs px-3.5 py-2 rounded-xl border border-white/10 text-text/70 bg-surface hover:bg-white/10 hover:text-text transition-all font-medium"
+            >
               {p}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="px-6 py-4 border-t border-border bg-surface/50 backdrop-blur-sm">
-        <div className="flex gap-3 items-end">
+      {/* Input Field */}
+      <div className="pb-6 pt-2">
+        <div className="flex gap-3 items-end p-2 rounded-3xl bg-surface border border-white/10 shadow-xl backdrop-blur-lg">
           <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-            placeholder="Tell me what's on your mind…"
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                send()
+              }
+            }}
+            placeholder="Talk about anything on your mind. I'm here…"
             rows={1}
-            className="flex-1 px-4 py-3 rounded-standard text-sm outline-none resize-none bg-surface border border-white/10 text-text"
+            className="flex-1 px-4 py-3 rounded-2xl text-sm outline-none resize-none bg-transparent text-text placeholder-text/30"
             style={{ maxHeight: '120px', lineHeight: 1.5 }}
-            onInput={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
+            onInput={e => {
+              e.target.style.height = 'auto'
+              e.target.style.height = e.target.scrollHeight + 'px'
+            }}
           />
-          <button onClick={send} disabled={!input.trim() || loading} className="w-10 h-10 rounded-standard flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-80 disabled:opacity-30 bg-primary text-white">
-            <Send size={15} />
+          <button
+            onClick={send}
+            disabled={!input.trim() || loading}
+            className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-30 bg-primary text-white shadow-lg shadow-primary/30 hover:scale-105"
+          >
+            <Send size={16} />
           </button>
         </div>
       </div>
 
       {/* Playback Modal */}
       {playingVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
           onClick={() => setPlayingVideo(null)}
         >
-          <div className="relative w-full max-w-2xl bg-[#13121a] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto fade-up"
+          <div
+            className="relative w-full max-w-2xl bg-surface border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto fade-up"
             onClick={e => e.stopPropagation()}
           >
-            <button onClick={() => setPlayingVideo(null)} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-1.5 rounded-full hover:bg-white/10">
+            <button
+              onClick={() => setPlayingVideo(null)}
+              className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
+            >
               <X size={18} />
             </button>
-            <h3 className="text-sm font-semibold pr-8 text-white">{playingVideo.title}</h3>
-            
-            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/5 relative">
+            <h3 className="text-base font-bold pr-8 text-text">{playingVideo.title}</h3>
+
+            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/10 relative">
               <video src={playingVideo.videoUrl} controls autoPlay className="w-full h-full" />
             </div>
 
             {playingVideo.note && (
-              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 mt-2">
-                <p className="text-[10px] uppercase font-bold tracking-wider text-white/40 mb-1">Reflection Note</p>
-                <p className="text-xs leading-relaxed text-white/70 whitespace-pre-wrap">{playingVideo.note}</p>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mt-2">
+                <p className="text-[10px] uppercase font-bold tracking-wider text-text/40 mb-1">Reflection Note</p>
+                <p className="text-xs leading-relaxed text-text/80 whitespace-pre-wrap">{playingVideo.note}</p>
               </div>
             )}
           </div>

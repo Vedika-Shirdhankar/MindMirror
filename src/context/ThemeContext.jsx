@@ -1,14 +1,18 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import * as api from '../lib/api';
 import { BUILT_IN_THEMES, FONT_FAMILIES, FONT_SIZES, BORDER_RADII } from '../lib/themes';
 
-const ThemeContext = createContext();
+const ThemeContext = createContext(null);
 
 export function useTheme() {
-  return useContext(ThemeContext);
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
 }
 
-const DEFAULT_PREFERENCES = {
+export const DEFAULT_PREFERENCES = {
   theme: 'midnight',
   customTheme: {
     primary: '#7F77DD',
@@ -20,36 +24,38 @@ const DEFAULT_PREFERENCES = {
   colorMode: 'dark', // 'light' | 'dark' | 'system'
   typography: {
     fontSize: 'medium', // 'small' | 'medium' | 'large'
-    fontFamily: 'Inter'
+    fontFamily: 'Inter',
   },
   layout: {
     density: 'comfortable', // 'compact' | 'comfortable' | 'spacious'
     cardStyle: 'glass', // 'glass' | 'elevated' | 'flat' | 'minimal'
-    borderRadius: 'medium'
+    borderRadius: 'medium',
   },
   animations: 'full', // 'full' | 'reduced' | 'disabled'
   ambientBackground: 'none',
   accessibility: {
     highContrast: false,
-    dyslexiaFont: false
-  }
+    dyslexiaFont: false,
+  },
 };
+
+/** Deep merges saved/incoming preferences onto default structure safely */
+function mergePreferences(incoming = {}) {
+  return {
+    ...DEFAULT_PREFERENCES,
+    ...incoming,
+    typography: { ...DEFAULT_PREFERENCES.typography, ...(incoming.typography || {}) },
+    layout: { ...DEFAULT_PREFERENCES.layout, ...(incoming.layout || {}) },
+    accessibility: { ...DEFAULT_PREFERENCES.accessibility, ...(incoming.accessibility || {}) },
+    customTheme: { ...DEFAULT_PREFERENCES.customTheme, ...(incoming.customTheme || {}) },
+  };
+}
 
 export function ThemeProvider({ children }) {
   const [preferences, setPreferences] = useState(() => {
     try {
       const saved = localStorage.getItem('mm_preferences');
-      if (!saved) return DEFAULT_PREFERENCES;
-      const parsed = JSON.parse(saved);
-      // Deep-merge so nested objects like typography/layout/accessibility stay intact
-      return {
-        ...DEFAULT_PREFERENCES,
-        ...parsed,
-        typography: { ...DEFAULT_PREFERENCES.typography, ...parsed.typography },
-        layout: { ...DEFAULT_PREFERENCES.layout, ...parsed.layout },
-        accessibility: { ...DEFAULT_PREFERENCES.accessibility, ...parsed.accessibility },
-        customTheme: { ...DEFAULT_PREFERENCES.customTheme, ...parsed.customTheme },
-      };
+      return saved ? mergePreferences(JSON.parse(saved)) : DEFAULT_PREFERENCES;
     } catch {
       return DEFAULT_PREFERENCES;
     }
@@ -57,136 +63,160 @@ export function ThemeProvider({ children }) {
 
   // Sync with API when user logs in
   useEffect(() => {
-    if (api.isLoggedIn()) {
-      api.getMe().then(user => {
-        if (user && user.preferences) {
-          const p = user.preferences;
-          const merged = {
-            ...DEFAULT_PREFERENCES,
-            ...p,
-            typography: { ...DEFAULT_PREFERENCES.typography, ...p.typography },
-            layout: { ...DEFAULT_PREFERENCES.layout, ...p.layout },
-            accessibility: { ...DEFAULT_PREFERENCES.accessibility, ...p.accessibility },
-            customTheme: { ...DEFAULT_PREFERENCES.customTheme, ...p.customTheme },
-          };
-          setPreferences(merged);
-          localStorage.setItem('mm_preferences', JSON.stringify(merged));
-        }
-      }).catch(err => console.error("Failed to fetch preferences:", err));
+    let isMounted = true;
+
+    if (api.isLoggedIn && api.isLoggedIn()) {
+      api
+        .getMe()
+        .then((user) => {
+          if (isMounted && user?.preferences) {
+            const merged = mergePreferences(user.preferences);
+            setPreferences(merged);
+            localStorage.setItem('mm_preferences', JSON.stringify(merged));
+          }
+        })
+        .catch((err) => console.error('Failed to fetch preferences from server:', err));
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // Apply preferences to DOM whenever they change
+  // Apply CSS custom variables to root DOM node
   useEffect(() => {
     const root = document.documentElement;
     localStorage.setItem('mm_preferences', JSON.stringify(preferences));
 
-    // 1. Theme Colors
+    // 1. Resolve Active Theme
     const isCustom = preferences.theme === 'custom';
     const activeTheme = isCustom
       ? preferences.customTheme
-      : (BUILT_IN_THEMES[preferences.theme] || BUILT_IN_THEMES['midnight']);
+      : BUILT_IN_THEMES[preferences.theme] || BUILT_IN_THEMES.midnight;
 
-    root.style.setProperty('--color-bg', activeTheme.background);
-    root.style.setProperty('--color-primary', activeTheme.primary);
-    root.style.setProperty('--color-accent', activeTheme.accent);
-    root.style.setProperty('--color-surface', activeTheme.surface);
-    root.style.setProperty('--color-text', activeTheme.text);
+    // 2. High Contrast Mode Overrides
+    const isHighContrast = preferences.accessibility?.highContrast;
+    const bg = isHighContrast ? '#000000' : activeTheme.background;
+    const text = isHighContrast ? '#FFFFFF' : activeTheme.text;
+    const surface = isHighContrast ? '#111111' : activeTheme.surface;
+    const primary = isHighContrast ? '#FFFF00' : activeTheme.primary;
 
-    // 2. High Contrast overrides
-    if (preferences.accessibility?.highContrast) {
-      root.style.setProperty('--color-bg', '#000000');
-      root.style.setProperty('--color-text', '#FFFFFF');
-      root.style.setProperty('--color-surface', '#111111');
-      root.style.setProperty('--color-primary', '#FFFF00');
-    }
+    root.style.setProperty('--color-bg', bg);
+    root.style.setProperty('--color-text', text);
+    root.style.setProperty('--color-surface', surface);
+    root.style.setProperty('--color-primary', primary);
+    root.style.setProperty('--color-accent', activeTheme.accent || primary);
+
+    // Derived text tones — computed from the theme's textMuted or synthesized
+    const textMuted = isHighContrast
+      ? 'rgba(255,255,255,0.7)'
+      : (activeTheme.textMuted || (text + '99'));
+    // Generate a faint version: use textMuted but more transparent
+    const textFaint = isHighContrast
+      ? 'rgba(255,255,255,0.45)'
+      : (activeTheme.textMuted
+          ? activeTheme.textMuted.replace(/[\d.]+\)$/, '0.35)')
+          : (text + '55'));
+    root.style.setProperty('--color-text-muted', textMuted);
+    root.style.setProperty('--color-text-faint', textFaint);
+
+    // Surface border — adapts for light vs dark themes
+    const isLight = activeTheme.background && activeTheme.background.startsWith('#F');
+    root.style.setProperty('--color-surface-border',
+      isHighContrast ? '1px solid rgba(255,255,255,0.3)'
+      : isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.08)');
 
     // 3. Typography
     const fontFamily = preferences.accessibility?.dyslexiaFont
       ? 'OpenDyslexic, sans-serif'
-      : (preferences.typography?.fontFamily || 'Inter');
+      : preferences.typography?.fontFamily || 'Inter';
+    const fontSize = FONT_SIZES?.[preferences.typography?.fontSize] || FONT_SIZES?.medium || '1rem';
+
     root.style.setProperty('--font-family', fontFamily);
-    root.style.setProperty('--font-size-base', FONT_SIZES[preferences.typography?.fontSize] || FONT_SIZES['medium']);
+    root.style.setProperty('--font-size-base', fontSize);
 
-    // 4. Layout - border radius & density
-    root.style.setProperty('--border-radius', BORDER_RADII[preferences.layout?.borderRadius] || BORDER_RADII['medium']);
+    // 4. Layout
+    const borderRadius = BORDER_RADII?.[preferences.layout?.borderRadius] || BORDER_RADII?.medium || '12px';
     const density = preferences.layout?.density || 'comfortable';
-    root.style.setProperty('--padding-base', density === 'compact' ? '0.75rem' : density === 'spacious' ? '1.5rem' : '1rem');
+    const paddingBase = density === 'compact' ? '0.75rem' : density === 'spacious' ? '1.5rem' : '1rem';
 
-    // 5. Card Style
+    root.style.setProperty('--border-radius', borderRadius);
+    root.style.setProperty('--padding-base', paddingBase);
+
+    // 5. Card Style Configuration — borders adapt to light vs dark themes
     const cardStyle = preferences.layout?.cardStyle || 'glass';
-    if (cardStyle === 'flat' || cardStyle === 'minimal') {
-      root.style.setProperty('--surface-backdrop', 'none');
-      root.style.setProperty('--surface-border', '1px solid rgba(255,255,255,0.05)');
-      root.style.setProperty('--surface-shadow', 'none');
-    } else if (cardStyle === 'elevated') {
-      root.style.setProperty('--surface-backdrop', 'none');
-      root.style.setProperty('--surface-border', 'transparent');
-      root.style.setProperty('--surface-shadow', '0 4px 24px rgba(0,0,0,0.25)');
-    } else {
-      // Glass (default)
-      root.style.setProperty('--surface-backdrop', 'blur(12px)');
-      root.style.setProperty('--surface-border', '1px solid rgba(255, 255, 255, 0.08)');
-      root.style.setProperty('--surface-shadow', 'none');
-    }
+    const borderBase = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.08)';
+    const borderStrong = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.05)';
+    const cardConfigs = {
+      flat:     { backdrop: 'none', border: `1px solid ${borderStrong}`, shadow: 'none' },
+      minimal:  { backdrop: 'none', border: `1px solid ${borderStrong}`, shadow: 'none' },
+      elevated: { backdrop: 'none', border: 'transparent', shadow: '0 4px 24px rgba(0,0,0,0.15)' },
+      glass:    { backdrop: 'blur(12px)', border: `1px solid ${borderBase}`, shadow: 'none' },
+    };
+    const currentCard = cardConfigs[cardStyle] || cardConfigs.glass;
+
+    root.style.setProperty('--surface-backdrop', currentCard.backdrop);
+    root.style.setProperty('--surface-border', currentCard.border);
+    root.style.setProperty('--surface-shadow', currentCard.shadow);
 
     // 6. Animations
     const anim = preferences.animations || 'full';
-    root.style.setProperty('--anim-duration', anim === 'disabled' ? '0s' : anim === 'reduced' ? '0.6s' : '0.35s');
-
+    const animDuration = anim === 'disabled' ? '0s' : anim === 'reduced' ? '0.6s' : '0.35s';
+    root.style.setProperty('--anim-duration', animDuration);
   }, [preferences]);
 
-  // updatePreferences: accepts a full preferences object
-  const updatePreferences = async (newPrefs) => {
-    const merged = {
-      ...preferences,
-      ...newPrefs,
-      // Always deep-merge nested objects
-      typography: { ...preferences.typography, ...newPrefs.typography },
-      layout: { ...preferences.layout, ...newPrefs.layout },
-      accessibility: { ...preferences.accessibility, ...newPrefs.accessibility },
-      customTheme: { ...preferences.customTheme, ...newPrefs.customTheme },
-    };
-    setPreferences(merged);
+  // Update preferences state & persist to API
+  const updatePreferences = useCallback(async (newPrefs) => {
+    setPreferences((prev) => {
+      const merged = mergePreferences({ ...prev, ...newPrefs });
 
-    if (api.isLoggedIn()) {
-      try {
-        await api.updatePreferences(merged);
-      } catch (e) {
-        console.error("Failed to save preferences:", e);
+      if (api.isLoggedIn && api.isLoggedIn()) {
+        api.updatePreferences(merged).catch((e) => {
+          console.error('Failed to persist preferences to server:', e);
+        });
       }
-    }
-  };
 
-  /**
-   * setPartialPreferences(category, key, value)
-   *
-   * Two calling modes:
-   * 1. Top-level field:   setPartialPreferences('theme', null, 'midnight')
-   *    → sets preferences.theme = 'midnight'
-   * 2. Nested field:      setPartialPreferences('typography', 'fontFamily', 'Poppins')
-   *    → sets preferences.typography.fontFamily = 'Poppins'
-   */
-  const setPartialPreferences = (category, key, value) => {
-    let updated;
-    if (key === null || key === undefined) {
-      // Top-level field (theme, animations, colorMode, ambientBackground)
-      updated = { ...preferences, [category]: value };
-    } else {
-      // Nested field (typography.fontFamily, layout.density, etc.)
-      updated = {
-        ...preferences,
-        [category]: {
-          ...(preferences[category] || {}),
-          [key]: value,
-        },
-      };
-    }
-    updatePreferences(updated);
-  };
+      return merged;
+    });
+  }, []);
+
+  // Update specific top-level or nested preference key
+  const setPartialPreferences = useCallback((category, key, value) => {
+    setPreferences((prev) => {
+      let updated;
+      if (key === null || key === undefined) {
+        updated = { ...prev, [category]: value };
+      } else {
+        updated = {
+          ...prev,
+          [category]: {
+            ...(prev[category] || {}),
+            [key]: value,
+          },
+        };
+      }
+      
+      const merged = mergePreferences(updated);
+
+      if (api.isLoggedIn && api.isLoggedIn()) {
+        api.updatePreferences(merged).catch((e) => {
+          console.error('Failed to persist preferences to server:', e);
+        });
+      }
+
+      return merged;
+    });
+  }, []);
 
   return (
-    <ThemeContext.Provider value={{ preferences, updatePreferences, setPartialPreferences, DEFAULT_PREFERENCES }}>
+    <ThemeContext.Provider
+      value={{
+        preferences,
+        updatePreferences,
+        setPartialPreferences,
+        DEFAULT_PREFERENCES,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );

@@ -196,13 +196,13 @@ export default function Journal() {
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-xl font-semibold text-text">Journal</h1>
-          <p className="text-sm mt-0.5 text-text/50">{entries.length} entries</p>
+          <h1 className="text-2xl font-bold text-text">Your Quiet Space</h1>
+          <p className="text-xs mt-1 text-text/50">Pour your thoughts freely. AI gently connects your patterns. ({entries.length} reflections)</p>
         </div>
-        <button onClick={() => setWriting(!writing)} className="flex items-center gap-2 px-4 py-2 rounded-standard text-sm font-medium transition-opacity hover:opacity-80 bg-primary text-white">
-          <Plus size={14} /> New entry
+        <button onClick={() => setWriting(!writing)} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all hover:scale-105 shadow-lg shadow-primary/20 bg-primary text-white">
+          <Plus size={15} /> Write reflection
         </button>
       </div>
 
@@ -308,7 +308,19 @@ export default function Journal() {
             </div>
           ))}
           {entries.length === 0 && (
-            <p className="text-sm text-center py-12 text-text/40">No entries yet. Write your first one above.</p>
+            <div className="text-center py-16 px-6 rounded-3xl bg-surface/50 border border-white/10 my-4 fade-up">
+              <div className="text-4xl mb-3">✍️</div>
+              <h3 className="text-base font-bold text-text mb-1">Every journey begins with a single page</h3>
+              <p className="text-xs text-text/50 max-w-sm mx-auto mb-5 leading-relaxed">
+                Write your first reflection today. Your future self will look back on this moment with deep gratitude.
+              </p>
+              <button
+                onClick={() => setWriting(true)}
+                className="px-5 py-2.5 rounded-2xl bg-primary text-white font-bold text-xs shadow-lg shadow-primary/25 hover:scale-105 transition-all"
+              >
+                Write your first reflection
+              </button>
+            </div>
           )}
         </div>
       )}

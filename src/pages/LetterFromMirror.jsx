@@ -12,8 +12,8 @@ const MOOD_DIRECTION_LABEL = {
 function Stat({ value, label }) {
   return (
     <div className="text-center">
-      <div className="text-2xl font-light mb-0.5" style={{ color: '#e8e6f0', letterSpacing: '-0.02em' }}>{value}</div>
-      <div className="text-xs" style={{ color: 'rgba(232,230,240,0.4)', letterSpacing: '0.04em' }}>{label}</div>
+      <div className="text-2xl font-light mb-0.5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>{value}</div>
+      <div className="text-xs" style={{ color: 'var(--color-text-faint)', letterSpacing: '0.04em' }}>{label}</div>
     </div>
   )
 }
@@ -29,10 +29,10 @@ function IdleState({ onGenerate }) {
         <div className="absolute inset-0 rounded-full" style={{ background: 'radial-gradient(circle, rgba(127,119,221,0.15) 0%, transparent 70%)', transform: 'scale(2.5)' }} />
       </div>
 
-      <h1 className="text-2xl font-light mb-3" style={{ color: '#e8e6f0', letterSpacing: '-0.02em' }}>
+      <h1 className="text-2xl font-light mb-3" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
         Letter From MindMirror
       </h1>
-      <p className="text-sm leading-relaxed mb-10 max-w-sm" style={{ color: 'rgba(232,230,240,0.45)' }}>
+      <p className="text-sm leading-relaxed mb-10 max-w-sm" style={{ color: 'var(--color-text-muted)' }}>
         A personal reflection written just for you — drawing on everything you've shared. Your struggles, your growth, your patterns. What MindMirror has noticed.
       </p>
 
@@ -45,7 +45,7 @@ function IdleState({ onGenerate }) {
         Write my letter
       </button>
 
-      <p className="text-xs mt-5" style={{ color: 'rgba(232,230,240,0.25)' }}>
+      <p className="text-xs mt-5" style={{ color: 'var(--color-text-faint)' }}>
         Takes 10–20 seconds · Powered by Gemini
       </p>
     </div>
@@ -74,7 +74,7 @@ function LoadingState() {
           <div className="w-full h-full rounded-full animate-spin" style={{ background: 'conic-gradient(from 0deg, transparent 0%, #7F77DD 100%)', opacity: 0.6 }} />
         </div>
       </div>
-      <p className="text-sm transition-all" style={{ color: 'rgba(232,230,240,0.5)', minHeight: '1.5em' }}>
+      <p className="text-sm transition-all" style={{ color: 'var(--color-text-muted)', minHeight: '1.5em' }}>
         {lines[lineIdx]}
       </p>
     </div>
@@ -119,13 +119,13 @@ function LetterDisplay({ letter, meta, onRefresh }) {
       <div className="mb-12">
         <div className="flex items-center gap-2 mb-6">
           <div className="w-1 h-6 rounded-full" style={{ background: 'linear-gradient(180deg, #7F77DD, #5DCAA5)' }} />
-          <span className="text-xs font-medium tracking-widest uppercase" style={{ color: 'rgba(232,230,240,0.35)' }}>
+          <span className="text-xs font-medium tracking-widest uppercase" style={{ color: 'var(--color-text-faint)' }}>
             Letter From MindMirror
           </span>
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-4 p-5 rounded-2xl mb-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="grid grid-cols-3 gap-4 p-5 rounded-2xl mb-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-border)' }}>
           <Stat value={meta.totalEntries} label="entries written" />
           <Stat value={meta.resolvedCount} label="things resolved" />
           <Stat
@@ -136,7 +136,7 @@ function LetterDisplay({ letter, meta, onRefresh }) {
 
         {/* Date span */}
         {meta.dateRange?.first && (
-          <p className="text-xs text-center" style={{ color: 'rgba(232,230,240,0.25)', letterSpacing: '0.04em' }}>
+          <p className="text-xs text-center" style={{ color: 'var(--color-text-faint)', letterSpacing: '0.04em' }}>
             {format(new Date(meta.dateRange.first), 'MMMM d, yyyy')} — {format(new Date(meta.dateRange.last), 'MMMM d, yyyy')}
           </p>
         )}
@@ -163,29 +163,29 @@ function LetterDisplay({ letter, meta, onRefresh }) {
             key={i}
             className="leading-loose mb-6"
             style={{
-              color: 'rgba(232,230,240,0.88)',
+              color: 'var(--color-text)',
               fontSize: '17px',
               letterSpacing: '0.01em',
               // First paragraph slightly larger
-              ...(i === 0 ? { fontSize: '18px', color: '#e8e6f0' } : {}),
+              ...(i === 0 ? { fontSize: '18px', color: 'var(--color-text)' } : {}),
               // Last paragraph in italic
-              ...(i === paragraphs.length - 1 ? { fontStyle: 'italic', color: 'rgba(232,230,240,0.65)', marginTop: '2rem' } : {}),
+              ...(i === paragraphs.length - 1 ? { fontStyle: 'italic', color: 'var(--color-text-muted)', marginTop: '2rem' } : {}),
             }}
           >
             {para.trim()}
           </p>
         ))}
 
-        <p className="date text-xs mt-8" style={{ color: 'rgba(232,230,240,0.25)', fontFamily: 'system-ui', letterSpacing: '0.04em' }}>
+        <p className="date text-xs mt-8" style={{ color: 'var(--color-text-faint)', fontFamily: 'system-ui', letterSpacing: '0.04em' }}>
           Generated {format(new Date(), 'MMMM d, yyyy')} · MindMirror
         </p>
       </div>
 
       {/* Divider */}
       <div className="flex items-center gap-4 mb-8">
-        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="flex-1 h-px" style={{ background: 'var(--color-surface)' }} />
         <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'rgba(127,119,221,0.4)' }} />
-        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="flex-1 h-px" style={{ background: 'var(--color-surface)' }} />
       </div>
 
       {/* Actions */}
@@ -193,20 +193,20 @@ function LetterDisplay({ letter, meta, onRefresh }) {
         <button
           onClick={handlePrint}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm transition-all hover:opacity-80"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(232,230,240,0.6)' }}
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-border)', color: 'var(--color-text-muted)' }}
         >
           <Printer size={13} /> Print / Save PDF
         </button>
         <button
           onClick={onRefresh}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm transition-all hover:opacity-80"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(232,230,240,0.6)' }}
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-border)', color: 'var(--color-text-muted)' }}
         >
           <RefreshCw size={13} /> Regenerate
         </button>
       </div>
 
-      <p className="text-center text-xs mt-6" style={{ color: 'rgba(232,230,240,0.2)' }}>
+      <p className="text-center text-xs mt-6" style={{ color: 'var(--color-text-faint)' }}>
         Each letter is written fresh based on your actual history.
       </p>
     </div>
@@ -218,7 +218,7 @@ function ErrorState({ message, onRetry }) {
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
       <p className="text-sm mb-4" style={{ color: '#f09595' }}>{message}</p>
       <button onClick={onRetry} className="text-sm px-5 py-2.5 rounded-xl transition-opacity hover:opacity-80"
-        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(232,230,240,0.6)' }}>
+        style={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-border)', color: 'var(--color-text-muted)' }}>
         Try again
       </button>
     </div>
@@ -257,7 +257,7 @@ export default function LetterFromMirror() {
   }
 
   return (
-    <div className="min-h-full" style={{ background: '#0f0f13' }}>
+    <div className="min-h-full" style={{ background: 'var(--color-bg)' }}>
       {state === 'idle' && <IdleState onGenerate={generate} />}
       {state === 'loading' && <LoadingState />}
       {state === 'ready' && letter && meta && <LetterDisplay letter={letter} meta={meta} onRefresh={generate} />}

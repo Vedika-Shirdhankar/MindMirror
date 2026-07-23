@@ -211,9 +211,9 @@ export default function VideoReflections() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-xl font-semibold" style={{ color: '#e8e6f0' }}>Video Reflections</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'rgba(232,230,240,0.45)' }}>
-            {reflections.length} saved {reflections.length === 1 ? 'reflection' : 'reflections'}
+          <h1 className="text-2xl font-bold text-text">Advice From Your Past Self</h1>
+          <p className="text-xs mt-1 text-text/50">
+            Record messages during calm moments. MindMirror surfaces them when life feels overwhelming. ({reflections.length} saved)
           </p>
         </div>
 
@@ -222,7 +222,7 @@ export default function VideoReflections() {
             <button
               onClick={() => { setUploadMode('record'); startCamera(); }}
               className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all"
-              style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)', color: '#e8e6f0' }}
+              style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)', color: 'var(--color-text)' }}
             >
               <Camera size={14} className="text-[#AFA9EC]" />
               Record Video
@@ -247,9 +247,9 @@ export default function VideoReflections() {
 
       {/* Creation forms */}
       {uploadMode && (
-        <div className="rounded-2xl p-6 mb-8 fade-up" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="rounded-2xl p-6 mb-8 fade-up" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-border)' }}>
           <div className="flex items-center justify-between mb-5 border-b pb-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-            <h2 className="text-base font-semibold" style={{ color: '#e8e6f0' }}>
+            <h2 className="text-base font-semibold" style={{ color: 'var(--color-text)' }}>
               {uploadMode === 'file' ? 'Upload Video Reflection' : 'Record Video Reflection'}
             </h2>
             <button onClick={handleCancelForm} className="text-white/40 hover:text-white p-1 rounded-lg">
@@ -352,7 +352,7 @@ export default function VideoReflections() {
                             type="button"
                             onClick={() => { setRecordedBlob(null); startCamera(); }}
                             className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all"
-                            style={{ borderColor: 'rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', color: '#e8e6f0' }}
+                            style={{ borderColor: 'rgba(255,255,255,0.15)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
                           >
                             <RotateCcw size={12} />
                             Retake Video
@@ -376,7 +376,7 @@ export default function VideoReflections() {
                     placeholder="e.g. Spiral about future exams"
                     required
                     className="w-full px-4 py-2.5 rounded-xl text-sm outline-none border"
-                    style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.08)', color: '#e8e6f0' }}
+                    style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.08)', color: 'var(--color-text)' }}
                   />
                 </div>
                 
@@ -388,7 +388,7 @@ export default function VideoReflections() {
                     placeholder="Reflect on why you logged this, what triggered it, or how you feel as you record this..."
                     rows={6}
                     className="w-full px-4 py-2.5 rounded-xl text-sm outline-none resize-none leading-relaxed border"
-                    style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.08)', color: '#e8e6f0' }}
+                    style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.08)', color: 'var(--color-text)' }}
                   />
                 </div>
               </div>
@@ -402,7 +402,7 @@ export default function VideoReflections() {
                 onClick={handleCancelForm}
                 disabled={submitting}
                 className="px-4 py-2 rounded-xl text-sm border transition-opacity hover:opacity-70 disabled:opacity-40"
-                style={{ borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(232,230,240,0.5)' }}
+                style={{ borderColor: 'rgba(255,255,255,0.12)', color: 'var(--color-text-muted)' }}
               >
                 Cancel
               </button>
@@ -516,14 +516,18 @@ export default function VideoReflections() {
           ))}
           
           {reflections.length === 0 && (
-            <div className="col-span-full text-center py-20 border-2 border-dashed border-white/5 rounded-3xl bg-white/[0.01]">
-              <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4 text-white/30">
-                <Video size={20} />
-              </div>
-              <h3 className="text-sm font-semibold text-white">No video reflections yet</h3>
-              <p className="text-xs text-white/40 mt-1 max-w-sm mx-auto">
-                Record or upload your first personal video reflection. Capture your thoughts and play them back when you need them.
+            <div className="col-span-full text-center py-16 px-6 border border-white/10 rounded-3xl bg-surface/50 my-4 fade-up">
+              <div className="text-4xl mb-3">🎥</div>
+              <h3 className="text-base font-bold text-text mb-1">One day, your future self may need today's encouragement</h3>
+              <p className="text-xs text-text/50 max-w-md mx-auto mb-5 leading-relaxed">
+                Record a short video reflection when you feel clear-headed or hopeful. MindMirror will gently surface it back to you when life gets challenging.
               </p>
+              <button
+                onClick={() => { setUploadMode('record'); startCamera(); }}
+                className="px-5 py-2.5 rounded-2xl bg-primary text-white font-bold text-xs shadow-lg shadow-primary/25 hover:scale-105 transition-all inline-flex items-center gap-2"
+              >
+                <Camera size={15} /> Record your first reflection
+              </button>
             </div>
           )}
         </div>
