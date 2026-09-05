@@ -68,7 +68,12 @@ if (config.env !== 'production') {
 }
 
 // ─── Health ───────────────────────────────────────────────────────────────────
-app.get('/api/health', checkHealth);
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'mindmirror-api'
+  });
+});
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
