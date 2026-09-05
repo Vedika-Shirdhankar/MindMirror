@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import {
   Heart, ArrowRight, Sparkles, BookOpen, Video, MessageCircle,
   Gamepad2, Shield, TrendingUp, RefreshCw, Users, Star,
-  CheckCircle, ChevronDown, Play, Wind, Layers, Zap, X
+  CheckCircle, ChevronDown, Play, Wind, Layers, Zap, X, Leaf
 } from 'lucide-react'
 
 // ─── Scroll-reveal hook ───────────────────────────────────────────────────────
@@ -188,28 +188,34 @@ export default function WhyMindMirror({ onGetStarted }) {
   ]
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-bg)', color: 'var(--color-text)', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div className="why-page min-h-screen" style={{ background: 'var(--color-bg)', color: 'var(--color-text)', fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* Background orbs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-0 left-1/3 w-[600px] h-[600px] rounded-full bg-[#7F77DD]/6 blur-[160px]" />
-        <div className="absolute top-1/2 right-0 w-[500px] h-[500px] rounded-full bg-[#5DCAA5]/4 blur-[140px]" />
-        <div className="absolute bottom-0 left-0 w-[700px] h-[500px] rounded-full bg-[#EF9F27]/3 blur-[180px]" />
+        <div className="absolute top-0 left-1/3 w-[600px] h-[600px] rounded-full bg-[#7F77DD]/12 blur-[160px]" />
+        <div className="absolute top-1/2 right-0 w-[500px] h-[500px] rounded-full bg-[#5DCAA5]/10 blur-[140px]" />
+        <div className="absolute bottom-0 left-0 w-[700px] h-[500px] rounded-full bg-[#EF9F27]/8 blur-[180px]" />
+      </div>
+      <div className="pointer-events-none" aria-hidden="true">
+        <Leaf className="floating-leaf floating-leaf-one" size={46} style={{ color: '#2f6f68' }} />
+        <Leaf className="floating-leaf floating-leaf-two" size={32} style={{ color: '#d48a5a' }} />
+        <Leaf className="floating-leaf floating-leaf-three" size={52} style={{ color: '#5d8f77' }} />
+        <Leaf className="floating-leaf floating-leaf-four" size={27} style={{ color: '#7f77dd' }} />
       </div>
 
       {/* ─── Sticky Nav ───────────────────────────────────────── */}
-      <nav className={`fixed top-0 left-0 w-full z-40 transition-all duration-300 ${scrolled ? 'backdrop-blur-md bg-[#0f0f13]/80 border-b border-white/5 py-3' : 'bg-transparent py-5'}`}>
+      <nav className={`fixed top-0 left-0 w-full z-40 transition-all duration-300 ${scrolled ? 'backdrop-blur-md bg-white/80 border-b border-black/5 py-3 shadow-sm' : 'bg-transparent py-5'}`}>
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-semibold text-base">
+          <div className="flex items-center gap-2 font-semibold text-base text-text">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #7F77DD, #534AB7)' }}>
               <Heart size={13} color="white" fill="white" />
             </div>
             <span>MindMirror</span>
           </div>
-          <div className="hidden md:flex items-center gap-6 text-sm text-white/50">
-            <a href="#why" className="hover:text-white transition-colors">Why</a>
-            <a href="#companion" className="hover:text-white transition-colors">Companion</a>
-            <a href="#gratitude" className="hover:text-white transition-colors">Gratitude</a>
-            <a href="#reset" className="hover:text-white transition-colors">2-Min Reset</a>
+          <div className="hidden md:flex items-center gap-6 text-sm text-text/60">
+            <a href="#why" className="hover:text-text transition-colors">Why</a>
+            <a href="#companion" className="hover:text-text transition-colors">Companion</a>
+            <a href="#gratitude" className="hover:text-text transition-colors">Gratitude</a>
+            <a href="#reset" className="hover:text-text transition-colors">2-Min Reset</a>
           </div>
           <button
             onClick={onGetStarted}
@@ -254,7 +260,7 @@ export default function WhyMindMirror({ onGetStarted }) {
             </button>
             <button
               onClick={() => setVideoOpen(true)}
-              className="flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-medium border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] transition-all"
+              className="flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-medium text-white border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] transition-all"
             >
               <Play size={15} className="text-[#7F77DD]" /> Watch Introduction
             </button>
@@ -758,18 +764,29 @@ export default function WhyMindMirror({ onGetStarted }) {
             >
               <X size={15} className="text-white" />
             </button>
-            <div className="aspect-video flex items-center justify-center bg-gradient-to-br from-[#0f0f13] to-[#1a1825] relative">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <div className="w-16 h-16 rounded-2xl bg-[#7F77DD]/20 border border-[#7F77DD]/30 flex items-center justify-center mx-auto">
-                    <Play size={24} className="text-[#7F77DD] ml-1" />
-                  </div>
-                  <p className="text-white/60 text-sm">Introduction video coming soon</p>
-                  <p className="text-white/30 text-xs">In the meantime, start your journey below.</p>
+            <div className="p-8 sm:p-10 bg-gradient-to-br from-[#0f0f13] to-[#1a1825]">
+              <div className="text-center max-w-xl mx-auto">
+                <div className="w-16 h-16 rounded-2xl bg-[#7F77DD]/20 border border-[#7F77DD]/30 flex items-center justify-center mx-auto mb-5">
+                  <Heart size={25} className="text-[#AFA9EC]" fill="currentColor" />
                 </div>
+                <p className="text-white text-xl font-semibold">A kinder way to check in with yourself</p>
+                <p className="text-white/60 text-sm leading-relaxed mt-3">Write what is on your mind, notice the patterns that emerge, and return to your own words whenever you need perspective.</p>
               </div>
+              <ol className="grid sm:grid-cols-3 gap-3 mt-8 text-left">
+                {[
+                  ['1', 'Reflect', 'Capture a thought, feeling, or moment.'],
+                  ['2', 'Understand', 'Let MindMirror surface gentle patterns.'],
+                  ['3', 'Grow', 'Use small tools when you need a reset.'],
+                ].map(([number, title, description]) => (
+                  <li key={number} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                    <span className="text-xs font-bold text-[#AFA9EC]">{number}</span>
+                    <p className="text-sm font-semibold text-white mt-2">{title}</p>
+                    <p className="text-xs text-white/50 mt-1 leading-relaxed">{description}</p>
+                  </li>
+                ))}
+              </ol>
             </div>
-            <div className="p-6 flex justify-center">
+            <div className="p-6 flex justify-center border-t border-white/10">
               <button
                 onClick={() => { setVideoOpen(false); onGetStarted(); }}
                 className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm"

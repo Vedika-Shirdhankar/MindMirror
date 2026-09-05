@@ -40,12 +40,15 @@ async function createEntry(req, res, next) {
       themes: [], triggers: [], sentiment: 'neutral', mood_score: mood ?? 5,
       summary: '', coping_suggestions: [], trend: 'unknown',
       related_memories: [], risk_level: 'none', needs_support: false,
+      emotions: [], stress_level: 5, anxiety_level: 5, burnout_signal: false,
+      distortions: [], growth_suggestion: '', affirmation: '',
     };
 
     let aiError = null;
     if (geminiApiKey) {
       try {
-        analysis = await analyzeJournalEntry(text.trim(), previousEntries, geminiApiKey);
+        const user = await User.findById(req.userId).select('language');
+        analysis = await analyzeJournalEntry(text.trim(), previousEntries, geminiApiKey, user?.language || 'en');
       } catch (e) {
         aiError = e.message;
         // Entry is still saved even if AI analysis fails — never block journaling on AI availability.
@@ -129,6 +132,19 @@ async function markResolved(req, res, next) {
       extractAndSaveActions(resolvedNote.trim(), 'ResolutionNote', entry._id, req.userId);
     }
 
+    res.json({ entry });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PATCH /api/journal/:id/pin
+async function togglePin(req, res, next) {
+  try {
+    const entry = await JournalEntry.findOne({ _id: req.params.id, user: req.userId });
+    if (!entry) return res.status(404).json({ error: 'Entry not found.' });
+    entry.pinned = !entry.pinned;
+    await entry.save();
     res.json({ entry });
   } catch (err) {
     next(err);
@@ -231,4 +247,4 @@ async function semanticSearch(req, res, next) {
   }
 }
 
-module.exports = { getEntries, createEntry, deleteEntry, markResolved, buildThoughtLadder, semanticSearch };
+module.exports = { getEntries, createEntry, deleteEntry, markResolved, togglePin, buildThoughtLadder, semanticSearch };

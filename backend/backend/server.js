@@ -1,12 +1,29 @@
-// server.js
-require('dotenv').config();
+// server.js — MindMirror API entry point
+// Architecture: Routes → Controllers → Services → Utils/Models
+// All config is centralized in config/index.js (no scattered process.env)
+
+const config = require('./config');
 
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
+const swaggerUi = require('swagger-ui-express');
+
 const connectDB = require('./config/db');
 const { errorHandler } = require('./middleware/errorHandler');
+const { requestLogger } = require('./middleware/requestLogger');
+const { checkHealth } = require('./controllers/healthController');
+const { swaggerSpec } = require('./utils/swagger');
+const logger = require('./utils/logger');
 
+// Job queue — initialized after DB connection
+const { initJobQueue } = require('./services/jobQueue');
+const { processVideoJob } = require('./services/videoWorker');
+
+// Routes
 const authRoutes = require('./routes/authRoutes');
 const journalRoutes = require('./routes/journalRoutes');
 const chatRoutes = require('./routes/chatRoutes');
@@ -16,15 +33,44 @@ const userRoutes = require('./routes/userRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 const letterFromMirrorRoutes = require('./routes/letterFromMirrorRoutes');
 const lifeReportRoutes = require('./routes/lifeReportRoutes');
+const jobRoutes = require('./routes/jobRoutes');
+const anchorRoutes = require('./routes/anchorRoutes');
 
 const app = express();
 
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173' }));
-app.use(express.json({ limit: '1mb' }));
+// ─── Security ────────────────────────────────────────────────────────────────
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  message: { success: false, error: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api', limiter);
+
+app.use(cors({ origin: config.corsOrigin, credentials: true }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true }));
+app.use(mongoSanitize());
+
+// ─── Observability ───────────────────────────────────────────────────────────
+app.use(requestLogger);
+
+// ─── Static Files ─────────────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+// ─── API Documentation (dev only) ────────────────────────────────────────────
+if (config.env !== 'production') {
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  logger.info({ message: 'Swagger UI available', url: `http://localhost:${config.port}/api/docs` });
+}
 
+// ─── Health ───────────────────────────────────────────────────────────────────
+app.get('/api/health', checkHealth);
+
+// ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/journal', journalRoutes);
 app.use('/api/chat', chatRoutes);
@@ -34,15 +80,33 @@ app.use('/api/users', userRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/letter-from-mirror', letterFromMirrorRoutes);
 app.use('/api/life-report', lifeReportRoutes);
+app.use('/api/jobs', jobRoutes);
+app.use('/api/anchor', anchorRoutes);
 
-// 404 handler for unmatched API routes
-app.use('/api', (req, res) => res.status(404).json({ error: 'Route not found.' }));
+// ─── 404 ──────────────────────────────────────────────────────────────────────
+app.use('/api', (req, res) =>
+  res.status(404).json({ success: false, error: `Route ${req.method} ${req.originalUrl} not found.` })
+);
 
-// Centralized error handler — must be last
+// ─── Error Handler (must be last) ─────────────────────────────────────────────
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 4000;
+// ─── Bootstrap ────────────────────────────────────────────────────────────────
+async function bootstrap() {
+  await connectDB();
+  // Initialize job queue after DB connection (non-blocking if Redis is down)
+  await initJobQueue(processVideoJob);
+  app.listen(config.port, () => {
+    logger.info({
+      message: '🚀 MindMirror API started',
+      port: config.port,
+      env: config.env,
+      docsUrl: config.env !== 'production' ? `http://localhost:${config.port}/api/docs` : null,
+    });
+  });
+}
 
-connectDB().then(() => {
-  app.listen(PORT, () => console.log(`🚀 MindMirror API running on port ${PORT}`));
+bootstrap().catch((err) => {
+  logger.error({ message: 'Failed to start server', error: err.message });
+  process.exit(1);
 });

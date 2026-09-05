@@ -31,4 +31,20 @@ async function updatePreferences(req, res, next) {
   }
 }
 
-module.exports = { updateProfile, updatePreferences };
+// PATCH /api/users/me/language
+async function updateLanguage(req, res, next) {
+  try {
+    const { language } = req.body;
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    
+    user.language = language;
+    await user.save();
+    
+    res.json({ user: user.toJSON() });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { updateProfile, updatePreferences, updateLanguage };

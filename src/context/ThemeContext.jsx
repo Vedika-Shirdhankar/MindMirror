@@ -13,15 +13,15 @@ export function useTheme() {
 }
 
 export const DEFAULT_PREFERENCES = {
-  theme: 'midnight',
+  theme: 'meadow',
   customTheme: {
-    primary: '#7F77DD',
-    accent: '#5DCAA5',
-    background: '#0f0f13',
-    surface: 'rgba(255, 255, 255, 0.04)',
-    text: '#e8e6f0',
+    primary: '#2F6F68',
+    accent: '#D48A5A',
+    background: '#F5F3ED',
+    surface: 'rgba(255, 255, 255, 0.72)',
+    text: '#243B3A',
   },
-  colorMode: 'dark', // 'light' | 'dark' | 'system'
+  colorMode: 'light', // 'light' | 'dark' | 'system'
   typography: {
     fontSize: 'medium', // 'small' | 'medium' | 'large'
     fontFamily: 'Inter',
@@ -121,7 +121,7 @@ export function ThemeProvider({ children }) {
     root.style.setProperty('--color-text-faint', textFaint);
 
     // Surface border — adapts for light vs dark themes
-    const isLight = activeTheme.background && activeTheme.background.startsWith('#F');
+    const isLight = typeof activeTheme.background === 'string' && /^#[fe]/i.test(activeTheme.background);
     root.style.setProperty('--color-surface-border',
       isHighContrast ? '1px solid rgba(255,255,255,0.3)'
       : isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.08)');

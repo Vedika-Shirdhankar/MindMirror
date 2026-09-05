@@ -1,13 +1,14 @@
 // ml/embeddings.js
 //
 // PRIMARY FEATURE: Journal Embeddings + Similarity Search
-// Generates vector embeddings for journal text using Google Gemini's
-// text-embedding-004 model, and computes cosine similarity between vectors.
+// Generates vector embeddings for journal text using Google's current Gemini
+// embedding model, and computes cosine similarity between vectors.
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const EMBEDDING_MODEL = 'text-embedding-004';
-const EMBEDDING_DIMENSIONS = 768; // text-embedding-004 output size
+const EMBEDDING_MODEL = 'gemini-embedding-001';
+// Keep this aligned with the existing MongoDB vector index and stored entries.
+const EMBEDDING_DIMENSIONS = 768;
 
 let cachedGenAI = null;
 function getGenAI() {
@@ -34,7 +35,10 @@ async function generateEmbedding(text) {
   const genAI = getGenAI();
   const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
 
-  const result = await model.embedContent(text.trim());
+  const result = await model.embedContent({
+    content: { parts: [{ text: text.trim() }] },
+    outputDimensionality: EMBEDDING_DIMENSIONS,
+  });
   const values = result?.embedding?.values;
 
   if (!Array.isArray(values) || values.length === 0) {

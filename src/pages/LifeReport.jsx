@@ -103,7 +103,7 @@ export default function LifeReport() {
   const letterParagraphs = letter ? letter.split(/\n{2,}/).filter(Boolean) : []
 
   return (
-    <div className="min-h-full py-8 px-4 sm:px-8 relative" style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}>
+    <div className="life-report min-h-full py-8 px-4 sm:px-8 relative" style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}>
       
       {/* Global CSS Style tag to handle custom A4 Multi-page printing/PDF export perfectly */}
       <style>{`

@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Layout from './components/Layout.jsx'
+import Dashboard from './pages/Dashboard.jsx'
 import Companion from './pages/Companion.jsx'
 import Timeline from './pages/Timeline.jsx'
 import Patterns from './pages/Patterns.jsx'
@@ -16,10 +17,12 @@ import LetterFromMirror from './pages/LetterFromMirror.jsx'
 import LifeReport from './pages/LifeReport.jsx'
 import Appearance from './pages/Appearance.jsx'
 import WhyMindMirror from './pages/WhyMindMirror.jsx'
+import AnchorSpace from './pages/AnchorSpace.jsx' // <-- 1. IMPORT ADDED
 import { AuthProvider, useAuth } from './lib/AuthContext.jsx'
 
 function ProtectedShell() {
   const { user, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -29,14 +32,15 @@ function ProtectedShell() {
     )
   }
 
-  if (!user) return <Landing />
+  if (!user) return <Landing autoOpenAuth={location.pathname !== '/'} />
 
   return (
     <Layout user={user}>
       <Routes>
-        <Route path="/" element={<Navigate to="/companion" replace />} />
+        <Route path="/" element={<Dashboard />} />
         <Route path="/companion" element={<Companion />} />
         <Route path="/journal" element={<Journal />} />
+        <Route path="/anchor" element={<AnchorSpace />} /> {/* <-- 2. ROUTE ADDED */}
         <Route path="/videos" element={<VideoReflections />} />
         <Route path="/timeline" element={<Timeline />} />
         <Route path="/patterns" element={<Patterns />} />
@@ -50,7 +54,7 @@ function ProtectedShell() {
         <Route path="/appearance" element={<Appearance />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/why" element={<WhyMindMirror onGetStarted={() => window.location.href = '/companion'} />} />
-        <Route path="*" element={<Navigate to="/companion" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
   )

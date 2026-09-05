@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: mindmirror-api
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    rootDir: backend/backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: CORS_ORIGIN
+        sync: false
+      # PORT is set automatically by Render — do not set it here
+      # REDIS_URL — add if you provision a Redis instance on Render

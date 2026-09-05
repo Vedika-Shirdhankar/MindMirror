@@ -141,6 +141,7 @@ function buildRecentJourneyContext(recentEntries) {
  */
 function buildCompanionSystemPrompt({
   userName,
+  userLanguage = 'en',
   relevantMemories,
   recentEntries,
   relevantVideos,
@@ -217,7 +218,9 @@ Rely on AI reasoning, practical guidance, coping frameworks, and actionable next
 IMPORTANT: Say something like "I don't have enough of your personal history yet to know what's worked before, but based on what you've shared..." — do NOT pretend to know their patterns.`;
   }
 
-  return `You are MindMirror — a warm, intelligent, action-oriented personal companion for ${userName}.
+  return `The user's preferred language is ${userLanguage}. Respond entirely in ${userLanguage} using its native script.
+  
+You are MindMirror — a warm, intelligent, action-oriented personal companion for ${userName}.
 You are NOT a therapist. NOT a chatbot. NOT a journal summarizer.
 
 You are the bridge between ${userName}'s past self, present self, and future self.
@@ -350,8 +353,9 @@ async function sendMessage(req, res, next) {
     }
 
     // ── Fetch user name ────────────────────────────────────────────────────────
-    const userDoc = await User.findById(req.userId).select('name').lean();
+    const userDoc = await User.findById(req.userId).select('name language').lean();
     const userName = userDoc?.name?.split(' ')[0] || 'there';
+    const userLanguage = userDoc?.language || 'en';
 
     // ── Generate query embedding (single generation, used everywhere) ──────────
     let embedding = null;
@@ -409,6 +413,7 @@ async function sendMessage(req, res, next) {
 
     const systemPrompt = buildCompanionSystemPrompt({
       userName,
+      userLanguage,
       relevantMemories,
       recentEntries,
       relevantVideos,
@@ -424,10 +429,13 @@ async function sendMessage(req, res, next) {
     });
 
     // Translate stored messages → Gemini format
-    const geminiContents = chat.messages.slice(-20).map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
+    const geminiContents = chat.messages
+      .slice(-20)
+      .filter(m => m.content && m.content.trim())
+      .map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
 
     const result = await model.generateContent({ contents: geminiContents });
     const reply = result.response.text() || "I'm here. What's on your mind?";
@@ -450,4 +458,128 @@ async function sendMessage(req, res, next) {
   }
 }
 
-module.exports = { getHistory, sendMessage };
+// POST /api/chat/message/stream
+async function streamMessage(req, res, next) {
+  try {
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: 'Message content is required.' });
+
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    let chat = await Chat.findOne({ user: req.userId });
+    if (!chat) chat = await Chat.create({ user: req.userId, messages: [] });
+
+    chat.messages.push({ role: 'user', content: content.trim() });
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    if (!apiKey) {
+      const fallback = "I hear you. To enable my full memory and reflection capabilities, please configure the GEMINI_API_KEY on the server. In the meantime, I'm still here to listen.";
+      chat.messages.push({ role: 'assistant', content: fallback });
+      await chat.save();
+      res.write(`data: ${JSON.stringify({ chunk: fallback })}\n\n`);
+      res.write(`data: ${JSON.stringify({ final: { recommendedVideos: [], pastSelfRecommendation: null, support: undefined } })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      return res.end();
+    }
+
+    const userDoc = await User.findById(req.userId).select('name language').lean();
+    const userName = userDoc?.name?.split(' ')[0] || 'there';
+    const userLanguage = userDoc?.language || 'en';
+
+    let embedding = null;
+    try {
+      embedding = await generateEmbedding(content.trim());
+    } catch (e) {
+      console.warn('[companion] Failed to generate embedding:', e.message);
+    }
+
+    const [
+      relevantMemories,
+      recentEntries,
+      relevantVideos,
+      allVideos,
+      actionMemories,
+      pastSelfRec,
+    ] = await Promise.all([
+      embedding
+        ? findSimilarEntries(JournalEntry, { embedding, userId: req.userId, limit: 5 })
+            .then(results => results.filter(r => r.score > 0.4).map(r => r.entry))
+            .catch(() => JournalEntry.find({ user: req.userId }).sort({ date: -1 }).limit(5).lean())
+        : JournalEntry.find({ user: req.userId }).sort({ date: -1 }).limit(5).lean(),
+      JournalEntry.find({ user: req.userId }).sort({ date: -1 }).limit(5).lean(),
+      embedding
+        ? findSimilarVideos(VideoReflection, { embedding, userId: req.userId, limit: 3 })
+            .then(results => results.filter(r => r.score > 0.4).map(r => r.video))
+            .catch(() => [])
+        : [],
+      VideoReflection.find({ user: req.userId }).sort({ createdAt: -1 }).limit(10).select('title note createdAt').lean(),
+      ActionMemory.find({ user: req.userId }).sort({ createdAt: -1 }).limit(30).lean(),
+      retrievePastSelfRecommendation(content.trim(), req.userId)
+    ]);
+
+    extractAndSaveActions(content.trim(), 'CompanionConversation', chat._id, req.userId);
+
+    const systemPrompt = buildCompanionSystemPrompt({
+      userName,
+      userLanguage,
+      relevantMemories,
+      recentEntries,
+      relevantVideos,
+      allVideos,
+      actionMemories,
+      pastSelfRec
+    });
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      systemInstruction: systemPrompt,
+    });
+
+    const geminiContents = chat.messages
+      .slice(-20)
+      .filter(m => m.content && m.content.trim())
+      .map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
+
+    const resultStream = await model.generateContentStream({ contents: geminiContents });
+    let fullReply = '';
+
+    for await (const chunk of resultStream.stream) {
+      const chunkText = chunk.text();
+      fullReply += chunkText;
+      res.write(`data: ${JSON.stringify({ chunk: chunkText })}\n\n`);
+    }
+
+    chat.messages.push({ role: 'assistant', content: fullReply });
+    await chat.save();
+
+    const riskFlag = /\b(suicide|kill myself|end my life|self harm|hurt myself|no reason to live)\b/i.test(content);
+
+    res.write(`data: ${JSON.stringify({
+      final: {
+        support: riskFlag ? CRISIS_RESOURCES : undefined,
+        recommendedVideos: relevantVideos,
+        pastSelfRecommendation: pastSelfRec,
+      }
+    })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    res.end();
+  } catch (err) {
+    console.error('[companion stream] error:', err);
+    if (!res.headersSent) {
+      next(err);
+    } else {
+      res.write(`data: ${JSON.stringify({ error: 'An error occurred during streaming.' })}\n\n`);
+      res.end();
+    }
+  }
+}
+
+module.exports = { getHistory, sendMessage, streamMessage };

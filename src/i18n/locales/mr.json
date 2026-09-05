@@ -1,0 +1,95 @@
+{
+  "translation": {
+    "app": { "name": "माइंडमिरर", "tagline": "तुमची सुरक्षित, शांत जागा", "warmthProgress": "उबदारपणा आणि प्रगती" },
+    "nav": {
+      "dashboard": "डॅशबोर्ड", "dashboardTagline": "तुमचे शांत अवलोकन",
+      "companion": "सोबती", "companionTagline": "जे मदत केले ते लक्षात ठेवतो",
+      "journal": "डायरी", "journalTagline": "तुमची शांत जागा",
+      "anchor": "अँकर स्पेस", "anchorTagline": "श्वास घेण्यास मदत करते ते",
+      "lifeReport": "जीवन अहवाल", "lifeReportTagline": "तुम्ही किती पुढे आलात ते पाहा",
+      "letterFromMirror": "मिरर चे पत्र", "letterFromMirrorTagline": "वैयक्तिक अंतर्दृष्टी",
+      "videos": "व्हिडिओ आठवणी", "videosTagline": "भूतकाळातील स्वतःचा सल्ला",
+      "timeline": "टाइमलाइन", "timelineTagline": "तुमचा भावनिक मार्ग",
+      "patterns": "नमुने", "patternsTagline": "मनाचे संकेत लक्षात घ्या",
+      "growth": "वाढीची कहाणी", "growthTagline": "टप्पे आणि प्रगती",
+      "mindGames": "माइंड गेम्स", "mindGamesTagline": "2 मिनिटांचे रीसेट व्यायाम",
+      "thoughtLadder": "विचार शिडी", "thoughtLadderTagline": "एक विचार सोडवा",
+      "futureLetters": "भविष्यातील पत्रे", "futureLettersTagline": "काळाच्या पलीकडे पाकीट",
+      "analytics": "अंतर्दृष्टी", "analyticsTagline": "आत्म-जागरूकता डेटा",
+      "personalizeSpace": "जागा सानुकूल करा", "settingsAccount": "सेटिंग्ज आणि खाते", "logOut": "लॉग आउट"
+    },
+    "common": {
+      "save": "जतन करा", "saved": "जतन झाले", "cancel": "रद्द करा", "delete": "हटवा",
+      "loading": "लोड होत आहे…", "error": "काहीतरी चूक झाली.", "retry": "पुन्हा प्रयत्न करा",
+      "submit": "सबमिट करा", "back": "मागे", "close": "बंद करा", "search": "शोधा",
+      "send": "पाठवा", "edit": "संपादित करा", "update": "अपडेट करा", "confirm": "पुष्टी करा",
+      "yes": "होय", "no": "नाही", "or": "किंवा", "today": "आज", "yesterday": "काल"
+    },
+    "journal": {
+      "title": "डायरी", "subtitle": "तुम्ही जे वाहत आहात ते प्रक्रिया करण्यासाठी एक शांत जागा.",
+      "newEntry": "नवीन नोंद", "placeholder": "आज काय जड वाटत आहे? मुक्तपणे लिहा…",
+      "howAreYou": "आत्ता कसे वाटत आहे?", "copingLabel": "सामना करण्यासाठी काय करत आहात?",
+      "saveEntry": "नोंद जतन करा", "saving": "जतन होत आहे…",
+      "noEntries": "अजून कोणत्याही डायरी नोंदी नाहीत.", "noEntriesHint": "तुमच्या विचारांना एक जागा हवी. येथून सुरू करा.",
+      "aiReflection": "AI प्रतिबिंब", "stress": "ताण", "anxiety": "चिंता", "mood": "मनःस्थिती",
+      "themes": "थीम", "triggers": "ट्रिगर", "coping": "सामना", "distortions": "विकृती",
+      "deleteEntry": "नोंद हटवा", "markResolved": "निराकरण म्हणून चिन्हांकित करा", "resolved": "निराकरण झाले",
+      "pin": "पिन करा", "unpin": "अनपिन करा", "searchPlaceholder": "तुमच्या नोंदी शोधा…",
+      "trendImproving": "सुधारत आहे", "trendWorsening": "बिघडत आहे", "trendStable": "स्थिर", "trendUnknown": "पुरेसा डेटा नाही"
+    },
+    "companion": {
+      "title": "सोबती", "subtitle": "बोलण्यासाठी तुमची खाजगी जागा.",
+      "inputPlaceholder": "मनात काय आहे ते शेअर करा…",
+      "pastAdvice": "तुमच्या भूतकाळातील स्वतःने तुमच्यासाठी सल्ला सोडला आहे",
+      "reflecting": "तुमच्या कहाणीसह विचार करत आहे…"
+    },
+    "dashboard": {
+      "title": "डॅशबोर्ड", "greeting": "{{time}}, {{name}}", "morningGreeting": "शुभ प्रभात",
+      "afternoonGreeting": "शुभ दुपार", "eveningGreeting": "शुभ संध्याकाळ",
+      "moodToday": "आजची मनःस्थिती", "recentEntries": "अलीकडील नोंदी",
+      "noEntries": "अजून कोणत्याही नोंदी नाहीत. डायरी लिहायला सुरुवात करा.",
+      "weeklyMood": "साप्ताहिक मनःस्थिती", "streak": "दिवसांची मालिका", "totalEntries": "एकूण नोंदी"
+    },
+    "settings": {
+      "title": "सेटिंग्ज आणि खाते", "subtitle": "तुमचा डेटा, तुमचे नियंत्रण — नेहमी.",
+      "profile": "प्रोफाइल", "displayName": "प्रदर्शन नाव", "namePlaceholder": "तुमचे नाव…",
+      "password": "पासवर्ड", "currentPassword": "सध्याचा पासवर्ड", "newPassword": "नवीन पासवर्ड (किमान 8 अक्षरे)",
+      "updatePassword": "पासवर्ड अपडेट करा", "updatingPassword": "अपडेट होत आहे…", "passwordUpdated": "पासवर्ड अपडेट झाला",
+      "aiConfig": "AI कॉन्फिगरेशन", "aiConfigDesc": "MindMirror चे प्रतिबिंब Google Gemini 2.5 Flash द्वारे चालवले जातात — सर्व्हरवर सुरक्षितपणे कॉन्फिगर केलेले.",
+      "privacy": "गोपनीयता आणि सुरक्षा",
+      "privacyPoints": [
+        "सर्व डायरी नोंदी, चॅट इतिहास आणि पत्रे तुमच्या खाजगी MongoDB डेटाबेसमध्ये सुरक्षितपणे जतन केले जातात.",
+        "पासवर्ड हॅश केले जातात आणि कधीही साध्या मजकुरात संग्रहित केले जात नाहीत (bcrypt).",
+        "अंतर्दृष्टी निर्माण करण्यासाठी फक्त तुमचा डायरी संदर्भ Google च्या Gemini API ला पाठवला जातो.",
+        "कोणतीही वैयक्तिक नावे किंवा संपर्क माहिती एन्क्रिप्शनशिवाय तुमच्या डिव्हाइसमधून जात नाही."
+      ],
+      "exportData": "तुमचा डेटा निर्यात करा", "exportDesc": "MindMirror ने तुमच्यासाठी साठवलेले सर्व काही डाउनलोड करा — एकाच JSON फाइलमध्ये.",
+      "downloadData": "माझा डेटा डाउनलोड करा", "preparingExport": "निर्यात तयार होत आहे…",
+      "session": "सत्र", "sessionDesc": "तुम्ही या डिव्हाइसवर सुरक्षित टोकनसह साइन इन आहात.",
+      "logOutReset": "लॉग आउट आणि सत्र रीसेट करा", "clickToConfirm": "⚠ पुष्टीसाठी पुन्हा क्लिक करा",
+      "deleteAccount": "खाते हटवा", "deleteAccountDesc": "हे तुमचे खाते आणि सर्व डेटा कायमचे हटवते. हे पूर्ववत केले जाऊ शकत नाही.",
+      "deleteAccountConfirm": "⚠ माझे खाते कायमचे हटवा",
+      "enterPasswordToDelete": "खाते कायमचे हटवण्यासाठी तुमचा पासवर्ड एंटर करा.",
+      "passwordPlaceholder": "पासवर्ड", "deleting": "हटवले जात आहे…",
+      "language": "भाषा", "languageDesc": "अॅप इंटरफेस आणि AI प्रतिसादांसाठी तुमची पसंतीची भाषा निवडा.",
+      "languageSaved": "भाषा अपडेट झाली!", "footer": "MindMirror — तुमच्यासाठी काळजीपूर्वक बनवले."
+    },
+    "videos": {
+      "title": "तुमच्या भूतकाळातील स्वतःचा सल्ला", "subtitle": "शांत क्षणी संदेश रेकॉर्ड करा.",
+      "recordVideo": "व्हिडिओ रेकॉर्ड करा", "uploadReflection": "प्रतिबिंब अपलोड करा",
+      "saveReflection": "प्रतिबिंब जतन करा", "savingReflection": "प्रतिबिंब जतन होत आहे…",
+      "titleLabel": "प्रतिबिंब शीर्षक", "titlePlaceholder": "उदा. परीक्षांबद्दल घाबरणे",
+      "noteLabel": "पर्यायी प्रतिबिंब नोट", "notePlaceholder": "हे का लॉग केले…",
+      "analyzing": "विश्लेषण होत आहे…", "aiFailed": "AI अयशस्वी", "processing": "प्रक्रिया होत आहे",
+      "retryAnalysis": "AI विश्लेषण पुन्हा करा", "noVideos": "एक दिवस, तुमच्या भविष्यातील स्वतःला आजच्या प्रोत्साहनाची गरज असू शकते",
+      "noVideosHint": "जेव्हा तुम्हाला स्पष्ट वाटते तेव्हा एक छोटा व्हिडिओ प्रतिबिंब रेकॉर्ड करा.",
+      "recordFirst": "तुमचे पहिले प्रतिबिंब रेकॉर्ड करा", "transcript": "ट्रान्सक्रिप्ट", "noTranscript": "कोणतीही ट्रान्सक्रिप्ट नाही."
+    },
+    "auth": {
+      "signIn": "साइन इन", "signUp": "साइन अप", "email": "ईमेल", "password": "पासवर्ड",
+      "name": "नाव", "forgotPassword": "पासवर्ड विसरलात?",
+      "noAccount": "खाते नाही?", "haveAccount": "आधीच खाते आहे?",
+      "signingIn": "साइन इन होत आहे…", "signingUp": "साइन अप होत आहे…"
+    }
+  }
+}

@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     joinDate: { type: Date, default: Date.now },
+    language: { type: String, default: 'en' },
     preferences: {
       theme: { type: String, default: 'midnight' },
       customTheme: {

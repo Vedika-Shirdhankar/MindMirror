@@ -1,5 +1,6 @@
 // pages/MindGames.jsx
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Cloud, Ghost, Flower2, Compass, Signpost, ArrowLeft, Gamepad2,
@@ -125,6 +126,7 @@ const MOOD_CHECKINS = [
 ]
 
 export default function MindGames() {
+  const [searchParams] = useSearchParams()
   const [activeKey, setActiveKey] = useState(null)
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedMood, setSelectedMood] = useState(null)
@@ -142,6 +144,15 @@ export default function MindGames() {
     } catch (e) {
       console.error('Error loading game stats:', e)
     }
+  }, [])
+
+  // Deep-link support: /mind-games?game=gratitude-garden opens that game directly
+  useEffect(() => {
+    const requested = searchParams.get('game')
+    if (requested && GAMES.some(g => g.key === requested)) {
+      handleStartGame(requested)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Handle starting a game

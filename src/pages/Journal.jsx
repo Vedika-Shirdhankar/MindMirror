@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, CheckCircle, Sparkles, AlertTriangle, Loader, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Plus, Trash2, CheckCircle, Sparkles, AlertTriangle, Loader, TrendingUp, TrendingDown, Minus, Play, Search, X, Pin, PinOff, Filter } from 'lucide-react'
 import * as api from '../lib/api.js'
-import { THEMES, TRIGGERS, COPING_LABELS, RISK_COLORS } from '../lib/api.js'
+import { THEMES, TRIGGERS, COPING_LABELS, RISK_COLORS, EMOTION_META, DISTORTION_LABELS } from '../lib/api.js'
 import { format } from 'date-fns'
 
 const MOOD_COLOR = m => {
@@ -36,6 +37,7 @@ function CrisisSupportBanner({ support }) {
 }
 
 function AnalysisCard({ entry, onPlayVideo }) {
+  const { t } = useTranslation()
   if (!entry.summary && !entry.themes?.length) return null
   const TrendIcon = TREND_ICON[entry.trend] || Minus
 
@@ -43,9 +45,48 @@ function AnalysisCard({ entry, onPlayVideo }) {
     <div className="mt-3 rounded-standard p-3 bg-primary/5 border border-primary/10">
       <div className="flex items-center gap-1.5 mb-2">
         <Sparkles size={11} className="text-primary" />
-        <span className="text-xs font-medium text-primary uppercase tracking-wider text-[10px]">AI reflection</span>
+        <span className="text-xs font-medium text-primary uppercase tracking-wider text-[10px]">{t('journal.aiReflection')}</span>
       </div>
       {entry.summary && <p className="text-xs mb-2 leading-relaxed text-text/70">{entry.summary}</p>}
+
+      {entry.emotions?.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {entry.emotions.map(em => (
+            <span key={em.emotion} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-text/70 flex items-center gap-1">
+              {EMOTION_META[em.emotion]?.emoji} {EMOTION_META[em.emotion]?.label || em.emotion}
+              <span className="flex gap-0.5 ml-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <span key={i} className={`w-1 h-1 rounded-full ${i < em.intensity ? 'bg-primary' : 'bg-white/10'}`} />
+                ))}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {(entry.stress_level || entry.anxiety_level) && (
+        <div className="flex flex-wrap gap-4 mb-2">
+          {entry.stress_level != null && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-text/40 w-10">Stress</span>
+              <div className="w-16 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div className="h-full bg-orange-400" style={{ width: `${entry.stress_level * 10}%` }} />
+              </div>
+            </div>
+          )}
+          {entry.anxiety_level != null && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-text/40 w-10">Anxiety</span>
+              <div className="w-16 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div className="h-full bg-primary" style={{ width: `${entry.anxiety_level * 10}%` }} />
+              </div>
+            </div>
+          )}
+          {entry.burnout_signal && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">Signs of running on empty</span>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-1.5 mb-2">
         {entry.themes?.map(t => (
@@ -71,6 +112,30 @@ function AnalysisCard({ entry, onPlayVideo }) {
           <ul className="text-xs space-y-0.5 text-text/60">
             {entry.coping_suggestions.map((s, i) => <li key={i}>• {s}</li>)}
           </ul>
+        </div>
+      )}
+
+      {entry.distortions?.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-white/5">
+          <p className="text-xs mb-1 text-text/40">Thinking patterns worth noticing — no judgment, just awareness:</p>
+          <div className="flex flex-wrap gap-1.5">
+            {entry.distortions.map(d => (
+              <span key={d} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-text/60">{DISTORTION_LABELS[d] || d}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {entry.growth_suggestion && (
+        <div className="mt-2 pt-2 border-t border-white/5 flex items-start gap-1.5">
+          <span className="text-xs">🌱</span>
+          <p className="text-xs text-text/60 leading-relaxed">{entry.growth_suggestion}</p>
+        </div>
+      )}
+
+      {entry.affirmation && (
+        <div className="mt-3 p-2.5 rounded-standard bg-accent/5 border border-accent/10">
+          <p className="text-xs text-accent italic leading-relaxed">"{entry.affirmation}"</p>
         </div>
       )}
 
@@ -114,7 +179,10 @@ function AnalysisCard({ entry, onPlayVideo }) {
   )
 }
 
+const DRAFT_KEY = 'mm_journal_draft'
+
 export default function Journal() {
+  const { t } = useTranslation()
   const [entries, setEntries] = useState([])
   const [loadingList, setLoadingList] = useState(true)
   const [writing, setWriting] = useState(false)
@@ -128,8 +196,36 @@ export default function Journal() {
   const [resolvedNote, setResolvedNote] = useState('')
   const [resolving, setResolving] = useState(false)
   const [playingVideo, setPlayingVideo] = useState(null)
+  const [pinningId, setPinningId] = useState(null)
+
+  // Search
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState(null)
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState('')
+
+  // Filter
+  const [themeFilter, setThemeFilter] = useState('')
+  const [moodFilter, setMoodFilter] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => { loadEntries() }, [])
+
+  // Restore an autosaved draft on load, and open the composer if one exists.
+  useEffect(() => {
+    const draft = localStorage.getItem(DRAFT_KEY)
+    if (draft?.trim()) {
+      setText(draft)
+      setWriting(true)
+    }
+  }, [])
+
+  // Autosave the draft as the user types (debounced by React's own batching).
+  useEffect(() => {
+    if (!writing) return
+    if (text) localStorage.setItem(DRAFT_KEY, text)
+    else localStorage.removeItem(DRAFT_KEY)
+  }, [text, writing])
 
   async function loadEntries() {
     setLoadingList(true)
@@ -162,11 +258,52 @@ export default function Journal() {
       setText('')
       setCoping([])
       setWriting(false)
+      localStorage.removeItem(DRAFT_KEY)
     } catch (e) {
       setError(e.message)
     } finally {
       setSaving(false)
     }
+  }
+
+  function handleCancelWriting() {
+    setWriting(false)
+    setText('')
+    setCoping([])
+    localStorage.removeItem(DRAFT_KEY)
+  }
+
+  async function handleTogglePin(id) {
+    setPinningId(id)
+    try {
+      const updated = await api.togglePinEntry(id)
+      setEntries(prev => prev.map(e => e._id === id ? updated : e))
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setPinningId(null)
+    }
+  }
+
+  async function handleSearch(e) {
+    e?.preventDefault?.()
+    if (!searchQuery.trim()) { setSearchResults(null); return }
+    setSearching(true)
+    setSearchError('')
+    try {
+      const results = await api.searchEntries(searchQuery.trim())
+      setSearchResults(results)
+    } catch (e) {
+      setSearchError(e.message || 'Search failed.')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  function clearSearch() {
+    setSearchQuery('')
+    setSearchResults(null)
+    setSearchError('')
   }
 
   async function handleDelete(id) {
@@ -194,12 +331,36 @@ export default function Journal() {
     }
   }
 
+  const moodInRange = (score, bucket) => {
+    if (score == null) return false
+    if (bucket === 'low') return score <= 3
+    if (bucket === 'mid') return score >= 4 && score <= 7
+    if (bucket === 'high') return score >= 8
+    return true
+  }
+
+  let displayedEntries = entries
+  if (searchResults) {
+    const resultIds = new Set(searchResults.map(r => r._id))
+    displayedEntries = entries.filter(e => resultIds.has(e._id))
+  }
+  if (themeFilter) {
+    displayedEntries = displayedEntries.filter(e => e.themes?.includes(themeFilter))
+  }
+  if (moodFilter) {
+    displayedEntries = displayedEntries.filter(e => moodInRange(e.mood_score ?? e.mood, moodFilter))
+  }
+  displayedEntries = [...displayedEntries].sort((a, b) => {
+    if (!!b.pinned !== !!a.pinned) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)
+    return 0 // preserve existing date-desc order from the server otherwise
+  })
+
   return (
-    <div className="max-w-2xl mx-auto px-6 py-8">
+    <div className="journal-sanctuary max-w-2xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-text">Your Quiet Space</h1>
-          <p className="text-xs mt-1 text-text/50">Pour your thoughts freely. AI gently connects your patterns. ({entries.length} reflections)</p>
+          <h1 className="text-2xl font-bold text-text">{t('journal.title')}</h1>
+          <p className="text-xs mt-1 text-text/50">{t('journal.subtitle')}</p>
         </div>
         <button onClick={() => setWriting(!writing)} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all hover:scale-105 shadow-lg shadow-primary/20 bg-primary text-white">
           <Plus size={15} /> Write reflection
@@ -213,18 +374,24 @@ export default function Journal() {
       )}
 
       {writing && (
-        <div className="rounded-standard p-5 mb-6 fade-up bg-surface border border-white/10">
+        <div className="journal-paper rounded-3xl p-5 mb-6 fade-up bg-surface border border-white/10 shadow-sm">
+          <p className="journal-paper__prompt">What has been on your mind?</p>
           <textarea
             autoFocus
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder="What's on your mind today? Write freely — AI will detect themes, triggers, and mood automatically."
+            placeholder={t('journal.placeholder')}
             rows={5}
-            className="w-full text-sm outline-none resize-none leading-relaxed mb-4 bg-transparent text-text border-none"
+            className="journal-paper__field w-full text-sm outline-none resize-none leading-relaxed mb-2 bg-transparent text-text border-none"
           />
+          <div className="flex justify-end mb-4">
+            <span className="text-[10px] text-text/30">
+              {text.trim() ? `${text.trim().split(/\s+/).length} words · ${text.length} characters` : 'Start typing whenever you\'re ready'}
+            </span>
+          </div>
 
           <div className="mb-5">
-            <p className="text-xs font-medium mb-2 uppercase tracking-wider text-text/50">What helped? (optional)</p>
+            <p className="text-xs font-medium mb-2 uppercase tracking-wider text-text/50">{t('journal.copingLabel')}</p>
             <div className="flex flex-wrap gap-2">
               {Object.entries(COPING_LABELS).map(([key, label]) => (
                 <button key={key} onClick={() => toggleCoping(key)}
@@ -236,7 +403,7 @@ export default function Journal() {
           </div>
 
           <div className="flex gap-2">
-            <button onClick={() => setWriting(false)} className="px-4 py-2 rounded-standard text-sm border border-white/10 text-text/50 transition-opacity hover:opacity-70">
+            <button onClick={handleCancelWriting} className="px-4 py-2 rounded-standard text-sm border border-white/10 text-text/50 transition-opacity hover:opacity-70">
               Cancel
             </button>
             <button onClick={handleSave} disabled={!text.trim() || saving}
@@ -247,12 +414,81 @@ export default function Journal() {
         </div>
       )}
 
+      {/* ── Search & Filter ──────────────────────────────── */}
+      {!loadingList && entries.length > 0 && (
+        <div className="mb-5">
+          <form onSubmit={handleSearch} className="flex items-center gap-2 mb-2">
+            <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-2xl bg-surface border border-white/10">
+              <Search size={13} className="text-text/40 flex-shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search your reflections by meaning, not just keywords…"
+                className="flex-1 bg-transparent text-sm outline-none text-text placeholder:text-text/30"
+              />
+              {searchQuery && (
+                <button type="button" onClick={clearSearch} className="text-text/30 hover:text-text/60 transition-colors">
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowFilters(s => !s)}
+              className={`p-2.5 rounded-2xl border transition-all ${showFilters || themeFilter || moodFilter ? 'border-primary bg-primary/10 text-primary' : 'border-white/10 text-text/40'}`}
+              title="Filters"
+            >
+              <Filter size={13} />
+            </button>
+          </form>
+
+          {showFilters && (
+            <div className="flex flex-wrap gap-2 mb-2 fade-up">
+              <select
+                value={themeFilter}
+                onChange={e => setThemeFilter(e.target.value)}
+                className="text-xs px-3 py-1.5 rounded-full border border-white/10 bg-surface text-text/70 outline-none"
+              >
+                <option value="">All themes</option>
+                {Array.from(new Set(entries.flatMap(e => e.themes || []))).map(t => (
+                  <option key={t} value={t}>{THEMES[t]?.label || t}</option>
+                ))}
+              </select>
+              <select
+                value={moodFilter}
+                onChange={e => setMoodFilter(e.target.value)}
+                className="text-xs px-3 py-1.5 rounded-full border border-white/10 bg-surface text-text/70 outline-none"
+              >
+                <option value="">Any mood</option>
+                <option value="low">Low (1–3)</option>
+                <option value="mid">Mid (4–7)</option>
+                <option value="high">High (8–10)</option>
+              </select>
+              {(themeFilter || moodFilter) && (
+                <button onClick={() => { setThemeFilter(''); setMoodFilter('') }} className="text-xs px-3 py-1.5 rounded-full text-text/40 hover:text-text/70 transition-colors">
+                  Clear filters
+                </button>
+              )}
+            </div>
+          )}
+
+          {searching && <p className="text-xs text-text/40">Searching…</p>}
+          {searchError && <p className="text-xs text-red-400">{searchError}</p>}
+          {searchResults && !searching && (
+            <p className="text-xs text-text/40">
+              {searchResults.length ? `${searchResults.length} matching reflection${searchResults.length === 1 ? '' : 's'}` : 'No reflections matched that search.'}
+            </p>
+          )}
+        </div>
+      )}
+
       {loadingList ? (
         <p className="text-sm text-text/40">Loading entries…</p>
       ) : (
         <div className="flex flex-col gap-3">
-          {entries.map(e => (
-            <div key={e._id} className={`rounded-standard p-4 group transition-all ${e.resolved ? 'bg-accent/5 border border-accent/20' : 'bg-surface border border-white/5'}`}>
+          {displayedEntries.map(e => (
+            <div key={e._id} className={`rounded-3xl p-4 group transition-all ${e.resolved ? 'bg-accent/5 border border-accent/20' : 'bg-surface border border-white/5'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
@@ -261,6 +497,7 @@ export default function Journal() {
                       {e.mood_score ?? e.mood ?? '—'}/10
                     </span>
                     {e.resolved && <span className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent">resolved</span>}
+                    {e.pinned && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary flex items-center gap-1"><Pin size={9} /> pinned</span>}
                   </div>
                   <p className="text-sm leading-relaxed text-text/80">{e.text}</p>
                   
@@ -295,6 +532,14 @@ export default function Journal() {
                   <AnalysisCard entry={e} onPlayVideo={setPlayingVideo} />
                 </div>
                 <div className="flex flex-col gap-1 items-center">
+                  <button
+                    onClick={() => handleTogglePin(e._id)}
+                    disabled={pinningId === e._id}
+                    className={`p-1.5 rounded-standard transition-opacity ${e.pinned ? 'opacity-70 hover:!opacity-100 text-primary' : 'opacity-0 group-hover:opacity-40 hover:!opacity-80 text-text/60'}`}
+                    title={e.pinned ? 'Unpin' : 'Pin to top'}
+                  >
+                    {e.pinned ? <PinOff size={13} /> : <Pin size={13} />}
+                  </button>
                   {!e.resolved && (
                     <button onClick={() => { setResolvingId(e._id); setResolvedNote(''); }} className="opacity-0 group-hover:opacity-40 hover:!opacity-80 transition-opacity p-1.5 rounded-standard text-accent" title="Mark as resolved">
                       <CheckCircle size={13} />
@@ -310,7 +555,7 @@ export default function Journal() {
           {entries.length === 0 && (
             <div className="text-center py-16 px-6 rounded-3xl bg-surface/50 border border-white/10 my-4 fade-up">
               <div className="text-4xl mb-3">✍️</div>
-              <h3 className="text-base font-bold text-text mb-1">Every journey begins with a single page</h3>
+              <h3 className="text-base font-bold text-text mb-1">{t('journal.noEntries')}</h3>
               <p className="text-xs text-text/50 max-w-sm mx-auto mb-5 leading-relaxed">
                 Write your first reflection today. Your future self will look back on this moment with deep gratitude.
               </p>
@@ -319,6 +564,21 @@ export default function Journal() {
                 className="px-5 py-2.5 rounded-2xl bg-primary text-white font-bold text-xs shadow-lg shadow-primary/25 hover:scale-105 transition-all"
               >
                 Write your first reflection
+              </button>
+            </div>
+          )}
+          {entries.length > 0 && displayedEntries.length === 0 && (
+            <div className="text-center py-14 px-6 rounded-3xl bg-surface/50 border border-white/10 my-4 fade-up">
+              <div className="text-3xl mb-3">🔍</div>
+              <h3 className="text-sm font-bold text-text mb-1">Nothing matches this search or filter</h3>
+              <p className="text-xs text-text/50 max-w-sm mx-auto mb-4 leading-relaxed">
+                Try a different search phrase, or clear your filters to see everything again.
+              </p>
+              <button
+                onClick={() => { clearSearch(); setThemeFilter(''); setMoodFilter('') }}
+                className="px-4 py-2 rounded-2xl bg-primary/15 text-primary font-medium text-xs hover:bg-primary/25 transition-all"
+              >
+                Clear search & filters
               </button>
             </div>
           )}

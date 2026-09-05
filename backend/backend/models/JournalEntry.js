@@ -31,11 +31,25 @@ const journalEntrySchema = new mongoose.Schema(
     risk_level: { type: String, enum: ['none', 'low', 'moderate', 'high', ''], default: 'none' },
     needs_support: { type: Boolean, default: false },
 
+    // ── Deeper emotional analysis (added in the AI-features pass) ──
+    emotions: [{
+      emotion: { type: String },
+      intensity: { type: Number, min: 1, max: 5 },
+      _id: false,
+    }],
+    stress_level: { type: Number, min: 1, max: 10 },
+    anxiety_level: { type: Number, min: 1, max: 10 },
+    burnout_signal: { type: Boolean, default: false },
+    distortions: [{ type: String }],
+    growth_suggestion: { type: String, default: '' },
+    affirmation: { type: String, default: '' },
+
     // ── manually tagged coping strategies actually used (user input, distinct from AI suggestions) ──
     copingUsed: [{ type: String }],
 
     resolved: { type: Boolean, default: false },
     resolvedNote: { type: String, default: '' },
+    pinned: { type: Boolean, default: false },
 
     // ── Semantic embedding (Gemini text-embedding-004, 768-dim) ──
     // Stored for in-process cosine similarity search.
@@ -47,6 +61,13 @@ const journalEntrySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-journalEntrySchema.index({ user: 1, date: -1 });
+// Compound indexes for common access patterns
+journalEntrySchema.index({ user: 1, date: -1 });           // list by user, newest first
+journalEntrySchema.index({ user: 1, mood_score: 1 });      // analytics queries
+journalEntrySchema.index({ user: 1, sentiment: 1, date: -1 }); // filter by sentiment
+journalEntrySchema.index({ user: 1, resolved: 1 });        // filter unresolved entries
+journalEntrySchema.index({ user: 1, pinned: 1, date: -1 }); // pinned entries
+// Text index for full-text search fallback (supplements vector search)
+journalEntrySchema.index({ text: 'text', summary: 'text' });
 
 module.exports = mongoose.model('JournalEntry', journalEntrySchema);

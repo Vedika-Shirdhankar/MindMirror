@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { Video, Upload, Trash2, Play, Square, Circle, RotateCcw, Camera, Loader, X, Calendar, Film, RefreshCw, AlertCircle, Brain, MessageSquare } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Video, Upload, Trash2, Play, Square, Circle, RotateCcw, Camera, Loader, X, Calendar, Film, RefreshCw, AlertCircle, Brain, MessageSquare, Activity, Check, Edit2, Zap, Heart, TrendingUp, Sparkles, BookOpen, AlertTriangle } from 'lucide-react'
 import * as api from '../lib/api.js'
 import { format } from 'date-fns'
 
 export default function VideoReflections() {
+  const { t } = useTranslation()
   const [reflections, setReflections] = useState([])
   const [loading, setLoading] = useState(true)
   
@@ -26,6 +28,29 @@ export default function VideoReflections() {
   
   // Playback modal state
   const [playingVideo, setPlayingVideo] = useState(null)
+  const [editingTranscript, setEditingTranscript] = useState(false)
+  const [transcriptDraft, setTranscriptDraft] = useState('')
+  const [savingTranscript, setSavingTranscript] = useState(false)
+
+  // Auto-polling for processing videos
+  useEffect(() => {
+    let interval;
+    if (playingVideo?.processingStatus === 'processing') {
+      interval = setInterval(async () => {
+        try {
+          const data = await api.getVideoReflections();
+          setReflections(data);
+          const updated = data.find(r => r._id === playingVideo._id);
+          if (updated && updated.processingStatus !== 'processing') {
+            setPlayingVideo(updated);
+          }
+        } catch (err) {
+          console.error('Polling failed', err);
+        }
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [playingVideo]);
 
   useEffect(() => {
     loadReflections()
@@ -199,6 +224,22 @@ export default function VideoReflections() {
     }
   }
 
+  async function handleSaveTranscript() {
+    if (!playingVideo) return;
+    setSavingTranscript(true);
+    try {
+      await api.updateVideoTranscript(playingVideo._id, transcriptDraft);
+      const updated = { ...playingVideo, transcript: transcriptDraft };
+      setPlayingVideo(updated);
+      setReflections(prev => prev.map(r => r._id === updated._id ? updated : r));
+      setEditingTranscript(false);
+    } catch (err) {
+      setError(err.message || 'Failed to save transcript.');
+    } finally {
+      setSavingTranscript(false);
+    }
+  }
+
   function formatTime(secs) {
     const m = Math.floor(secs / 60).toString().padStart(2, '0')
     const s = (secs % 60).toString().padStart(2, '0')
@@ -211,7 +252,7 @@ export default function VideoReflections() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-text">Advice From Your Past Self</h1>
+          <h1 className="text-2xl font-bold text-text">{t('videos.title')}</h1>
           <p className="text-xs mt-1 text-text/50">
             Record messages during calm moments. MindMirror surfaces them when life feels overwhelming. ({reflections.length} saved)
           </p>
@@ -368,12 +409,12 @@ export default function VideoReflections() {
               {/* Text input column */}
               <div className="md:col-span-6 space-y-4">
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-white/50 block mb-1.5">Reflection Title</label>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-white/50 block mb-1.5">{t('videos.titleLabel')}</label>
                   <input
                     type="text"
                     value={title}
                     onChange={e => { setTitle(e.target.value); setError(''); }}
-                    placeholder="e.g. Spiral about future exams"
+                    placeholder={t('videos.titlePlaceholder')}
                     required
                     className="w-full px-4 py-2.5 rounded-xl text-sm outline-none border"
                     style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.08)', color: 'var(--color-text)' }}
@@ -381,7 +422,7 @@ export default function VideoReflections() {
                 </div>
                 
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-white/50 block mb-1.5">Optional Reflection Note</label>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-white/50 block mb-1.5">{t('videos.noteLabel')}</label>
                   <textarea
                     value={note}
                     onChange={e => setNote(e.target.value)}
@@ -436,7 +477,6 @@ export default function VideoReflections() {
               {/* Media Thumbnail */}
               <div className="relative aspect-video rounded-t-2xl overflow-hidden bg-black/40 border-b border-white/5 cursor-pointer"
                 onClick={() => {
-                  if (r.processingStatus === 'processing') return;
                   setPlayingVideo(r);
                 }}
               >
@@ -518,7 +558,7 @@ export default function VideoReflections() {
           {reflections.length === 0 && (
             <div className="col-span-full text-center py-16 px-6 border border-white/10 rounded-3xl bg-surface/50 my-4 fade-up">
               <div className="text-4xl mb-3">🎥</div>
-              <h3 className="text-base font-bold text-text mb-1">One day, your future self may need today's encouragement</h3>
+              <h3 className="text-base font-bold text-text mb-1">{t('videos.noVideos')}</h3>
               <p className="text-xs text-text/50 max-w-md mx-auto mb-5 leading-relaxed">
                 Record a short video reflection when you feel clear-headed or hopeful. MindMirror will gently surface it back to you when life gets challenging.
               </p>
@@ -536,24 +576,45 @@ export default function VideoReflections() {
       {/* Playback Modal */}
       {playingVideo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-          onClick={() => setPlayingVideo(null)}
+          onClick={() => { setPlayingVideo(null); setEditingTranscript(false); }}
         >
-          <div className="relative w-full max-w-2xl bg-[#13121a] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto fade-up"
+          <div className="relative w-full max-w-2xl bg-[#13121a] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto fade-up custom-scrollbar"
             onClick={e => e.stopPropagation()}
           >
-            <button onClick={() => setPlayingVideo(null)} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-1.5 rounded-full hover:bg-white/10">
+            <button onClick={() => { setPlayingVideo(null); setEditingTranscript(false); }} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-1.5 rounded-full hover:bg-white/10 z-10">
               <X size={18} />
             </button>
             <h3 className="text-sm font-semibold pr-8 text-white">{playingVideo.title}</h3>
             
-            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/5 relative">
+            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/5 relative shrink-0">
               <video src={playingVideo.videoUrl} controls autoPlay className="w-full h-full" />
             </div>
 
             {playingVideo.note && (
-              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 mt-2">
+              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 mt-2 shrink-0">
                 <p className="text-[10px] uppercase font-bold tracking-wider text-white/40 mb-1">Reflection Note</p>
                 <p className="text-xs leading-relaxed text-white/70 whitespace-pre-wrap">{playingVideo.note}</p>
+              </div>
+            )}
+
+            {/* Premium Processing State */}
+            {playingVideo.processingStatus === 'processing' && (
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center mt-2 border border-white/5 bg-white/[0.02] rounded-2xl">
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 bg-[#7F77DD]/20 rounded-full blur-xl animate-pulse" />
+                  <div className="w-16 h-16 rounded-full bg-[#7F77DD]/10 border border-[#7F77DD]/30 flex items-center justify-center relative animate-pulse">
+                    <Sparkles size={24} className="text-[#AFA9EC]" />
+                  </div>
+                </div>
+                <h3 className="text-sm font-bold text-white mb-2">Analyzing your reflection...</h3>
+                <p className="text-xs text-white/50 max-w-sm mb-4 leading-relaxed">
+                  MindMirror is carefully listening, understanding emotions, and discovering patterns to create personalized insights.
+                </p>
+                <div className="flex gap-1.5 mt-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#7F77DD] animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#7F77DD] animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#7F77DD] animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
               </div>
             )}
 
@@ -578,36 +639,131 @@ export default function VideoReflections() {
 
                 {/* Metadata Tags */}
                 <div className="flex flex-wrap gap-2">
+                  {playingVideo.dominant_emotion && (
+                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-[#7F77DD]/20 bg-[#7F77DD]/10 text-[#AFA9EC]">
+                      {playingVideo.dominant_emotion}
+                    </span>
+                  )}
                   {playingVideo.themes?.map(theme => (
                     <span key={theme} className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-white/10 bg-white/5 text-white/70">
                       {theme.replace(/_/g, ' ')}
                     </span>
                   ))}
                   {playingVideo.mood_score && (
-                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-[#7F77DD]/20 bg-[#7F77DD]/10 text-[#AFA9EC]">
+                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-white/10 bg-white/5 text-white/70">
                       Distress: {playingVideo.mood_score}/10
+                    </span>
+                  )}
+                  {playingVideo.stress_level && (
+                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-white/10 bg-white/5 text-white/70">
+                      Stress: {playingVideo.stress_level}
                     </span>
                   )}
                 </div>
 
-                {/* Transcript */}
-                {playingVideo.transcript && (
-                  <div className="bg-black/30 border border-white/5 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Emotional Patterns */}
+                  {playingVideo.emotional_patterns?.length > 0 && (
+                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Activity size={14} className="text-[#AFA9EC]" />
+                        <p className="text-[10px] uppercase font-bold tracking-wider text-white/60">Emotional Patterns</p>
+                      </div>
+                      <ul className="space-y-1.5">
+                        {playingVideo.emotional_patterns.map((p, i) => (
+                          <li key={i} className="text-xs text-white/70 flex items-start gap-1.5"><span className="text-[#7F77DD] mt-0.5">•</span> <span>{p}</span></li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Cognitive Distortions */}
+                  {playingVideo.cognitive_distortions?.length > 0 && (
+                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle size={14} className="text-[#AFA9EC]" />
+                        <p className="text-[10px] uppercase font-bold tracking-wider text-white/60">Cognitive Distortions</p>
+                      </div>
+                      <ul className="space-y-1.5">
+                        {playingVideo.cognitive_distortions.map((d, i) => (
+                          <li key={i} className="text-xs text-white/70 flex items-start gap-1.5"><span className="text-orange-400 mt-0.5">•</span> <span>{d}</span></li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Coping Suggestions */}
+                  {playingVideo.coping_suggestions?.length > 0 && (
+                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Heart size={14} className="text-[#64d8b4]" />
+                        <p className="text-[10px] uppercase font-bold tracking-wider text-white/60">Coping Strategies</p>
+                      </div>
+                      <ul className="space-y-1.5">
+                        {playingVideo.coping_suggestions.map((c, i) => (
+                          <li key={i} className="text-xs text-white/70 flex items-start gap-1.5"><span className="text-[#64d8b4] mt-0.5">•</span> <span>{c}</span></li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {/* Actionable Next Steps */}
+                  {playingVideo.actionable_next_steps?.length > 0 && (
+                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp size={14} className="text-[#AFA9EC]" />
+                        <p className="text-[10px] uppercase font-bold tracking-wider text-white/60">Next Steps</p>
+                      </div>
+                      <ul className="space-y-1.5">
+                        {playingVideo.actionable_next_steps.map((a, i) => (
+                          <li key={i} className="text-xs text-white/70 flex items-start gap-1.5"><span className="text-[#7F77DD] mt-0.5">•</span> <span>{a}</span></li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                {/* Editable Transcript */}
+                <div className="bg-black/30 border border-white/5 rounded-xl p-4 flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
                       <MessageSquare size={14} className="text-white/40" />
-                      <p className="text-[10px] uppercase font-bold tracking-wider text-white/40">Transcript</p>
+                      <p className="text-[10px] uppercase font-bold tracking-wider text-white/40">{t('videos.transcript')}</p>
                     </div>
-                    <div className="max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                      <p className="text-xs leading-relaxed text-white/60 whitespace-pre-wrap">{playingVideo.transcript}</p>
-                    </div>
+                    {!editingTranscript ? (
+                      <button onClick={() => { setTranscriptDraft(playingVideo.transcript || ''); setEditingTranscript(true); }} className="text-[10px] flex items-center gap-1 font-semibold uppercase tracking-wider text-[#AFA9EC] hover:text-white transition-colors">
+                        <Edit2 size={10} /> Edit
+                      </button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button onClick={() => setEditingTranscript(false)} className="text-[10px] font-semibold uppercase tracking-wider text-white/40 hover:text-white transition-colors">
+                          Cancel
+                        </button>
+                        <button onClick={handleSaveTranscript} disabled={savingTranscript} className="text-[10px] flex items-center gap-1 font-semibold uppercase tracking-wider text-[#64d8b4] hover:brightness-110 transition-colors disabled:opacity-50">
+                          {savingTranscript ? <Loader size={10} className="animate-spin" /> : <Check size={10} />} Save
+                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
+                  
+                  {editingTranscript ? (
+                    <textarea
+                      value={transcriptDraft}
+                      onChange={(e) => setTranscriptDraft(e.target.value)}
+                      className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-xs leading-relaxed text-white/80 outline-none focus:border-[#7F77DD]/50 min-h-[160px] resize-y"
+                    />
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                      <p className="text-xs leading-relaxed text-white/60 whitespace-pre-wrap">{playingVideo.transcript || 'No transcript generated.'}</p>
+                    </div>
+                  )}
+                </div>
                 
               </div>
             )}
             
             {playingVideo.processingStatus === 'failed' && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex flex-col items-center justify-center py-6 text-center">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex flex-col items-center justify-center py-6 text-center mt-2">
                 <AlertCircle size={24} className="text-red-400 mb-2" />
                 <p className="text-sm font-semibold text-red-200">AI Analysis Failed</p>
                 <p className="text-xs text-red-400 mt-1 max-w-sm mb-4">We couldn't process the transcript and insights for this video. The video itself is safe.</p>

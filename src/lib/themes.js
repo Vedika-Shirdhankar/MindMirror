@@ -3,6 +3,52 @@
 // ThemeContext reads these and injects them as CSS variables automatically.
 
 export const BUILT_IN_THEMES = {
+  meadow: {
+    id: 'meadow',
+    name: 'Meadow',
+    icon: '🌿',
+    description: 'A grounded, light palette for gentle reflection.',
+    primary: '#2F6F68',
+    accent: '#D48A5A',
+    background: '#F5F3ED',
+    surface: 'rgba(255, 255, 255, 0.72)',
+    surfaceSolid: '#FFFFFF',
+    text: '#243B3A',
+    textMuted: 'rgba(36, 59, 58, 0.58)',
+    gradient: 'linear-gradient(135deg, #F5F3ED 0%, #E8F0EB 100%)',
+  },
+  serenity: {
+    id: 'serenity', name: 'Serenity', icon: '🏞️', description: 'Morning lake and soft mist.',
+    primary: '#4B7F82', accent: '#D5A66D', background: '#EEF4F1', surface: 'rgba(255,255,255,.72)', surfaceSolid: '#FFFFFF', text: '#294348', textMuted: 'rgba(41,67,72,.56)', gradient: 'linear-gradient(135deg,#eef4f1,#dcebea)',
+  },
+  blush: {
+    id: 'blush', name: 'Blush', icon: '🌸', description: 'A flowering tree at golden hour.',
+    primary: '#B86F79', accent: '#D59A72', background: '#FBF1EF', surface: 'rgba(255,255,255,.72)', surfaceSolid: '#FFFDFC', text: '#523A40', textMuted: 'rgba(82,58,64,.56)', gradient: 'linear-gradient(135deg,#fbf1ef,#f8e0df)',
+  },
+  ocean: {
+    id: 'ocean', name: 'Ocean', icon: '🌊', description: 'Open water and a clear sky.',
+    primary: '#4D7D99', accent: '#D5A86A', background: '#EFF6F8', surface: 'rgba(255,255,255,.74)', surfaceSolid: '#FFFFFF', text: '#294454', textMuted: 'rgba(41,68,84,.56)', gradient: 'linear-gradient(135deg,#eff6f8,#dcecf0)',
+  },
+  forest: {
+    id: 'forest', name: 'Forest', icon: '🌲', description: 'Sunlight filtering through trees.',
+    primary: '#4E765B', accent: '#D4A15D', background: '#F0F4EC', surface: 'rgba(255,255,255,.72)', surfaceSolid: '#FFFFFF', text: '#304638', textMuted: 'rgba(48,70,56,.56)', gradient: 'linear-gradient(135deg,#f0f4ec,#dce9da)',
+  },
+  sunset: {
+    id: 'sunset', name: 'Sunset', icon: '🌅', description: 'Warm light for winding down.',
+    primary: '#B66C55', accent: '#C99559', background: '#FBF1E7', surface: 'rgba(255,255,255,.72)', surfaceSolid: '#FFFDFC', text: '#513C35', textMuted: 'rgba(81,60,53,.56)', gradient: 'linear-gradient(135deg,#fbf1e7,#f6ded0)',
+  },
+  minimal: {
+    id: 'minimal', name: 'Minimal', icon: '🪴', description: 'A bright room, plants, and paper.',
+    primary: '#687A73', accent: '#C98E65', background: '#FAFAF7', surface: 'rgba(255,255,255,.84)', surfaceSolid: '#FFFFFF', text: '#35433F', textMuted: 'rgba(53,67,63,.56)', gradient: 'linear-gradient(135deg,#fafaf7,#eef1eb)',
+  },
+  spring: {
+    id: 'spring', name: 'Spring', icon: '🌼', description: 'Fresh flowers and soft sunlight.',
+    primary: '#6F8C65', accent: '#D18D62', background: '#F7F6E9', surface: 'rgba(255,255,255,.72)', surfaceSolid: '#FFFFFB', text: '#3F4E3B', textMuted: 'rgba(63,78,59,.56)', gradient: 'linear-gradient(135deg,#f7f6e9,#e6f0df)',
+  },
+  starlight: {
+    id: 'starlight', name: 'Starlight', icon: '✨', description: 'A deep blue sky for quiet nights.',
+    primary: '#7186B2', accent: '#D5B27B', background: '#EDEFF6', surface: 'rgba(255,255,255,.64)', surfaceSolid: '#F9FAFF', text: '#34405E', textMuted: 'rgba(52,64,94,.56)', gradient: 'linear-gradient(135deg,#edeff6,#dde3f1)',
+  },
   midnight: {
     id: 'midnight',
     name: 'Midnight',
@@ -100,6 +146,20 @@ export const BUILT_IN_THEMES = {
     text: '#2C251F',
     textMuted: 'rgba(44, 37, 31, 0.55)',
     gradient: 'linear-gradient(135deg, #FAF6F0 0%, #F2E8DA 100%)',
+  },
+  bloom: {
+    id: 'bloom',
+    name: 'Bloom',
+    icon: '🌸',
+    description: 'Soft lavender & mint pastels for a light, airy calm.',
+    primary: '#9B8AE0',
+    accent: '#6FCFAE',
+    background: '#FBF9F6',
+    surface: 'rgba(155, 138, 224, 0.07)',
+    surfaceSolid: '#F3EFFB',
+    text: '#332F45',
+    textMuted: 'rgba(51, 47, 69, 0.55)',
+    gradient: 'linear-gradient(135deg, #FBF9F6 0%, #F2ECFA 45%, #EAF6F1 100%)',
   },
 };
 

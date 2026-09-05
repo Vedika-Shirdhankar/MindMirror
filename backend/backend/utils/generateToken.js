@@ -1,10 +1,10 @@
 // utils/generateToken.js
 const jwt = require('jsonwebtoken');
+const config = require('../config');
 
 function generateToken(userId) {
-  // Signs a token with user's ObjectId. Fallback to 'secret' if JWT_SECRET is not in env.
-  return jwt.sign({ userId }, process.env.JWT_SECRET || 'fallback_secret', {
-    expiresIn: '7d',
+  return jwt.sign({ userId }, config.jwt.secret, {
+    expiresIn: config.jwt.expiresIn,
   });
 }
 

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef, useEffect } from 'react'
 import { Send, AlertTriangle, Play, X, Heart, Sparkles } from 'lucide-react'
 import * as api from '../lib/api.js'
@@ -43,7 +44,17 @@ function Message({ msg, onPlayVideo }) {
               : 'chat-bubble-ai text-text rounded-3xl rounded-tl-sm shadow-sm'
           }`}
         >
-          {msg.content}
+          {msg.streaming && !msg.content ? (
+            <span className="flex items-center gap-1.5 text-text/50">
+              <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping" />
+              <span className="text-xs font-medium">{t('companion.reflecting')}</span>
+            </span>
+          ) : (
+            <>
+              {msg.content}
+              {msg.streaming && <span className="inline-block w-1.5 h-3.5 ml-0.5 align-middle bg-current opacity-60 animate-pulse" />}
+            </>
+          )}
         </div>
 
         {msg.createdAt && (
@@ -133,6 +144,7 @@ function Message({ msg, onPlayVideo }) {
 }
 
 export default function Companion() {
+  const { t } = useTranslation()
   const [messages, setMessages] = useState([])
   const [loadingHistory, setLoadingHistory] = useState(true)
   const [input, setInput] = useState('')
@@ -174,25 +186,46 @@ export default function Companion() {
     setSupport(null)
 
     const userMsg = { role: 'user', content: text, createdAt: new Date() }
-    setMessages(prev => [...prev, userMsg])
+    // Placeholder assistant message that fills in as tokens stream in
+    const assistantMsg = { role: 'assistant', content: '', streaming: true, createdAt: new Date() }
+    setMessages(prev => [...prev, userMsg, assistantMsg])
     setLoading(true)
 
     try {
-      const { reply, recommendedVideos, pastSelfRecommendation, support: supportData } = await api.sendChatMessage(text)
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: reply, createdAt: new Date(), recommendedVideos, pastSelfRecommendation },
-      ])
+      const { recommendedVideos, pastSelfRecommendation, support: supportData } = await api.streamChatMessage(text, (_piece, fullSoFar) => {
+        setMessages(prev => {
+          const next = [...prev]
+          next[next.length - 1] = { ...next[next.length - 1], content: fullSoFar }
+          return next
+        })
+      })
+
+      setMessages(prev => {
+        const next = [...prev]
+        next[next.length - 1] = {
+          ...next[next.length - 1],
+          streaming: false,
+          recommendedVideos,
+          pastSelfRecommendation,
+        }
+        return next
+      })
       if (supportData) setSupport(supportData)
     } catch (e) {
       setError(e.message || 'Something went wrong. Please try again.')
+      // Remove the empty placeholder bubble if the stream never produced anything
+      setMessages(prev => {
+        const last = prev[prev.length - 1]
+        if (last?.streaming && !last.content) return prev.slice(0, -1)
+        return prev.map(m => m.streaming ? { ...m, streaming: false } : m)
+      })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex flex-col h-screen max-w-4xl mx-auto px-4 sm:px-6">
+    <div className="companion-sanctuary flex flex-col h-screen max-w-4xl mx-auto px-4 sm:px-6">
       {/* Header */}
       <div className="py-5 border-b border-white/10 bg-surface/40 backdrop-blur-md sticky top-0 z-10 flex items-center justify-between rounded-b-2xl">
         <div className="flex items-center gap-3">
@@ -218,18 +251,7 @@ export default function Companion() {
           messages.map((msg, i) => <Message key={i} msg={msg} onPlayVideo={setPlayingVideo} />)
         )}
 
-        {/* Typing indicator */}
-        {loading && (
-          <div className="flex gap-3.5 items-start fade-up">
-            <div className="w-9 h-9 rounded-2xl flex-shrink-0 flex items-center justify-center bg-gradient-to-tr from-primary to-indigo-500 text-white shadow-md">
-              <Heart size={14} fill="white" />
-            </div>
-            <div className="px-5 py-3.5 bg-surface border border-white/10 text-text rounded-3xl rounded-tl-sm flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
-              <span className="text-xs text-text/60 font-medium">Reflecting with your story…</span>
-            </div>
-          </div>
-        )}
+        {/* Typing indicator is now rendered inline inside the streaming placeholder message above */}
 
         {error && (
           <div className="text-xs p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400">{error}</div>
