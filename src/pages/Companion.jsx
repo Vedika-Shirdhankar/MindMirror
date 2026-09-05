@@ -23,7 +23,7 @@ function CrisisBanner({ support }) {
   )
 }
 
-function Message({ msg, onPlayVideo }) {
+function Message({ msg, onPlayVideo, reflectingLabel }) {
   const isUser = msg.role === 'user'
   return (
     <div className={`flex gap-3.5 items-start fade-up ${isUser ? 'flex-row-reverse' : ''}`}>
@@ -47,7 +47,7 @@ function Message({ msg, onPlayVideo }) {
           {msg.streaming && !msg.content ? (
             <span className="flex items-center gap-1.5 text-text/50">
               <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping" />
-              <span className="text-xs font-medium">{t('companion.reflecting')}</span>
+              <span className="text-xs font-medium">{reflectingLabel}</span>
             </span>
           ) : (
             <>
@@ -248,7 +248,7 @@ export default function Companion() {
         {loadingHistory ? (
           <p className="text-sm text-text/40 text-center py-10">Preparing your space…</p>
         ) : (
-          messages.map((msg, i) => <Message key={i} msg={msg} onPlayVideo={setPlayingVideo} />)
+          messages.map((msg, i) => <Message key={i} msg={msg} onPlayVideo={setPlayingVideo} reflectingLabel={t('companion.reflecting')} />)
         )}
 
         {/* Typing indicator is now rendered inline inside the streaming placeholder message above */}
