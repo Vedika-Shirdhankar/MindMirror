@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, CheckCircle, Sparkles, AlertTriangle, Loader, TrendingUp, TrendingDown, Minus, Play, Search, X, Pin, PinOff, Filter } from 'lucide-react'
 import * as api from '../lib/api.js'
@@ -209,6 +209,37 @@ export default function Journal() {
   const [moodFilter, setMoodFilter] = useState('')
   const [showFilters, setShowFilters] = useState(false)
 
+  // Bhashini voice input
+  const { transcribeAudio, isAvailable: bhashiniAvailable } = useBhashini()
+  const [isRecording, setIsRecording] = useState(false)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
+
+  async function startVoiceInput() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      audioChunksRef.current = []
+      recorder.ondataavailable = e => audioChunksRef.current.push(e.data)
+      recorder.onstop = async () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        const transcript = await transcribeAudio(blob)
+        if (transcript) setText(prev => prev ? `${prev} ${transcript}` : transcript)
+        stream.getTracks().forEach(t => t.stop())
+      }
+      recorder.start()
+      mediaRecorderRef.current = recorder
+      setIsRecording(true)
+    } catch {
+      alert('Could not access microphone.')
+    }
+  }
+
+  function stopVoiceInput() {
+    mediaRecorderRef.current?.stop()
+    setIsRecording(false)
+  }
+
   useEffect(() => { loadEntries() }, [])
 
   // Restore an autosaved draft on load, and open the composer if one exists.
@@ -386,7 +417,7 @@ export default function Journal() {
           />
           <div className="flex justify-end mb-4">
             <span className="text-[10px] text-text/30">
-              {text.trim() ? `${text.trim().split(/\s+/).length} words · ${text.length} characters` : 'Start typing whenever you\'re ready'}
+              {text.trim() ? `${text.trim().split(/\s+/).length} words · ${text.length} characters` : "Start typing whenever you're ready"}
             </span>
           </div>
 

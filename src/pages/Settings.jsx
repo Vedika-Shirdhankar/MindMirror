@@ -12,6 +12,7 @@ export default function Settings() {
   const { language, setLanguage, supportedLanguages } = useLanguage()
   const [languageSaved, setLanguageSaved] = useState(false)
   const [nameInput, setNameInput] = useState(user?.name || '')
+  const [avatarInput, setAvatarInput] = useState(user?.avatar || '')
   const [nameSaved, setNameSaved] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [error, setError] = useState('')
@@ -36,14 +37,15 @@ export default function Settings() {
   useEffect(() => {
     if (user) {
       setNameInput(user.name || '')
+      setAvatarInput(user.avatar || '')
     }
   }, [user])
 
-  async function saveName() {
+  async function saveProfile() {
     if (!nameInput.trim()) return
     setError('')
     try {
-      const updatedUser = await api.updateProfile(nameInput.trim())
+      const updatedUser = await api.updateProfile(nameInput.trim(), avatarInput.trim())
       setUser(updatedUser)
       setNameSaved(true)
       setTimeout(() => setNameSaved(false), 2000)
@@ -162,9 +164,13 @@ export default function Settings() {
         {/* Avatar + name */}
         <div className="flex items-center gap-4 mb-4 p-3 rounded-xl"
           style={{ background: 'var(--color-surface)' }}>
-          <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0"
+          <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 overflow-hidden"
             style={{ background: 'rgba(139,130,236,0.2)', color: 'var(--color-primary)' }}>
-            {user?.name ? user.name[0].toUpperCase() : 'M'}
+            {user?.avatar ? (
+              <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              user?.name ? user.name[0].toUpperCase() : 'M'
+            )}
           </div>
           <div>
             <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>{user?.name || 'Anonymous'}</p>
@@ -172,35 +178,57 @@ export default function Settings() {
           </div>
         </div>
 
-        <label className="text-xs block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
-          {t('settings.displayName')}
-        </label>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={nameInput}
-            onChange={e => setNameInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && saveName()}
-            className="flex-1 px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-            style={{
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-surface-border)',
-              color: 'var(--color-text)',
-            }}
-            placeholder={t('settings.namePlaceholder')}
-          />
-          <button
-            onClick={saveName}
-            className="px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-1.5 transition-all hover:opacity-80 active:scale-95"
-            style={{
-              background: nameSaved ? 'rgba(93,202,165,0.2)' : 'rgba(139,130,236,0.2)',
-              color: nameSaved ? '#5DCAA5' : 'var(--color-primary)',
-              border: `1px solid ${nameSaved ? 'rgba(93,202,165,0.3)' : 'rgba(139,130,236,0.3)'}`,
-            }}
-          >
-            {nameSaved ? <><CheckCircle size={13} /> Saved</> : 'Save'}
-          </button>
+        <div className="space-y-3 mb-3">
+          <div>
+            <label className="text-xs block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+              {t('settings.displayName')}
+            </label>
+            <input
+              type="text"
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveProfile()}
+              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
+              style={{
+                background: 'var(--color-surface)',
+                border: '1px solid var(--color-surface-border)',
+                color: 'var(--color-text)',
+              }}
+              placeholder={t('settings.namePlaceholder')}
+            />
+          </div>
+          
+          <div>
+            <label className="text-xs block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+              Profile Photo URL
+            </label>
+            <input
+              type="text"
+              value={avatarInput}
+              onChange={e => setAvatarInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveProfile()}
+              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
+              style={{
+                background: 'var(--color-surface)',
+                border: '1px solid var(--color-surface-border)',
+                color: 'var(--color-text)',
+              }}
+              placeholder="https://example.com/avatar.jpg"
+            />
+          </div>
         </div>
+
+        <button
+          onClick={saveProfile}
+          className="px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-1.5 transition-all hover:opacity-80 active:scale-95"
+          style={{
+            background: nameSaved ? 'rgba(93,202,165,0.2)' : 'rgba(139,130,236,0.2)',
+            color: nameSaved ? '#5DCAA5' : 'var(--color-primary)',
+            border: `1px solid ${nameSaved ? 'rgba(93,202,165,0.3)' : 'rgba(139,130,236,0.3)'}`,
+          }}
+        >
+          {nameSaved ? <><CheckCircle size={13} /> Saved</> : 'Save'}
+        </button>
       </section>
 
       {/* ── Password ─────────────────────────────────────── */}

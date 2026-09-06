@@ -47,7 +47,7 @@ function Message({ msg, onPlayVideo, reflectingLabel }) {
           {msg.streaming && !msg.content ? (
             <span className="flex items-center gap-1.5 text-text/50">
               <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping" />
-              <span className="text-xs font-medium">{reflectingLabel}</span>
+              <span className="text-xs font-medium">{msg.streamingStatus || reflectingLabel}</span>
             </span>
           ) : (
             <>
@@ -192,10 +192,16 @@ export default function Companion() {
     setLoading(true)
 
     try {
-      const { recommendedVideos, pastSelfRecommendation, support: supportData } = await api.streamChatMessage(text, (_piece, fullSoFar) => {
+      const { reply, recommendedVideos, pastSelfRecommendation, support: supportData } = await api.streamChatMessage(text, (_piece, fullSoFar) => {
         setMessages(prev => {
           const next = [...prev]
           next[next.length - 1] = { ...next[next.length - 1], content: fullSoFar }
+          return next
+        })
+      }, (status) => {
+        setMessages(prev => {
+          const next = [...prev]
+          next[next.length - 1] = { ...next[next.length - 1], streamingStatus: status }
           return next
         })
       })
@@ -204,6 +210,7 @@ export default function Companion() {
         const next = [...prev]
         next[next.length - 1] = {
           ...next[next.length - 1],
+          content: reply || next[next.length - 1].content,
           streaming: false,
           recommendedVideos,
           pastSelfRecommendation,
@@ -212,13 +219,19 @@ export default function Companion() {
       })
       if (supportData) setSupport(supportData)
     } catch (e) {
-      setError(e.message || 'Something went wrong. Please try again.')
-      // Remove the empty placeholder bubble if the stream never produced anything
       setMessages(prev => {
-        const last = prev[prev.length - 1]
-        if (last?.streaming && !last.content) return prev.slice(0, -1)
-        return prev.map(m => m.streaming ? { ...m, streaming: false } : m)
+        const next = [...prev]
+        const last = next[next.length - 1]
+        if (last?.streaming) {
+          next[next.length - 1] = {
+            ...last,
+            content: last.content || "I’m here with you. The reflection service is taking a short pause. Your message is safe, and you can try again in a little while.",
+            streaming: false,
+          }
+        }
+        return next
       })
+      setError('')
     } finally {
       setLoading(false)
     }

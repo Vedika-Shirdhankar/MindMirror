@@ -87,6 +87,7 @@ app.use('/api/letter-from-mirror', letterFromMirrorRoutes);
 app.use('/api/life-report', lifeReportRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/anchor', anchorRoutes);
+// Bhashini route removed
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use('/api', (req, res) =>

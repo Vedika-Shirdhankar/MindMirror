@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   MessageCircle, BookOpen, Clock, BarChart2, TrendingUp,
@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../lib/AuthContext.jsx'
 import { useTranslation } from 'react-i18next'
 import AmbientScene from './AmbientScene.jsx'
+import SearchPalette from './SearchPalette.jsx'
 
 export default function Layout({ children, user }) {
   const { logout } = useAuth()
@@ -16,6 +17,18 @@ export default function Layout({ children, user }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [notification, setNotification] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const navItems = [
     { to: '/',                 icon: Home,          label: t('nav.dashboard'), tagline: t('nav.dashboardTagline') },
@@ -34,6 +47,23 @@ export default function Layout({ children, user }) {
     { to: '/analytics',          icon: PieChart,      label: t('nav.analytics'), tagline: t('nav.analyticsTagline') },
   ]
 
+  const QUOTES = [
+    "You are capable of amazing things.",
+    "Every day is a fresh start.",
+    "Take a deep breath. You're doing great.",
+    "Your potential is endless.",
+    "Progress, not perfection.",
+    "You are stronger than you think."
+  ];
+  const [quoteIndex, setQuoteIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setQuoteIndex((prev) => (prev + 1) % QUOTES.length);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="app-shell flex h-screen overflow-hidden" style={{ background: 'var(--color-bg)' }}>
       <AmbientScene />
@@ -47,7 +77,7 @@ export default function Layout({ children, user }) {
           </div>
           <div>
             <span className="font-bold text-base text-text tracking-tight block">{t('app.name')}</span>
-            <span className="text-[11px] text-text/50 font-medium block -mt-0.5">A kinder you, always.</span>
+            <span className="text-[11px] text-text/50 font-medium block -mt-0.5">{t('app.tagline')}</span>
           </div>
         </div>
 
@@ -111,9 +141,13 @@ export default function Layout({ children, user }) {
         </div>
 
         {/* User Card */}
-        <div className="mt-4 p-3 rounded-2xl bg-primary/5 border border-primary/10 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center font-bold text-xs text-primary">
-            {user?.name ? user.name[0].toUpperCase() : 'M'}
+        <div className="mt-4 p-3 rounded-2xl bg-primary/5 border border-primary/10 flex items-center gap-3 cursor-pointer hover:bg-primary/10 transition-colors" onClick={() => navigate('/settings')}>
+          <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center font-bold text-xs text-primary overflow-hidden">
+            {user?.avatar ? (
+              <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              user?.name ? user.name[0].toUpperCase() : 'M'
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-text truncate">{user?.name || 'Welcome'}</p>
@@ -125,19 +159,56 @@ export default function Layout({ children, user }) {
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto relative z-10">
         <header className="app-topbar flex items-center justify-between px-6 lg:px-10 py-4">
-          <button onClick={() => navigate('/journal')} className="app-search hidden sm:flex items-center gap-2 rounded-full px-4 py-2.5 w-72 text-left" aria-label="Search reflections in your journal">
-            <Search size={14} className="text-text/40" />
-            <span className="text-xs text-text/40">Search your thoughts, feelings, moments...</span>
+          <button onClick={() => setSearchOpen(true)} className="app-search group hidden sm:flex items-center justify-between rounded-full px-4 py-2 w-72 text-left transition-all duration-300 hover:bg-white/90 hover:shadow-md hover:border-primary/30" aria-label="Search reflections in your journal">
+            <div className="flex items-center gap-2.5">
+              <Search size={15} className="text-text/40 group-hover:text-primary transition-colors duration-300" />
+              <span className="text-xs text-text/40 group-hover:text-text/70 transition-colors duration-300">{t('journal.searchPlaceholder')}</span>
+            </div>
+            <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-black/5 border border-black/5 text-[10px] text-text/40 font-medium font-sans group-hover:bg-primary/5 group-hover:text-primary/70 group-hover:border-primary/10 transition-colors duration-300">
+              <span className="text-[10px]">⌘</span>K
+            </kbd>
           </button>
           <div className="flex items-center gap-4 ml-auto">
             <div className="relative">
               <button onClick={() => setNotification(open => !open)} className="icon-button" aria-label="Toggle notifications" aria-expanded={notification}><Bell size={16} /></button>
-              {notification && <div role="status" className="absolute right-0 top-9 w-56 rounded-xl border border-white/10 bg-[var(--color-surface)] p-3 text-xs text-text/70 shadow-xl">You’re all caught up. New reflections and letters will appear here.</div>}
+              <AnimatePresence>
+                {notification && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 top-11 w-64 rounded-2xl border border-primary/20 bg-white/90 backdrop-blur-xl p-4 text-xs text-text/80 shadow-2xl z-50"
+                  >
+                    <div className="flex items-center gap-2 mb-2 text-primary font-medium">
+                      <Sparkles size={14} />
+                      A gentle reminder
+                    </div>
+                    <AnimatePresence mode="wait">
+                      <motion.p
+                        key={quoteIndex}
+                        initial={{ opacity: 0, x: -5 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 5 }}
+                        transition={{ duration: 0.4 }}
+                        className="italic text-text/70 leading-relaxed"
+                      >
+                        "{QUOTES[quoteIndex]}"
+                      </motion.p>
+                    </AnimatePresence>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold">{user?.name?.[0]?.toUpperCase() || 'M'}</div>
-              <span className="hidden md:block text-xs font-medium text-text/70">Hi, {user?.name?.split(' ')[0] || 'there'}</span>
-            </div>
+            <button onClick={() => navigate('/settings')} className="flex items-center gap-2 hover:bg-black/5 p-1.5 pr-3 rounded-full transition-colors">
+              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold overflow-hidden border border-primary/20">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  user?.name?.[0]?.toUpperCase() || 'M'
+                )}
+              </div>
+              <span className="hidden md:block text-xs font-medium text-text/80">Hi, {user?.name?.split(' ')[0] || 'there'}</span>
+            </button>
           </div>
         </header>
         <AnimatePresence mode="wait">
@@ -153,6 +224,7 @@ export default function Layout({ children, user }) {
           </motion.div>
         </AnimatePresence>
       </main>
+      <SearchPalette isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <nav className="mobile-nav" aria-label="Mobile navigation">
         {navItems.slice(0, 5).map(({ to, icon: Icon, label }) => (

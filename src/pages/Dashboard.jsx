@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import {
   Sparkles, Flame, BookOpen, Wind, Flower2, Gamepad2,
-  ArrowRight, Feather, NotebookPen
+  ArrowRight, Feather, NotebookPen, Video
 } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext.jsx'
 import * as api from '../lib/api.js'
@@ -162,7 +162,7 @@ export default function Dashboard() {
         <div className="absolute -bottom-20 -left-10 w-56 h-56 rounded-full bg-accent/15 blur-[80px] animate-glow pointer-events-none" />
         <div className="relative max-w-lg pt-3 sm:pt-8">
           <p className="text-xs font-semibold tracking-wide text-primary mb-3">
-            {getGreeting()}, {firstName || 'friend'} <span aria-hidden="true">🌿</span>
+            {t('dashboard.greeting', { time: t(`dashboard.${new Date().getHours() < 12 ? 'morningGreeting' : new Date().getHours() < 17 ? 'afternoonGreeting' : 'eveningGreeting'}`), name: firstName || 'friend' })} <span aria-hidden="true">🌿</span>
           </p>
           <h1 className="font-serif text-4xl sm:text-5xl text-text leading-[1.08] max-w-xl">
             {affirmation}
@@ -173,12 +173,12 @@ export default function Dashboard() {
 
       <div className="wellness-card flex flex-col sm:flex-row sm:items-center gap-4 justify-between rounded-[22px] p-4 sm:px-5 mb-5 bg-white/75">
         <div>
-          <p className="text-sm font-semibold text-text">How are you feeling today?</p>
-          <p className="text-xs text-text/45 mt-1">Write, speak, or share a moment...</p>
+          <p className="text-sm font-semibold text-text">{t('journal.howAreYou')}</p>
+          <p className="text-xs text-text/45 mt-1">{t('journal.placeholder', "What's weighing on you today? Write freely…")}</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => navigate('/journal')} className="hidden sm:inline-flex items-center justify-center w-9 h-9 rounded-full bg-primary/8 text-primary" aria-label="Write a journal entry"><NotebookPen size={15} /></button>
-          <button onClick={() => navigate('/videos')} className="hidden sm:inline-flex items-center justify-center w-9 h-9 rounded-full bg-primary/8 text-primary" aria-label="Record a video reflection"><Feather size={15} /></button>
+          <button onClick={() => navigate('/videos')} className="hidden sm:inline-flex items-center justify-center w-9 h-9 rounded-full bg-primary/8 text-primary" aria-label="Record a video reflection"><Video size={15} /></button>
           <button onClick={() => navigate('/journal')} className="inline-flex items-center gap-2 rounded-full bg-primary text-white text-xs font-semibold px-5 py-3 hover:-translate-y-0.5 transition-transform">Start Journaling <ArrowRight size={14} /></button>
         </div>
       </div>
@@ -309,7 +309,7 @@ export default function Dashboard() {
       {/* ── Recent journals ── */}
       <CardShell className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-text">Your recent reflections</p>
+          <p className="text-sm font-semibold text-text">{t('dashboard.recentEntries', 'Your recent reflections')}</p>
           <button onClick={() => navigate('/journal')} className="text-xs text-primary flex items-center gap-1 hover:opacity-80 transition-opacity">
             View all <ArrowRight size={12} />
           </button>
@@ -363,6 +363,38 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* ── Mindfulness Videos ── */}
+      <CardShell className="mt-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Wind size={16} className="text-primary" />
+          <h2 className="text-sm font-semibold text-text">Mindfulness & Meditation</h2>
+        </div>
+        <p className="text-xs text-text/50 mb-4">A collection of guided moments to help you find your center.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {[
+            { id: 'inpok4MKVLM', title: '5-Minute Meditation You Can Do Anywhere' },
+            { id: 'syx3a1_LeFo', title: '10-Minute Meditation for Anxiety' },
+            { id: 'ZToicYcHIOU', title: 'Daily Calm | 10 Minute Mindfulness' }
+          ].map((video) => (
+            <div key={video.id} className="rounded-2xl overflow-hidden bg-white/60 border border-white/80 shadow-sm hover:shadow-md transition-all">
+              <iframe
+                width="100%"
+                height="140"
+                src={`https://www.youtube.com/embed/${video.id}`}
+                title={video.title}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full object-cover"
+              />
+              <div className="p-3">
+                <p className="text-xs font-semibold text-text line-clamp-1">{video.title}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardShell>
+
       <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_.7fr] gap-4 mt-4">
         <CardShell className="relative overflow-hidden bg-[#f8eee5]/75">
           <div className="absolute -right-8 -bottom-12 text-[110px] opacity-15" aria-hidden="true">🌿</div>
@@ -374,9 +406,9 @@ export default function Dashboard() {
           <p className="text-sm font-semibold text-text">Your progress, not perfection</p>
           <p className="text-xs text-text/50 mt-1">Every reflection is a small act of self-care.</p>
           <div className="flex items-end gap-2 h-20 mt-5">
-            {weekData.map(({ distress, label }) => {
+            {weekData.map(({ distress, label }, index) => {
               const height = distress == null ? 12 : Math.max(18, Math.min(100, distress * 9))
-              return <div key={label} className="flex-1 rounded-t-full bg-primary/20" style={{ height: `${height}%` }}><div className="h-2 rounded-full bg-primary/45" /></div>
+              return <div key={`${label}-${index}`} className="flex-1 rounded-t-full bg-primary/20" style={{ height: `${height}%` }}><div className="h-2 rounded-full bg-primary/45" /></div>
             })}
           </div>
           <p className="text-[10px] text-text/40 mt-3">A gentle view of your week</p>

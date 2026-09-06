@@ -321,6 +321,20 @@ ${contextSection || '\n\n(No personal history available yet — use AI reasoning
 
 // ── Route Handlers ────────────────────────────────────────────────────────────
 
+function buildQuotaFallback(content) {
+  const message = content.toLowerCase();
+  if (/anxious|anxiety|worried|panic|overwhelmed/.test(message)) {
+    return "I hear that this feels heavy right now. Try one slow breath with a longer exhale, then name one small thing you can take care of in the next ten minutes. I’ll keep this thought here while my reflection service is briefly unavailable.";
+  }
+  if (/sad|lonely|low|cry|hurt|empty/.test(message)) {
+    return "That sounds like a tender moment to be carrying. You don’t have to solve everything right now; staying with the feeling and taking one kind next step is enough. I’m keeping your message safe while my reflection service pauses.";
+  }
+  if (/happy|good|excited|proud|grateful/.test(message)) {
+    return "I’m glad you shared this brighter moment. Let yourself notice what feels good about it, even if it does not last forever. Your reflection is saved, and I’m here while the full service is briefly paused.";
+  }
+  return "Thank you for telling me this. Take a moment to notice what you need most right now, without judging the answer. Your message is safe, and I’ll be ready to reflect more deeply when the service is available again.";
+}
+
 // GET /api/chat/history
 async function getHistory(req, res, next) {
   try {
@@ -460,6 +474,7 @@ async function sendMessage(req, res, next) {
 
 // POST /api/chat/message/stream
 async function streamMessage(req, res, next) {
+  let activeChat = null;
   try {
     const { content } = req.body;
     if (!content?.trim()) return res.status(400).json({ error: 'Message content is required.' });
@@ -468,6 +483,7 @@ async function streamMessage(req, res, next) {
 
     let chat = await Chat.findOne({ user: req.userId });
     if (!chat) chat = await Chat.create({ user: req.userId, messages: [] });
+    activeChat = chat;
 
     chat.messages.push({ role: 'user', content: content.trim() });
 
@@ -475,6 +491,7 @@ async function streamMessage(req, res, next) {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
+    res.write(`data: ${JSON.stringify({ status: 'Getting a feel for what you need...' })}\n\n`);
 
     if (!apiKey) {
       const fallback = "I hear you. To enable my full memory and reflection capabilities, please configure the GEMINI_API_KEY on the server. In the meantime, I'm still here to listen.";
@@ -491,6 +508,7 @@ async function streamMessage(req, res, next) {
     const userLanguage = userDoc?.language || 'en';
 
     let embedding = null;
+    res.write(`data: ${JSON.stringify({ status: 'Remembering what has helped before...' })}\n\n`);
     try {
       embedding = await generateEmbedding(content.trim());
     } catch (e) {
@@ -550,6 +568,7 @@ async function streamMessage(req, res, next) {
 
     const resultStream = await model.generateContentStream({ contents: geminiContents });
     let fullReply = '';
+    res.write(`data: ${JSON.stringify({ status: 'Writing back...' })}\n\n`);
 
     for await (const chunk of resultStream.stream) {
       const chunkText = chunk.text();
@@ -575,8 +594,18 @@ async function streamMessage(req, res, next) {
     console.error('[companion stream] error:', err);
     if (!res.headersSent) {
       next(err);
+    } else if (err.status === 429 || /quota|too many requests|rate limit/i.test(err.message || '')) {
+      const fallback = buildQuotaFallback(content);
+      if (activeChat) {
+        activeChat.messages.push({ role: 'assistant', content: fallback });
+        await activeChat.save().catch(saveError => console.error('[companion fallback] save error:', saveError));
+      }
+      res.write(`data: ${JSON.stringify({ chunk: fallback })}\n\n`);
+      res.write(`data: ${JSON.stringify({ final: { recommendedVideos: [], pastSelfRecommendation: null } })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
     } else {
-      res.write(`data: ${JSON.stringify({ error: 'An error occurred during streaming.' })}\n\n`);
+      res.write(`data: ${JSON.stringify({ error: err.message || 'An error occurred during streaming.' })}\n\n`);
       res.end();
     }
   }

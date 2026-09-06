@@ -262,7 +262,7 @@ export async function sendChatMessage(content) {
  * Resolves with the same shape as sendChatMessage once the stream completes.
  * Uses fetch (not EventSource) because EventSource can't send POST bodies or auth headers.
  */
-export async function streamChatMessage(content, onChunk) {
+export async function streamChatMessage(content, onChunk, onStatus) {
   const token = getToken();
   const response = await fetch(`${BASE_URL}/chat/message/stream`, {
     method: 'POST',
@@ -298,24 +298,29 @@ export async function streamChatMessage(content, onChunk) {
 
       let payload;
       try {
-        payload = JSON.parse(line.slice(6));
+        payload = line.slice(6) === '[DONE]' ? { done: true } : JSON.parse(line.slice(6));
       } catch {
         continue;
       }
 
-      if (payload.event === 'chunk') {
-        fullReply += payload.text;
-        onChunk?.(payload.text, fullReply);
-      } else if (payload.event === 'done') {
-        finalPayload = payload;
-      } else if (payload.event === 'error') {
-        throw new Error(payload.message || 'The companion had trouble responding. Please try again.');
+      // The API emits { chunk }, { final }, and [DONE] SSE frames.
+      // Keep accepting the older event-based shape for compatibility.
+      const chunkText = payload.chunk ?? (payload.event === 'chunk' ? payload.text : null);
+      if (typeof chunkText === 'string') {
+        fullReply += chunkText;
+        onChunk?.(chunkText, fullReply);
+      } else if (typeof payload.status === 'string') {
+        onStatus?.(payload.status);
+      } else if (payload.final || payload.event === 'done') {
+        finalPayload = payload.final || payload;
+      } else if (payload.error || payload.event === 'error') {
+        throw new Error(payload.error || payload.message || 'The companion had trouble responding. Please try again.');
       }
     }
   }
 
   return {
-    reply: fullReply,
+    reply: fullReply || 'I am here with you. Could you tell me a little more?',
     messages: finalPayload?.messages,
     support: finalPayload?.support,
     recommendedVideos: finalPayload?.recommendedVideos || [],
@@ -358,10 +363,10 @@ export async function deleteFutureLetter(id) {
 }
 
 // 7. Profile Settings Operations
-export async function updateProfile(name) {
+export async function updateProfile(name, avatar) {
   const data = await request('/users/me', {
     method: 'PUT',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, avatar }),
   });
   return data.user;
 }
@@ -421,4 +426,61 @@ export async function getLetterFromMirror() {
 // 10. Life Report
 export async function getLifeReport() {
   return request('/life-report');
+}
+
+// 11. Bhashini Multilingual API ─────────────────────────────────────────────
+
+/** Check if Bhashini is configured on the backend */
+export async function getBhashiniStatus() {
+  return request('/bhashini/status');
+}
+
+/**
+ * Translate a single text via Bhashini NMT.
+ * @param {string} text
+ * @param {string} sourceLang  e.g. 'en'
+ * @param {string} targetLang  e.g. 'hi'
+ */
+export async function bhashiniTranslate(text, sourceLang, targetLang) {
+  return request('/bhashini/translate', {
+    method: 'POST',
+    body: JSON.stringify({ text, sourceLang, targetLang }),
+  });
+}
+
+/**
+ * Translate multiple strings at once via Bhashini.
+ * @param {string[]} texts
+ * @param {string} sourceLang
+ * @param {string} targetLang
+ */
+export async function bhashiniTranslateBatch(texts, sourceLang, targetLang) {
+  return request('/bhashini/translate-batch', {
+    method: 'POST',
+    body: JSON.stringify({ texts, sourceLang, targetLang }),
+  });
+}
+
+/**
+ * Detect the language of a given text.
+ * @param {string} text
+ */
+export async function bhashiniDetectLanguage(text) {
+  return request('/bhashini/detect-language', {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  });
+}
+
+/**
+ * Convert speech audio (base64) to text using Bhashini ASR.
+ * @param {string} audioBase64
+ * @param {string} language e.g. 'hi'
+ * @param {string} format   e.g. 'wav'
+ */
+export async function bhashiniSpeechToText(audioBase64, language, format = 'wav') {
+  return request('/bhashini/stt', {
+    method: 'POST',
+    body: JSON.stringify({ audioBase64, language, format }),
+  });
 }
