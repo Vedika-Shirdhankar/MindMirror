@@ -54,7 +54,9 @@ function ProtectedShell() {
         <Route path="/appearance" element={<Appearance />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/why" element={<WhyMindMirror onGetStarted={() => window.location.href = '/companion'} />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+<Route path="/login" element={<Auth isModal={false} initialMode="login" />} />
+<Route path="/signup" element={<Auth isModal={false} initialMode="signup" />} />
+<Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
   )
