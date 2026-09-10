@@ -38,6 +38,28 @@ const anchorRoutes = require('./routes/anchorRoutes');
 
 const app = express();
 
+// ─── CORS (must be FIRST — before helmet, rate limiter, everything) ───────────
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, Render health checks)
+    if (!origin) return callback(null, true);
+    const allowed = Array.isArray(config.corsOrigin)
+      ? config.corsOrigin
+      : [config.corsOrigin];
+    if (allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+app.use(cors(corsOptions));
+// Explicitly handle OPTIONS preflight for all routes
+app.options('*', cors(corsOptions));
+
 // ─── Security ────────────────────────────────────────────────────────────────
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
@@ -50,7 +72,6 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-app.use(cors({ origin: config.corsOrigin, credentials: true }));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(mongoSanitize());
