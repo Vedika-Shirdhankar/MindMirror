@@ -18,6 +18,7 @@ import LifeReport from './pages/LifeReport.jsx'
 import Appearance from './pages/Appearance.jsx'
 import WhyMindMirror from './pages/WhyMindMirror.jsx'
 import AnchorSpace from './pages/AnchorSpace.jsx' // <-- 1. IMPORT ADDED
+import Auth from './pages/Auth.jsx'
 import { AuthProvider, useAuth } from './lib/AuthContext.jsx'
 
 function ProtectedShell() {
@@ -32,7 +33,21 @@ function ProtectedShell() {
     )
   }
 
-  if (!user) return <Landing autoOpenAuth={location.pathname !== '/'} />
+  // Unauthenticated: show standalone Auth page for /login and /signup
+  if (!user) {
+    if (location.pathname === '/login') {
+      return <Auth isModal={false} initialMode="login" />
+    }
+    if (location.pathname === '/signup') {
+      return <Auth isModal={false} initialMode="signup" />
+    }
+    return <Landing autoOpenAuth={location.pathname !== '/'} />
+  }
+
+  // Authenticated: redirect /login and /signup back to dashboard
+  if (location.pathname === '/login' || location.pathname === '/signup') {
+    return <Navigate to="/" replace />
+  }
 
   return (
     <Layout user={user}>
@@ -54,9 +69,7 @@ function ProtectedShell() {
         <Route path="/appearance" element={<Appearance />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/why" element={<WhyMindMirror onGetStarted={() => window.location.href = '/companion'} />} />
-<Route path="/login" element={<Auth isModal={false} initialMode="login" />} />
-<Route path="/signup" element={<Auth isModal={false} initialMode="signup" />} />
-<Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
   )
