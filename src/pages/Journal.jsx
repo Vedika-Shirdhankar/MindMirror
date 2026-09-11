@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2, CheckCircle, Sparkles, AlertTriangle, Loader, TrendingUp, TrendingDown, Minus, Play, Search, X, Pin, PinOff, Filter } from 'lucide-react'
+import { Plus, Trash2, CheckCircle, Sparkles, AlertTriangle, Loader, Loader2, TrendingUp, TrendingDown, Minus, Play, Search, X, Pin, PinOff, Filter, Mic } from 'lucide-react'
 import * as api from '../lib/api.js'
+import { useVoiceTranscription } from '../lib/useVoice.js'
 import { THEMES, TRIGGERS, COPING_LABELS, RISK_COLORS, EMOTION_META, DISTORTION_LABELS } from '../lib/api.js'
 import { format } from 'date-fns'
 
@@ -209,6 +210,8 @@ export default function Journal() {
   const [moodFilter, setMoodFilter] = useState('')
   const [showFilters, setShowFilters] = useState(false)
 
+  const { isRecording, isTranscribing, startRecording, stopRecording } = useVoiceTranscription()
+
   useEffect(() => { loadEntries() }, [])
 
   // Restore an autosaved draft on load, and open the composer if one exists.
@@ -380,11 +383,22 @@ export default function Journal() {
             autoFocus
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder={t('journal.placeholder')}
+            disabled={isRecording || isTranscribing}
+            placeholder={isRecording ? "Listening..." : isTranscribing ? "Transcribing..." : t('journal.placeholder')}
             rows={5}
             className="journal-paper__field w-full text-sm outline-none resize-none leading-relaxed mb-2 bg-transparent text-text border-none"
           />
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <button
+              onMouseDown={startRecording}
+              onMouseUp={() => stopRecording((newText) => setText(prev => prev + (prev ? ' ' : '') + newText))}
+              onTouchStart={startRecording}
+              onTouchEnd={() => stopRecording((newText) => setText(prev => prev + (prev ? ' ' : '') + newText))}
+              disabled={isTranscribing}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${isRecording ? 'bg-red-500/20 text-red-500 animate-pulse' : 'bg-surface border border-white/10 text-text/50 hover:bg-white/10 hover:text-text'}`}
+            >
+              {isTranscribing ? <><Loader2 size={13} className="animate-spin" /> Transcribing...</> : (isRecording ? <><Mic size={13} /> Listening...</> : <><Mic size={13} /> Hold to speak</>)}
+            </button>
             <span className="text-[10px] text-text/30">
               {text.trim() ? `${text.trim().split(/\s+/).length} words · ${text.length} characters` : "Start typing whenever you're ready"}
             </span>

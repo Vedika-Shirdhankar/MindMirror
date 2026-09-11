@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useRef, useEffect } from 'react'
-import { Send, AlertTriangle, Play, X, Heart, Sparkles } from 'lucide-react'
+import { Send, AlertTriangle, Play, X, Heart, Sparkles, Mic, Volume2, Loader2 } from 'lucide-react'
 import * as api from '../lib/api.js'
+import { useVoiceTranscription, useTextToSpeech } from '../lib/useVoice.js'
 import { format } from 'date-fns'
 
 function CrisisBanner({ support }) {
@@ -23,7 +24,7 @@ function CrisisBanner({ support }) {
   )
 }
 
-function Message({ msg, onPlayVideo, reflectingLabel }) {
+function Message({ msg, onPlayVideo, reflectingLabel, onSpeak }) {
   const isUser = msg.role === 'user'
   return (
     <div className={`flex gap-3.5 items-start fade-up ${isUser ? 'flex-row-reverse' : ''}`}>
@@ -58,9 +59,16 @@ function Message({ msg, onPlayVideo, reflectingLabel }) {
         </div>
 
         {msg.createdAt && (
-          <p className="text-[11px] mt-1.5 opacity-40 px-2 text-text font-medium">
-            {format(new Date(msg.createdAt), 'h:mm a')}
-          </p>
+          <div className="flex items-center gap-2 mt-1.5 px-2">
+            <p className="text-[11px] opacity-40 text-text font-medium">
+              {format(new Date(msg.createdAt), 'h:mm a')}
+            </p>
+            {!isUser && msg.content && !msg.streaming && (
+              <button onClick={() => onSpeak(msg.content)} className="opacity-40 hover:opacity-100 transition-opacity" title="Read aloud">
+                <Volume2 size={11} />
+              </button>
+            )}
+          </div>
         )}
 
         {!isUser && msg.recommendedVideos?.length > 0 && !msg.pastSelfRecommendation && (
@@ -154,6 +162,9 @@ export default function Companion() {
   const [playingVideo, setPlayingVideo] = useState(null)
   const bottomRef = useRef(null)
 
+  const { isRecording, isTranscribing, startRecording, stopRecording } = useVoiceTranscription()
+  const { speak, stop: stopSpeaking } = useTextToSpeech()
+
   useEffect(() => { loadHistory() }, [])
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, loading])
 
@@ -184,6 +195,7 @@ export default function Companion() {
     setInput('')
     setError('')
     setSupport(null)
+    stopSpeaking()
 
     const userMsg = { role: 'user', content: text, createdAt: new Date() }
     // Placeholder assistant message that fills in as tokens stream in
@@ -261,7 +273,7 @@ export default function Companion() {
         {loadingHistory ? (
           <p className="text-sm text-text/40 text-center py-10">Preparing your space…</p>
         ) : (
-          messages.map((msg, i) => <Message key={i} msg={msg} onPlayVideo={setPlayingVideo} reflectingLabel={t('companion.reflecting')} />)
+          messages.map((msg, i) => <Message key={i} msg={msg} onPlayVideo={setPlayingVideo} reflectingLabel={t('companion.reflecting')} onSpeak={speak} />)
         )}
 
         {/* Typing indicator is now rendered inline inside the streaming placeholder message above */}
@@ -292,7 +304,16 @@ export default function Companion() {
 
       {/* Input Field */}
       <div className="pb-6 pt-2">
-        <div className="flex gap-3 items-end p-2 rounded-3xl bg-surface border border-white/10 shadow-xl backdrop-blur-lg">
+        <div className="flex gap-2 items-end p-2 rounded-3xl bg-surface border border-white/10 shadow-xl backdrop-blur-lg">
+          <button
+            onMouseDown={startRecording}
+            onMouseUp={() => stopRecording((text) => setInput(prev => prev + (prev ? ' ' : '') + text))}
+            onTouchStart={startRecording}
+            onTouchEnd={() => stopRecording((text) => setInput(prev => prev + (prev ? ' ' : '') + text))}
+            className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all flex-shrink-0 ${isRecording ? 'bg-red-500/20 text-red-500 animate-pulse' : 'text-text/50 hover:bg-white/10'}`}
+          >
+            {isTranscribing ? <Loader2 className="animate-spin" size={18} /> : <Mic size={18} />}
+          </button>
           <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -302,9 +323,10 @@ export default function Companion() {
                 send()
               }
             }}
-            placeholder="Talk about anything on your mind. I'm here…"
+            disabled={isRecording || isTranscribing}
+            placeholder={isRecording ? "Listening..." : isTranscribing ? "Transcribing..." : "Talk about anything on your mind. I'm here…"}
             rows={1}
-            className="flex-1 px-4 py-3 rounded-2xl text-sm outline-none resize-none bg-transparent text-text placeholder-text/30"
+            className="flex-1 px-2 py-3 rounded-2xl text-sm outline-none resize-none bg-transparent text-text placeholder-text/30"
             style={{ maxHeight: '120px', lineHeight: 1.5 }}
             onInput={e => {
               e.target.style.height = 'auto'
@@ -313,7 +335,7 @@ export default function Companion() {
           />
           <button
             onClick={send}
-            disabled={!input.trim() || loading}
+            disabled={!input.trim() || loading || isRecording || isTranscribing}
             className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-30 bg-primary text-white shadow-lg shadow-primary/30 hover:scale-105"
           >
             <Send size={16} />
