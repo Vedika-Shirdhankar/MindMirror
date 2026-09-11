@@ -595,7 +595,7 @@ async function streamMessage(req, res, next) {
     if (!res.headersSent) {
       next(err);
     } else if (err.status === 429 || /quota|too many requests|rate limit/i.test(err.message || '')) {
-      const fallback = buildQuotaFallback(content);
+      const fallback = buildQuotaFallback(req.body.content || '');
       if (activeChat) {
         activeChat.messages.push({ role: 'assistant', content: fallback });
         await activeChat.save().catch(saveError => console.error('[companion fallback] save error:', saveError));
