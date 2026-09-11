@@ -306,11 +306,20 @@ export default function Companion() {
       <div className="pb-6 pt-2">
         <div className="flex gap-2 items-end p-2 rounded-3xl bg-surface border border-white/10 shadow-xl backdrop-blur-lg">
           <button
-            onMouseDown={startRecording}
-            onMouseUp={() => stopRecording((text) => setInput(prev => prev + (prev ? ' ' : '') + text))}
-            onTouchStart={startRecording}
-            onTouchEnd={() => stopRecording((text) => setInput(prev => prev + (prev ? ' ' : '') + text))}
-            className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all flex-shrink-0 ${isRecording ? 'bg-red-500/20 text-red-500 animate-pulse' : 'text-text/50 hover:bg-white/10'}`}
+            type="button"
+            onClick={() => {
+              if (isRecording) {
+                stopRecording();
+              } else {
+                const baseText = input;
+                startRecording((speechText) => {
+                  setInput(baseText ? `${baseText} ${speechText}` : speechText);
+                });
+              }
+            }}
+            disabled={isTranscribing}
+            title={isRecording ? "Click to stop recording" : "Click to speak"}
+            className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all flex-shrink-0 ${isRecording ? 'bg-red-500/20 text-red-500 animate-pulse border border-red-500/30' : 'text-text/50 hover:bg-white/10'}`}
           >
             {isTranscribing ? <Loader2 className="animate-spin" size={18} /> : <Mic size={18} />}
           </button>

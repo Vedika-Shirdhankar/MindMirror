@@ -12,12 +12,14 @@ import Settings from './pages/Settings.jsx'
 import Analytics from './pages/Analytics.jsx'
 import MindGames from './pages/MindGames.jsx'
 import Landing from './pages/Landing.jsx'
+import About from './pages/About.jsx'
+import HowItWorks from './pages/HowItWorks.jsx'
+import ForYou from './pages/ForYou.jsx'
 import VideoReflections from './pages/VideoReflections.jsx'
 import LetterFromMirror from './pages/LetterFromMirror.jsx'
 import LifeReport from './pages/LifeReport.jsx'
 import Appearance from './pages/Appearance.jsx'
-import WhyMindMirror from './pages/WhyMindMirror.jsx'
-import AnchorSpace from './pages/AnchorSpace.jsx' // <-- 1. IMPORT ADDED
+import AnchorSpace from './pages/AnchorSpace.jsx'
 import Auth from './pages/Auth.jsx'
 import { AuthProvider, useAuth } from './lib/AuthContext.jsx'
 
@@ -27,21 +29,25 @@ function ProtectedShell() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0f0f13' }}>
-        <p className="text-sm" style={{ color: 'rgba(232,230,240,0.4)' }}>Loading…</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#fcf9f4' }}>
+        <p className="text-sm font-medium" style={{ color: '#4a6556' }}>Connecting to your space…</p>
       </div>
     )
   }
 
-  // Unauthenticated: show standalone Auth page for /login and /signup
+  // Unauthenticated routes: Landing, About, How It Works, For You, Login, Signup
   if (!user) {
-    if (location.pathname === '/login') {
-      return <Auth isModal={false} initialMode="login" />
-    }
-    if (location.pathname === '/signup') {
-      return <Auth isModal={false} initialMode="signup" />
-    }
-    return <Landing autoOpenAuth={location.pathname !== '/'} />
+    return (
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/for-you" element={<ForYou />} />
+        <Route path="/login" element={<Auth isModal={false} initialMode="login" />} />
+        <Route path="/signup" element={<Auth isModal={false} initialMode="signup" />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    )
   }
 
   // Authenticated: redirect /login and /signup back to dashboard
@@ -68,7 +74,10 @@ function ProtectedShell() {
         <Route path="/life-report" element={<LifeReport />} />
         <Route path="/appearance" element={<Appearance />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/why" element={<WhyMindMirror onGetStarted={() => window.location.href = '/companion'} />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/for-you" element={<ForYou />} />
+        <Route path="/why" element={<About />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

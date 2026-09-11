@@ -485,7 +485,7 @@ export async function bhashiniSpeechToText(audioBase64, language, format = 'wav'
   });
 }
 export async function transcribeVoice(audioBase64, mimeType) {
-  return fetchApi('/voice/transcribe', {
+  return request('/voice/transcribe', {
     method: 'POST',
     body: JSON.stringify({ audio: audioBase64, mimeType })
   });

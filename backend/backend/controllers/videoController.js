@@ -33,12 +33,14 @@ async function uploadVideo(req, res, next) {
     if (config.cloudinaryUrl) {
       try {
         const cloudResult = await uploadToCloudinary(req.file.path);
-        videoUrl = cloudResult.url;
-        cloudinaryPublicId = cloudResult.publicId;
+        if (cloudResult && cloudResult.url) {
+          videoUrl = cloudResult.url;
+          cloudinaryPublicId = cloudResult.publicId;
+        }
         logger.info({ 
-          message: 'Cloudinary upload successful', 
-          publicId: cloudResult.publicId, 
-          storedUrl: cloudResult.url 
+          message: 'Cloudinary upload result', 
+          publicId: cloudResult?.publicId, 
+          storedUrl: videoUrl 
         });
       } catch (uploadErr) {
         logger.error({ message: 'Cloudinary upload failed, falling back to local storage', error: uploadErr.message });

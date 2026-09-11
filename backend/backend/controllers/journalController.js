@@ -160,7 +160,7 @@ async function buildThoughtLadder(req, res, next) {
     if (!apiKey) return res.status(400).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 
     const prompt = `You help people challenge cognitive distortions by breaking down catastrophic thinking into a "Thought Ladder."
 

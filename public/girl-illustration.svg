@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 520" role="img" aria-label="Painterly illustration of a young woman sitting in a meadow, viewed from behind">
+  <defs>
+    <linearGradient id="hair" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#171c22"/><stop offset=".5" stop-color="#392c2b"/><stop offset="1" stop-color="#171719"/></linearGradient>
+    <linearGradient id="sweater" x1="0" x2="1"><stop stop-color="#b9a58c"/><stop offset=".5" stop-color="#ead7b7"/><stop offset="1" stop-color="#927d68"/></linearGradient>
+    <linearGradient id="skirt" x1="0" x2="1"><stop stop-color="#555046"/><stop offset=".55" stop-color="#807663"/><stop offset="1" stop-color="#3c3934"/></linearGradient>
+    <linearGradient id="rock" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#777463"/><stop offset="1" stop-color="#403f39"/></linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="1.5"/></filter>
+  </defs>
+  <ellipse cx="178" cy="493" rx="150" ry="22" fill="#24382b" opacity=".3"/>
+  <path d="M45 468c9-39 38-53 77-52l113 7c29 2 54 20 71 47l-31 28H68z" fill="url(#rock)"/>
+  <path d="M84 457c14-38 18-102 33-161 8-36 25-57 56-59 35-2 57 21 63 60l15 126c-38 28-108 43-167 34z" fill="url(#skirt)"/>
+  <path d="M101 259c-4-46 17-92 60-100 45-8 72 27 68 79l-13 99c-37 19-77 16-109-4z" fill="url(#sweater)"/>
+  <path d="M112 258c-11-26-14-65 3-92 13-23 28-32 51-32 33 0 55 20 63 55l-7 25c-11-22-25-35-45-35-28 0-47 26-57 79z" fill="url(#hair)"/>
+  <path d="M119 188c-17 32-23 91-12 157l-33 72-23-12c18-87 15-169 48-221 22-36 39-51 67-52-25 12-38 28-47 56z" fill="#211c20"/>
+  <path d="M194 166c35 12 47 49 43 95l-11 82 35 69-29 11-40-77c10-55 11-122 2-180z" fill="#292126" opacity=".95"/>
+  <path d="M167 137c-9-35 13-58 43-54 25 3 38 25 29 54-10 31-57 37-72 0z" fill="#49342f"/>
+  <path d="M178 85c19-27 51-24 65 2-16-7-32-4-45 7z" fill="#201c21"/>
+  <path d="M151 104c11-17 29-32 49-30 22 2 34 17 40 34-14-10-28-13-44-8-15 5-27 17-45 33z" fill="#241d20"/>
+  <path d="M198 84c8-12 25-12 34-3l22 17-10 12-22-12z" fill="#f2dfbd"/>
+  <path d="M227 94l34-18-6 23-27 12z" fill="#d5b994"/>
+  <path d="M137 264c-24 20-37 47-42 79" fill="none" stroke="#8b765f" stroke-width="12" stroke-linecap="round" opacity=".55"/>
+  <path d="M210 266c17 19 25 45 28 73" fill="none" stroke="#f0ddbf" stroke-width="13" stroke-linecap="round" opacity=".7"/>
+  <path d="M113 307c26 7 54 7 80-2M108 326c29 8 58 8 88 0M103 348c31 8 62 8 96-1" fill="none" stroke="#8c7863" stroke-width="2" opacity=".42"/>
+  <g fill="#b7cc83" opacity=".8" filter="url(#soft)"><path d="M26 475q-7-33 8-57 2 33-8 57z"/><path d="M313 474q7-34-9-57-1 32 9 57z"/></g>
+</svg>

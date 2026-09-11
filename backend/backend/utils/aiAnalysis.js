@@ -112,29 +112,27 @@ Return ONLY the JSON object. Do not wrap in markdown code blocks.`;
  * @returns {Promise<object>} structured analysis object matching the spec shape
  */
 async function analyzeJournalEntry(entryText, previousEntries, userApiKey, language = 'en') {
-  const apiKey = process.env.GEMINI_API_KEY || userApiKey;
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not configured on the server.');
-  }
-
+  const { executeWithFallback } = require('./geminiHelper');
   const config = require('../config');
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: config.gemini.model,
-    systemInstruction: buildSystemPrompt(previousEntries, language),
-  });
 
   const prompt = `NEW JOURNAL ENTRY:\n"${entryText}"`;
 
-  const result = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.2,
-    },
-  });
+  const rawText = await executeWithFallback(async (genAI) => {
+    const model = genAI.getGenerativeModel({
+      model: config.gemini.model || 'gemini-3.6-flash',
+      systemInstruction: buildSystemPrompt(previousEntries, language),
+    });
 
-  const rawText = result.response.text();
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+      },
+    });
+
+    return result.response.text();
+  });
 
   let parsed;
   try {

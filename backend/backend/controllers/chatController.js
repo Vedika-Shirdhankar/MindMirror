@@ -450,15 +450,15 @@ async function sendMessage(req, res, next) {
       try {
         const genAI = new GoogleGenerativeAI(apiKeys[i]);
         const model = genAI.getGenerativeModel({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.6-flash',
           systemInstruction: systemPrompt,
         });
         const result = await model.generateContent({ contents: geminiContents });
         reply = result.response.text() || reply;
         break;
       } catch (err) {
-        const isRateLimit = err.status === 429 || /quota|too many requests|rate limit/i.test(err.message || '');
-        if (isRateLimit && i < apiKeys.length - 1) {
+        const isFallbackError = err.status === 429 || err.status === 401 || err.status === 404 || /quota|too many requests|rate limit|resource_exhausted|unauthenticated|not found/i.test(err.message || '');
+        if (isFallbackError && i < apiKeys.length - 1) {
           console.warn(`[companion sync] Key ${i+1} rate limited, switching to key ${i+2}`);
           continue;
         }
@@ -578,7 +578,7 @@ async function streamMessage(req, res, next) {
         if (i > 0) res.write(`data: ${JSON.stringify({ status: 'Switching to backup AI connection...' })}\n\n`);
         const genAI = new GoogleGenerativeAI(apiKeys[i]);
         const model = genAI.getGenerativeModel({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.6-flash',
           systemInstruction: systemPrompt,
         });
         const resultStream = await model.generateContentStream({ contents: geminiContents });
@@ -590,8 +590,8 @@ async function streamMessage(req, res, next) {
         }
         break;
       } catch (err) {
-        const isRateLimit = err.status === 429 || /quota|too many requests|rate limit/i.test(err.message || '');
-        if (isRateLimit && i < apiKeys.length - 1) {
+        const isFallbackError = err.status === 429 || err.status === 401 || err.status === 404 || /quota|too many requests|rate limit|resource_exhausted|unauthenticated|not found/i.test(err.message || '');
+        if (isFallbackError && i < apiKeys.length - 1) {
           console.warn(`[companion stream] Key ${i+1} rate limited, switching to fallback key ${i+2}`);
           continue;
         }

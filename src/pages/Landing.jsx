@@ -1,59 +1,342 @@
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { ArrowRight, BookOpen, Brain, Check, ChevronRight, Heart, MessageCircle, Play, ShieldCheck, Sparkles, Stars } from 'lucide-react'
-import Auth from './Auth.jsx'
-
-import WhyMindMirror from './WhyMindMirror.jsx'
-
-const features = [
-  { icon: BookOpen, title: 'A journal that listens', text: 'Write exactly as you are. Find calm, patterns, and meaning without filling in a single form.', tone: 'peach' },
-  { icon: Brain, title: 'Your own wisdom, returned', text: 'When a familiar hard moment returns, MindMirror brings back the ways you have already made it through.', tone: 'violet' },
-  { icon: MessageCircle, title: 'Warm support, on your terms', text: 'Talk through the noise with a companion that holds your context and meets you gently.', tone: 'mint' },
-]
-const reveal = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0 } }
+// src/pages/Landing.jsx
+import { useEffect, useState, useRef } from "react";
+import {
+  ArrowRight,
+  ChevronDown,
+  Heart,
+  Leaf,
+  PenLine,
+  Brain,
+  Sparkles,
+  ShieldCheck,
+  Compass,
+  Anchor,
+  Moon,
+  Feather,
+} from "lucide-react";
+import Auth from "./Auth.jsx";
+import WhyMindMirror from "./WhyMindMirror.jsx";
+import HeroCanvas from "../components/landing/HeroCanvas.jsx";
+import CoffeeSteam from "../components/landing/CoffeeSteam.jsx";
+import BreathingPacer from "../components/landing/BreathingPacer.jsx";
+import AmbientAudio from "../components/landing/AmbientAudio.jsx";
+import ReflectionWidget from "../components/landing/ReflectionWidget.jsx";
+import LandingNav from "../components/landing/LandingNav.jsx";
+import LandingFooter from "../components/landing/LandingFooter.jsx";
 
 export default function Landing({ autoOpenAuth = false }) {
-  const [showAuthModal, setShowAuthModal] = useState(false)
-  const [authModalMode, setAuthModalMode] = useState('signup')
-  const [showWhy, setShowWhy] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
-  const openAuth = (mode) => { setAuthModalMode(mode); setShowAuthModal(true) }
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState("signup");
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [navScrolled, setNavScrolled] = useState(false);
+  const [parallaxOffset, setParallaxOffset] = useState({ x: 0, y: 0 });
+  const mousePosRef = useRef({ x: 0, y: 0 });
+  const heroRef = useRef(null);
+
+  const openAuth = (mode = "signup") => {
+    setAuthMode(mode);
+    setAuthOpen(true);
+  };
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 16)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-  useEffect(() => { if (autoOpenAuth) openAuth('login') }, [autoOpenAuth])
-  if (showWhy) return <WhyMindMirror onGetStarted={() => { setShowWhy(false); openAuth('signup') }} />
+    const handleScroll = () => {
+      setNavScrolled(window.scrollY > 40);
+    };
 
-  return <main className="new-landing min-h-screen overflow-hidden bg-[#f7f6f1] text-[#183c3a]">
-    <div className="landing-orb landing-orb--one" /><div className="landing-orb landing-orb--two" /><div className="landing-grain" />
-    <nav className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${scrolled ? 'border-b border-[#183c3a]/10 bg-[#f7f6f1]/80 py-3 backdrop-blur-xl' : 'py-6'}`}>
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 md:px-8">
-        <a href="#top" className="flex items-center gap-2.5" aria-label="MindMirror home"><span className="grid h-10 w-10 place-items-center rounded-[14px] bg-[#183c3a] shadow-lg shadow-[#183c3a]/15"><Heart size={19} fill="#f8bb80" className="text-[#f8bb80]" /></span><span className="text-lg font-bold tracking-tight">MindMirror</span></a>
-        <div className="hidden items-center gap-7 text-sm font-semibold text-[#486360] md:flex"><a className="transition hover:text-[#183c3a]" href="#how-it-works">How it works</a><a className="transition hover:text-[#183c3a]" href="#features">What it does</a><button className="transition hover:text-[#183c3a]" onClick={() => setShowWhy(true)}>Why MindMirror</button></div>
-        <div className="flex items-center gap-2 md:gap-4"><button onClick={() => openAuth('login')} className="px-2 py-2 text-sm font-bold text-[#183c3a] transition hover:opacity-65 md:px-3">Log in</button><button onClick={() => openAuth('signup')} className="rounded-full bg-[#183c3a] px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#183c3a]/15 transition hover:-translate-y-0.5 hover:bg-[#245752] md:px-5">Begin gently</button></div>
-      </div>
-    </nav>
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-    <section id="top" className="relative mx-auto grid min-h-[730px] max-w-7xl items-center gap-14 px-5 pb-16 pt-32 md:grid-cols-[.98fr_1.02fr] md:px-8 md:pt-28 lg:min-h-[790px]">
-      <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: .13 } } }} className="relative z-10 max-w-xl">
-        <motion.div variants={reveal} className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#183c3a]/10 bg-white/55 px-3.5 py-2 text-xs font-bold tracking-wide text-[#486360] shadow-sm backdrop-blur"><Sparkles size={14} className="text-[#d97954]" /> A softer place to meet yourself</motion.div>
-        <motion.h1 variants={reveal} className="font-serif text-[clamp(3.25rem,7vw,6.6rem)] font-medium leading-[.94] tracking-[-.065em] text-[#183c3a]">Find your way<br />back to <em className="font-serif text-[#d97954]">yourself.</em></motion.h1>
-        <motion.p variants={reveal} className="mt-7 max-w-md text-base leading-7 text-[#486360] md:text-lg">A private space that remembers the little things: what you felt, what helped, and how far you have come.</motion.p>
-        <motion.div variants={reveal} className="mt-9 flex flex-col gap-3 sm:flex-row"><button onClick={() => openAuth('signup')} className="group inline-flex items-center justify-center gap-3 rounded-full bg-[#183c3a] px-6 py-4 text-sm font-bold text-white shadow-xl shadow-[#183c3a]/20 transition hover:-translate-y-1 hover:bg-[#245752]">Start your reflection <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" /></button><button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="inline-flex items-center justify-center gap-2 rounded-full border border-[#183c3a]/12 bg-white/45 px-6 py-4 text-sm font-bold text-[#183c3a] backdrop-blur transition hover:bg-white/80"><Play size={15} fill="currentColor" /> See how it feels</button></motion.div>
-        <motion.div variants={reveal} className="mt-11 flex items-center gap-3 text-sm text-[#486360]"><div className="flex -space-x-2"><span className="grid h-8 w-8 place-items-center rounded-full border-2 border-[#f7f6f1] bg-[#f8bb80] text-xs">✦</span><span className="grid h-8 w-8 place-items-center rounded-full border-2 border-[#f7f6f1] bg-[#9ccbc0] text-xs">☼</span><span className="grid h-8 w-8 place-items-center rounded-full border-2 border-[#f7f6f1] bg-[#b7a7db] text-xs">♥</span></div>Designed for the days you need it most</motion.div>
-      </motion.div>
-      <motion.div initial={{ opacity: 0, scale: .94, rotate: 2 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} transition={{ duration: .8, delay: .2, ease: 'easeOut' }} className="relative z-10 mx-auto w-full max-w-[590px]">
-        <div className="landing-rings absolute -inset-8 rounded-full" /><div className="relative rounded-[2rem] border border-white/80 bg-[#fdfcf9]/85 p-3 shadow-[0_30px_80px_rgba(24,60,58,.18)] backdrop-blur-xl sm:p-5"><div className="rounded-[1.45rem] bg-[#e5f1ed] p-5 sm:p-7"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#d97954]" /><span className="text-xs font-bold uppercase tracking-[.18em] text-[#486360]">Your reflection</span></div><Stars size={18} className="text-[#d97954]" /></div><div className="mt-10 max-w-[350px]"><p className="text-sm font-semibold text-[#486360]">Tuesday, 8:42 pm</p><h2 className="mt-3 font-serif text-3xl leading-tight tracking-tight text-[#183c3a]">“I feel like I’m carrying too much.”</h2></div><motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} className="mt-8 rounded-2xl border border-white/90 bg-white/80 p-4 shadow-sm"><div className="flex gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#183c3a] text-[#f8bb80]"><Heart size={16} fill="currentColor" /></span><div><p className="text-xs font-bold text-[#183c3a]">A note from your past self</p><p className="mt-1 text-sm leading-5 text-[#486360]">Last time, a walk and a smaller next step helped you feel steady again.</p></div></div></motion.div><div className="mt-6 flex items-end gap-2"><div className="h-9 w-1.5 rounded-full bg-[#9ccbc0]" /><div className="h-16 w-1.5 rounded-full bg-[#9ccbc0]" /><div className="h-12 w-1.5 rounded-full bg-[#f8bb80]" /><div className="h-20 w-1.5 rounded-full bg-[#9ccbc0]" /><div className="h-7 w-1.5 rounded-full bg-[#b7a7db]" /><span className="ml-2 text-xs font-semibold text-[#486360]">A calmer week is taking shape.</span></div></div></div>
-        <motion.div animate={{ y: [0, -10, 0], rotate: [-2, 1, -2] }} transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }} className="absolute -bottom-8 -left-4 rounded-2xl border border-white/80 bg-[#fffaf4]/90 px-4 py-3 shadow-xl backdrop-blur sm:-left-12"><p className="text-[10px] font-bold uppercase tracking-widest text-[#d97954]">Small win</p><p className="mt-1 text-sm font-bold">You showed up today <span>✦</span></p></motion.div>
-      </motion.div>
-    </section>
-    <section id="how-it-works" className="relative z-10 bg-[#183c3a] px-5 py-20 text-[#f7f6f1] md:px-8 md:py-28"><div className="mx-auto max-w-7xl"><div className="grid gap-12 lg:grid-cols-[.82fr_1.18fr] lg:items-end"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#f8bb80]">A ritual, not a routine</p><h2 className="mt-5 max-w-md font-serif text-4xl leading-tight tracking-tight md:text-5xl">One thoughtful moment can change the rest of your day.</h2></div><p className="max-w-xl text-base leading-7 text-[#d3e8e0] md:text-lg">MindMirror does not ask you to become someone new. It helps you hear what you already know—one gentle check-in at a time.</p></div><div className="mt-14 grid gap-px overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/10 md:grid-cols-3">{[['01', 'Let it out', 'Write, speak, or simply name what is present.'], ['02', 'Notice the thread', 'See feelings, patterns, and moments of strength.'], ['03', 'Come back steadier', 'Receive a small next step from someone who remembers.']].map(([number, title, text]) => <div key={number} className="bg-[#183c3a] p-7 md:p-8"><span className="font-serif text-4xl text-[#f8bb80]">{number}</span><h3 className="mt-9 text-xl font-bold">{title}</h3><p className="mt-3 text-sm leading-6 text-[#b9d4cc]">{text}</p><ChevronRight className="mt-8 text-[#f8bb80]" size={19} /></div>)}</div></div></section>
-    <section id="features" className="relative z-10 mx-auto max-w-7xl px-5 py-24 md:px-8 md:py-32"><motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: .2 }} variants={{ visible: { transition: { staggerChildren: .12 } } }}><motion.p variants={reveal} className="text-xs font-bold uppercase tracking-[.2em] text-[#d97954]">Made to stay with you</motion.p><motion.div variants={reveal} className="mt-4 flex flex-col justify-between gap-5 md:flex-row md:items-end"><h2 className="max-w-2xl font-serif text-4xl tracking-tight text-[#183c3a] md:text-5xl">More than a place to put your thoughts.</h2><p className="max-w-sm text-sm leading-6 text-[#486360]">A toolkit for softer landings, clearer patterns, and more trust in yourself.</p></motion.div><div className="mt-12 grid gap-5 md:grid-cols-3">{features.map((feature, i) => { const Icon = feature.icon; return <motion.article variants={reveal} whileHover={{ y: -8 }} key={feature.title} className={`landing-feature landing-feature--${feature.tone} rounded-[1.75rem] p-7 md:p-8`}><span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/70"><Icon size={22} /></span><p className="mt-12 text-xs font-bold text-[#486360]">0{i + 1}</p><h3 className="mt-3 text-xl font-bold tracking-tight text-[#183c3a]">{feature.title}</h3><p className="mt-3 text-sm leading-6 text-[#486360]">{feature.text}</p></motion.article> })}</div></motion.div></section>
-    <section className="relative z-10 px-5 pb-24 md:px-8 md:pb-32"><div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-[#d97954] px-7 py-14 text-white md:px-16 md:py-20"><div className="grid items-center gap-10 md:grid-cols-[1fr_auto]"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#fff1df]">Your space. Your pace.</p><h2 className="mt-4 max-w-xl font-serif text-4xl leading-tight tracking-tight md:text-5xl">The kindest voice you can hear is often your own.</h2><div className="mt-7 flex flex-wrap gap-4 text-sm font-semibold text-[#fff1df]"><span className="flex items-center gap-2"><Check size={16} /> Private by design</span><span className="flex items-center gap-2"><ShieldCheck size={16} /> Judgment-free</span></div></div><button onClick={() => openAuth('signup')} className="inline-flex items-center justify-center gap-3 rounded-full bg-[#183c3a] px-6 py-4 text-sm font-bold shadow-xl shadow-[#9f4832]/25 transition hover:-translate-y-1">Meet MindMirror <ArrowRight size={17} /></button></div></div></section>
-    <footer className="relative z-10 border-t border-[#183c3a]/10 px-5 py-7 md:px-8"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 text-sm text-[#486360] sm:flex-row"><span className="font-bold text-[#183c3a]">MindMirror</span><span>Made for more mindful moments.</span></div></footer>
-    {showAuthModal && <Auth isModal={true} initialMode={authModalMode} onClose={() => setShowAuthModal(false)} />}
-  </main>
+  useEffect(() => {
+    if (autoOpenAuth) {
+      setAuthMode("login");
+      setAuthOpen(true);
+    }
+  }, [autoOpenAuth]);
+
+  // Subtle 3D mouse parallax on hero
+  const handleMouseMove = (e) => {
+    if (!heroRef.current) return;
+    const rect = heroRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    mousePosRef.current = { x, y };
+
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const offsetX = (x - centerX) / centerX;
+    const offsetY = (y - centerY) / centerY;
+
+    setParallaxOffset({
+      x: offsetX * 7,
+      y: offsetY * 5,
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setParallaxOffset({ x: 0, y: 0 });
+  };
+
+  const scrollToSection = (id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  if (aboutOpen) {
+    return (
+      <WhyMindMirror
+        onGetStarted={() => {
+          setAboutOpen(false);
+          openAuth("signup");
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="landing-v2">
+
+      <LandingNav onOpenAuth={openAuth} />
+
+      {/* ================= HERO ================= */}
+      <section
+        ref={heroRef}
+        className="landing-v2-hero"
+        id="landing-home"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
+        {/* Real artwork background with subtle parallax */}
+        <div
+          className="landing-hero-bg-layer"
+          style={{
+            transform: `translate3d(${-parallaxOffset.x * 0.4}px, ${-parallaxOffset.y * 0.4}px, 0) scale(1.02)`,
+          }}
+        />
+
+        {/* Dynamic Sunlight God-Rays & Horizon Glow */}
+        <div className="landing-sun-glow-layer" aria-hidden="true">
+          <div className="landing-sun-core" />
+          <div className="landing-sun-rays" />
+          <div className="landing-sun-halo" />
+        </div>
+
+        {/* Lake Water Shimmer Effect */}
+        <div className="landing-water-shimmer-layer" aria-hidden="true">
+          <span className="shimmer-ripple r1" />
+          <span className="shimmer-ripple r2" />
+          <span className="shimmer-ripple r3" />
+          <span className="shimmer-sparkle s1" />
+          <span className="shimmer-sparkle s2" />
+          <span className="shimmer-sparkle s3" />
+        </div>
+
+        {/* Animated Coffee Mug Steam */}
+        <CoffeeSteam />
+
+        {/* Drifting Leaves & Pollen Canvas Particle Engine */}
+        <HeroCanvas mousePos={mousePosRef} />
+
+        {/* Note 1: Upper Left near the tree */}
+        <div
+          className="landing-note-left"
+          style={{
+            transform: `translate3d(${parallaxOffset.x * 0.6}px, ${parallaxOffset.y * 0.6}px, 0) rotate(-6deg)`,
+          }}
+        >
+          <span>it's okay</span>
+          <span>to take a</span>
+          <span>break</span>
+          <span className="landing-note-heart">♡</span>
+        </div>
+
+        {/* Center Hero Typography */}
+        <div
+          className="landing-hero-center-content"
+          style={{
+            transform: `translate3d(${parallaxOffset.x * 0.3}px, ${parallaxOffset.y * 0.3}px, 0)`,
+          }}
+        >
+          <h1 className="landing-hero-title">
+            Some thoughts are easier to<br />
+            understand when you see them<br />
+            from a different perspective.
+          </h1>
+
+          <p className="landing-hero-subtitle">
+            Journal. Reflect. Understand. Grow.
+          </p>
+
+          <div className="landing-hero-btn-wrap">
+            <button
+              className="landing-hero-enter-btn"
+              onClick={() => openAuth("signup")}
+            >
+              <span>Enter MindMirror</span>
+              <ArrowRight size={17} className="landing-btn-arrow" />
+              <div className="landing-btn-shine" />
+            </button>
+          </div>
+
+          <div className="landing-hero-tagline-wrap">
+            <div className="landing-hero-divider">
+              <span className="line" />
+              <Leaf size={14} className="leaf-icon" />
+              <span className="line" />
+            </div>
+            <p className="landing-hero-tagline">
+              A safe space for every version of you.
+            </p>
+          </div>
+        </div>
+
+        {/* Note 2: Lower Right above the wildflowers */}
+        <div
+          className="landing-note-right"
+          style={{
+            transform: `translate3d(${parallaxOffset.x * 0.7}px, ${parallaxOffset.y * 0.7}px, 0) rotate(5deg)`,
+          }}
+        >
+          <span>A kinder</span>
+          <span>mind.</span>
+          <span>A brighter you.</span>
+          <span className="landing-note-heart">♡</span>
+        </div>
+
+        {/* Bottom Bar: Scroll Indicator + Breathing Pacer */}
+        <div className="landing-hero-bottom-bar">
+          <button
+            className="landing-scroll-explore"
+            onClick={() => scrollToSection('landing-how')}
+          >
+            <span className="landing-scroll-circle">
+              <ChevronDown size={16} />
+            </span>
+            <span>SCROLL TO EXPLORE</span>
+          </button>
+
+          <div className="landing-bottom-right-items">
+            <BreathingPacer />
+          </div>
+        </div>
+      </section>
+
+      {/* ================= HOW IT WORKS ================= */}
+      <section className="landing-v2-section landing-v2-how" id="landing-how">
+        <div className="landing-v2-heading">
+          <span className="landing-v2-section-label">THE JOURNEY WITHIN</span>
+          <h2>Your mind deserves a little more space.</h2>
+          <p>
+            MindMirror gives you a quiet harbor to slow down, gently untangle what you're carrying,
+            and reconnect with yourself through kind, thoughtful reflection.
+          </p>
+        </div>
+
+        <div className="landing-v2-cards">
+          <article className="landing-v2-card">
+            <span className="landing-v2-card-number">01</span>
+            <div className="landing-v2-card-icon">
+              <PenLine size={22} />
+            </div>
+            <h3>Put it into words.</h3>
+            <p>
+              Write freely. Let the thoughts that have been sitting inside your head
+              finally have a gentle, unjudged place to go.
+            </p>
+          </article>
+
+          <article className="landing-v2-card">
+            <span className="landing-v2-card-number">02</span>
+            <div className="landing-v2-card-icon">
+              <Brain size={22} />
+            </div>
+            <h3>Understand yourself.</h3>
+            <p>
+              Discover emotional rhythms, recurring themes, and patterns that help you
+              meet yourself with clarity instead of frustration.
+            </p>
+          </article>
+
+          <article className="landing-v2-card">
+            <span className="landing-v2-card-number">03</span>
+            <div className="landing-v2-card-icon">
+              <Compass size={22} />
+            </div>
+            <h3>Shift your perspective.</h3>
+            <p>
+              Gently step onto the Thought Ladder. Transform heavy, looping worries
+              into compassionate, balanced points of view.
+            </p>
+          </article>
+
+          <article className="landing-v2-card">
+            <span className="landing-v2-card-number">04</span>
+            <div className="landing-v2-card-icon">
+              <Sparkles size={22} />
+            </div>
+            <h3>Grow gently.</h3>
+            <p>
+              Turn daily reflections into small, achievable steps that help you
+              move forward with peace, at your own rhythm.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      {/* ================= INTERACTIVE REFLECTION EXPERIENCE ================= */}
+      <section className="landing-v2-reflection-section">
+        <ReflectionWidget onGetStarted={() => openAuth("signup")} />
+      </section>
+
+      {/* ================= FOR YOU ================= */}
+      <section className="landing-v2-for-you" id="landing-for-you">
+        <div className="landing-v2-for-you-inner">
+          <div className="landing-for-you-title-col">
+            <span className="landing-v2-section-label">FOR EVERY VERSION OF YOU</span>
+            <h2>
+              You don't have to<br />
+              figure everything out<br />
+              all at once.
+            </h2>
+            <div className="landing-safety-pill">
+              <ShieldCheck size={16} />
+              <span>Private by design. Your reflections stay yours.</span>
+            </div>
+          </div>
+
+          <div className="landing-v2-for-you-copy">
+            <p>
+              Some days you crave clarity. Some days you just need somewhere to put
+              everything you've been carrying on your shoulders.
+            </p>
+            <p>
+              MindMirror is crafted to meet you exactly where you are today —
+              without pressure, streaks, or judgment.
+            </p>
+            <button
+              className="landing-for-you-cta"
+              onClick={() => openAuth("signup")}
+            >
+              Enter your space
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <LandingFooter />
+
+      {/* ================= AUTH MODAL ================= */}
+      {authOpen && (
+        <Auth
+          isModal={true}
+          initialMode={authMode}
+          onClose={() => setAuthOpen(false)}
+        />
+      )}
+
+    </div>
+  );
 }

@@ -5,7 +5,7 @@ const VideoReflection = require('../models/VideoReflection');
 const { generateEmbedding } = require('./embeddings');
 const { findSimilarVideos } = require('./vectorSearch');
 
-const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 
 /**
  * Perform semantic search over video transcripts and ask Gemini if a 

@@ -4,39 +4,33 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { GoogleAIFileManager } = require('@google/generative-ai/server');
 const { VALID_THEMES, VALID_TRIGGERS } = require('./aiAnalysis');
 
-const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 
 const VALID_STRESS_LEVELS = ['low', 'moderate', 'high', 'severe'];
 const VALID_RISK_LEVELS = ['none', 'low', 'moderate', 'high'];
 
+const { executeWithFallback } = require('./geminiHelper');
+
 async function analyzeVideoReflection(filePath, mimeType = 'video/webm', language = 'en') {
   console.log(`[videoAnalysis] Starting analyzeVideoReflection for ${filePath} (${mimeType}) in ${language}`);
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.error('[videoAnalysis] GEMINI_API_KEY is missing');
-    throw new Error('GEMINI_API_KEY is not configured.');
-  }
 
-  const fileManager = new GoogleAIFileManager(apiKey);
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+  return await executeWithFallback(async (genAI, apiKey) => {
+    const fileManager = new GoogleAIFileManager(apiKey);
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
-  // 1. Upload the file
-  console.log(`[videoAnalysis] Uploading file to Gemini File API...`);
-  let uploadResult;
-  try {
-    uploadResult = await fileManager.uploadFile(filePath, {
-      mimeType,
+    // Clean mimeType if it contains codec parameters (e.g. video/webm;codecs=vp9,opus -> video/webm)
+    const cleanMimeType = (mimeType || 'video/webm').split(';')[0].trim();
+
+    // 1. Upload the file
+    console.log(`[videoAnalysis] Uploading file to Gemini File API using key prefix ${apiKey.substring(0, 6)}...`);
+    const uploadResult = await fileManager.uploadFile(filePath, {
+      mimeType: cleanMimeType,
       displayName: "Video Reflection",
     });
     console.log(`[videoAnalysis] File uploaded. URI: ${uploadResult.file.uri}, Name: ${uploadResult.file.name}`);
-  } catch (err) {
-    console.error('[videoAnalysis] File upload failed:', err.message, err.stack);
-    throw err;
-  }
-  
-  const fileId = uploadResult.file.name;
-  let fileState = uploadResult.file.state;
+
+    const fileId = uploadResult.file.name;
+    let fileState = uploadResult.file.state;
 
   // 2. Poll until ACTIVE
   console.log(`[videoAnalysis] Polling for ACTIVE state. Current state: ${fileState}`);
@@ -192,6 +186,7 @@ IMPORTANT:
   }
 
   return sanitizeVideoAnalysis(parsed);
+  });
 }
 
 function sanitizeVideoAnalysis(raw) {

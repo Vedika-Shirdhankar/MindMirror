@@ -390,14 +390,21 @@ export default function Journal() {
           />
           <div className="flex justify-between items-center mb-4">
             <button
-              onMouseDown={startRecording}
-              onMouseUp={() => stopRecording((newText) => setText(prev => prev + (prev ? ' ' : '') + newText))}
-              onTouchStart={startRecording}
-              onTouchEnd={() => stopRecording((newText) => setText(prev => prev + (prev ? ' ' : '') + newText))}
+              type="button"
+              onClick={() => {
+                if (isRecording) {
+                  stopRecording();
+                } else {
+                  const baseText = text;
+                  startRecording((speechText) => {
+                    setText(baseText ? `${baseText} ${speechText}` : speechText);
+                  });
+                }
+              }}
               disabled={isTranscribing}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${isRecording ? 'bg-red-500/20 text-red-500 animate-pulse' : 'bg-surface border border-white/10 text-text/50 hover:bg-white/10 hover:text-text'}`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${isRecording ? 'bg-red-500/20 text-red-500 animate-pulse border border-red-500/30' : 'bg-surface border border-white/10 text-text/50 hover:bg-white/10 hover:text-text'}`}
             >
-              {isTranscribing ? <><Loader2 size={13} className="animate-spin" /> Transcribing...</> : (isRecording ? <><Mic size={13} /> Listening...</> : <><Mic size={13} /> Hold to speak</>)}
+              {isTranscribing ? <><Loader2 size={13} className="animate-spin" /> Transcribing...</> : (isRecording ? <><Mic size={13} /> Recording (Click to stop)</> : <><Mic size={13} /> Click to speak</>)}
             </button>
             <span className="text-[10px] text-text/30">
               {text.trim() ? `${text.trim().split(/\s+/).length} words · ${text.length} characters` : "Start typing whenever you're ready"}

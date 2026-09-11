@@ -36,7 +36,11 @@ function createVideoUploader() {
   });
 
   const fileFilter = (_req, file, cb) => {
-    if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+    const isVideoMime = file.mimetype && file.mimetype.startsWith('video/');
+    const ext = path.extname(file.originalname).toLowerCase();
+    const isVideoExt = ['.webm', '.mp4', '.mov', '.avi', '.mkv', '.ogv'].includes(ext);
+
+    if (isVideoMime || isVideoExt || file.mimetype === 'application/octet-stream') {
       cb(null, true);
     } else {
       cb(new Error(`Invalid file type: ${file.mimetype}. Only video files are allowed.`), false);
@@ -94,14 +98,28 @@ async function uploadToCloudinary(localFilePath) {
   if (!config.cloudinaryUrl) {
     throw new Error('CLOUDINARY_URL is not configured.');
   }
-  const result = await cloudinary.uploader.upload_large(localFilePath, {
-    resource_type: 'video',
-    folder: 'mindmirror_videos',
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_large(
+      localFilePath,
+      {
+        resource_type: 'video',
+        folder: 'mindmirror_videos',
+      },
+      (error, result) => {
+        if (error) {
+          logger.error({ message: 'Cloudinary upload_large error', error: error.message });
+          return reject(error);
+        }
+        if (!result || (!result.secure_url && !result.url)) {
+          return reject(new Error('Cloudinary response missing URL'));
+        }
+        resolve({
+          url: result.secure_url || result.url,
+          publicId: result.public_id,
+        });
+      }
+    );
   });
-  return {
-    url: result.secure_url,
-    publicId: result.public_id,
-  };
 }
 
 /**

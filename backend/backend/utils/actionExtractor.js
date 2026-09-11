@@ -19,7 +19,7 @@ async function extractActionsFromText(text, apiKey) {
   if (!text?.trim() || !apiKey) return [];
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 
   const prompt = `You are an action extractor for a mental health journaling app.
 

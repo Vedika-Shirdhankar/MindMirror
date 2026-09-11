@@ -35,6 +35,7 @@ const letterFromMirrorRoutes = require('./routes/letterFromMirrorRoutes');
 const lifeReportRoutes = require('./routes/lifeReportRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const anchorRoutes = require('./routes/anchorRoutes');
+const voiceRoutes = require('./routes/voiceRoutes');
 
 const app = express();
 
@@ -61,7 +62,7 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(mongoSanitize());
 
@@ -97,6 +98,7 @@ app.use('/api/letter-from-mirror', letterFromMirrorRoutes);
 app.use('/api/life-report', lifeReportRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/anchor', anchorRoutes);
+app.use('/api/voice', voiceRoutes);
 // Bhashini route removed
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
