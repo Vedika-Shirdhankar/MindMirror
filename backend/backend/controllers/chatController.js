@@ -352,14 +352,14 @@ async function sendMessage(req, res, next) {
     const { content } = req.body;
     if (!content?.trim()) return res.status(400).json({ error: 'Message content is required.' });
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKeys = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY_FALLBACK_1, process.env.GEMINI_API_KEY_FALLBACK_2, process.env.GEMINI_API_KEY_FALLBACK_3].filter(Boolean);
 
     let chat = await Chat.findOne({ user: req.userId });
     if (!chat) chat = await Chat.create({ user: req.userId, messages: [] });
 
     chat.messages.push({ role: 'user', content: content.trim() });
 
-    if (!apiKey) {
+    if (apiKeys.length === 0) {
       const fallback = "I hear you. To enable my full memory and reflection capabilities, please configure the GEMINI_API_KEY on the server. In the meantime, I'm still here to listen.";
       chat.messages.push({ role: 'assistant', content: fallback });
       await chat.save();
@@ -436,12 +436,6 @@ async function sendMessage(req, res, next) {
       pastSelfRec
     });
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      systemInstruction: systemPrompt,
-    });
-
     // Translate stored messages → Gemini format
     const geminiContents = chat.messages
       .slice(-20)
@@ -451,8 +445,26 @@ async function sendMessage(req, res, next) {
         parts: [{ text: m.content }],
       }));
 
-    const result = await model.generateContent({ contents: geminiContents });
-    const reply = result.response.text() || "I'm here. What's on your mind?";
+    let reply = "I'm here. What's on your mind?";
+    for (let i = 0; i < apiKeys.length; i++) {
+      try {
+        const genAI = new GoogleGenerativeAI(apiKeys[i]);
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-2.5-flash',
+          systemInstruction: systemPrompt,
+        });
+        const result = await model.generateContent({ contents: geminiContents });
+        reply = result.response.text() || reply;
+        break;
+      } catch (err) {
+        const isRateLimit = err.status === 429 || /quota|too many requests|rate limit/i.test(err.message || '');
+        if (isRateLimit && i < apiKeys.length - 1) {
+          console.warn(`[companion sync] Key ${i+1} rate limited, switching to key ${i+2}`);
+          continue;
+        }
+        throw err;
+      }
+    }
 
     chat.messages.push({ role: 'assistant', content: reply });
     await chat.save();
@@ -479,7 +491,7 @@ async function streamMessage(req, res, next) {
     const { content } = req.body;
     if (!content?.trim()) return res.status(400).json({ error: 'Message content is required.' });
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKeys = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY_FALLBACK_1, process.env.GEMINI_API_KEY_FALLBACK_2, process.env.GEMINI_API_KEY_FALLBACK_3].filter(Boolean);
 
     let chat = await Chat.findOne({ user: req.userId });
     if (!chat) chat = await Chat.create({ user: req.userId, messages: [] });
@@ -493,7 +505,7 @@ async function streamMessage(req, res, next) {
     res.flushHeaders();
     res.write(`data: ${JSON.stringify({ status: 'Getting a feel for what you need...' })}\n\n`);
 
-    if (!apiKey) {
+    if (apiKeys.length === 0) {
       const fallback = "I hear you. To enable my full memory and reflection capabilities, please configure the GEMINI_API_KEY on the server. In the meantime, I'm still here to listen.";
       chat.messages.push({ role: 'assistant', content: fallback });
       await chat.save();
@@ -552,12 +564,6 @@ async function streamMessage(req, res, next) {
       pastSelfRec
     });
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      systemInstruction: systemPrompt,
-    });
-
     const geminiContents = chat.messages
       .slice(-20)
       .filter(m => m.content && m.content.trim())
@@ -566,14 +572,31 @@ async function streamMessage(req, res, next) {
         parts: [{ text: m.content }],
       }));
 
-    const resultStream = await model.generateContentStream({ contents: geminiContents });
     let fullReply = '';
-    res.write(`data: ${JSON.stringify({ status: 'Writing back...' })}\n\n`);
-
-    for await (const chunk of resultStream.stream) {
-      const chunkText = chunk.text();
-      fullReply += chunkText;
-      res.write(`data: ${JSON.stringify({ chunk: chunkText })}\n\n`);
+    for (let i = 0; i < apiKeys.length; i++) {
+      try {
+        if (i > 0) res.write(`data: ${JSON.stringify({ status: 'Switching to backup AI connection...' })}\n\n`);
+        const genAI = new GoogleGenerativeAI(apiKeys[i]);
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-2.5-flash',
+          systemInstruction: systemPrompt,
+        });
+        const resultStream = await model.generateContentStream({ contents: geminiContents });
+        res.write(`data: ${JSON.stringify({ status: 'Writing back...' })}\n\n`);
+        for await (const chunk of resultStream.stream) {
+          const chunkText = chunk.text();
+          fullReply += chunkText;
+          res.write(`data: ${JSON.stringify({ chunk: chunkText })}\n\n`);
+        }
+        break;
+      } catch (err) {
+        const isRateLimit = err.status === 429 || /quota|too many requests|rate limit/i.test(err.message || '');
+        if (isRateLimit && i < apiKeys.length - 1) {
+          console.warn(`[companion stream] Key ${i+1} rate limited, switching to fallback key ${i+2}`);
+          continue;
+        }
+        throw err;
+      }
     }
 
     chat.messages.push({ role: 'assistant', content: fullReply });
