@@ -271,7 +271,7 @@ GUIDELINES & RULES FOR GENERATION:
 Return ONLY the raw JSON block. No markdown wrapper (no \`\`\`json), no text before or after. Ensure all quotes are properly escaped.`;
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
 
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
