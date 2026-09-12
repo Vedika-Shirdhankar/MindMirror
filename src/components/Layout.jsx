@@ -227,7 +227,7 @@ export default function Layout({ children, user }) {
       <SearchPalette isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <nav className="mobile-nav" aria-label="Mobile navigation">
-        {navItems.slice(0, 5).map(({ to, icon: Icon, label }) => (
+        {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => isActive ? 'mobile-nav-link active' : 'mobile-nav-link'}>
             <Icon size={17} />
             <span>{label}</span>

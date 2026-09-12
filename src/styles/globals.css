@@ -160,19 +160,26 @@ body {
   .mobile-nav {
     display: flex;
     align-items: center;
-    justify-content: space-around;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 64px;
+    height: 72px;
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid rgba(0, 0, 0, 0.07);
     z-index: 50;
-    padding: 0 0.5rem;
+    padding: 0 0.35rem;
     box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.06);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-nav::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -181,14 +188,22 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  flex: 1;
-  padding: 0.5rem 0;
+  flex: 0 0 76px;
+  min-width: 76px;
+  padding: 0.5rem 0.25rem;
   color: var(--color-text);
   text-decoration: none;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
   opacity: 0.5;
   transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.mobile-nav-link span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-nav-link.active,
