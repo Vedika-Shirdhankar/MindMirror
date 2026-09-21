@@ -450,7 +450,7 @@ async function sendMessage(req, res, next) {
       try {
         const genAI = new GoogleGenerativeAI(apiKeys[i]);
         const model = genAI.getGenerativeModel({
-          model: 'gemini-3.6-flash',
+          model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
           systemInstruction: systemPrompt,
         });
         const result = await model.generateContent({ contents: geminiContents });
@@ -578,7 +578,7 @@ async function streamMessage(req, res, next) {
         if (i > 0) res.write(`data: ${JSON.stringify({ status: 'Switching to backup AI connection...' })}\n\n`);
         const genAI = new GoogleGenerativeAI(apiKeys[i]);
         const model = genAI.getGenerativeModel({
-          model: 'gemini-3.6-flash',
+          model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
           systemInstruction: systemPrompt,
         });
         const resultStream = await model.generateContentStream({ contents: geminiContents });

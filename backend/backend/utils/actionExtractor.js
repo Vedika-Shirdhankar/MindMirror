@@ -4,7 +4,7 @@
 // video notes, chat messages) using Gemini and saves them to ActionMemory.
 // All operations are fire-and-forget — never block the calling request.
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { generate } = require('../services/hfService');
 const ActionMemory = require('../models/ActionMemory');
 
 /**
@@ -15,11 +15,8 @@ const ActionMemory = require('../models/ActionMemory');
  * @param {string} apiKey      - Gemini API key
  * @returns {Promise<Array>}
  */
-async function extractActionsFromText(text, apiKey) {
-  if (!text?.trim() || !apiKey) return [];
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
+async function extractActionsFromText(text) {
+  if (!text?.trim()) return [];
 
   const prompt = `You are an action extractor for a mental health journaling app.
 
@@ -44,15 +41,28 @@ TEXT:
 ${text.trim().slice(0, 1500)}
 """`;
 
-  const result = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: {
-      responseMimeType: 'application/json',
-      temperature: 0.1,
-    },
-  });
+Read the following text and extract any concrete actions the person took or mentions taking.
+Focus on:
+- Coping strategies they used
+- Behavioural changes they made
+- Things they tried that helped or didn't help
+- Habits or routines they mention
 
-  const raw = result.response.text().replace(/```json|```/g, '').trim();
+Return ONLY a valid JSON array (no markdown, no preamble). Each item must have:
+{
+  "actionTaken": "brief description of the action (max 8 words)",
+  "outcome": "brief outcome if mentioned, otherwise empty string",
+  "helpful": true or false (was this action helpful or unhelpful?)
+}
+
+If no concrete actions are found, return an empty array: []
+
+TEXT:
+"""
+${text.trim().slice(0, 1500)}
+"""`;
+
+  const raw = await generate(prompt, { max_new_tokens: 400, temperature: 0.1 });
   const parsed = JSON.parse(raw);
 
   if (!Array.isArray(parsed)) return [];
