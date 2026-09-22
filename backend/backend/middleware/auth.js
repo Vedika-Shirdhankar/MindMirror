@@ -18,6 +18,9 @@ function requireAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, config.jwt.secret);
+    if (!payload || !payload.userId) {
+      return res.status(401).json({ success: false, error: 'Invalid token payload. Please log in again.' });
+    }
     req.userId = payload.userId;
     next();
   } catch (err) {

@@ -84,7 +84,7 @@ function Message({ msg, onPlayVideo, reflectingLabel, onSpeak }) {
                   onClick={() => onPlayVideo(video)}
                 >
                   <div className="relative w-20 aspect-video bg-black/40 rounded-lg overflow-hidden flex-shrink-0">
-                    <video src={video.videoUrl} className="w-full h-full object-cover" preload="metadata" />
+                    <video src={api.getVideoUrl(video.videoUrl)} className="w-full h-full object-cover" preload="metadata" />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition-colors">
                       <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
                         <Play size={10} fill="white" color="white" className="ml-0.5" />
@@ -115,7 +115,7 @@ function Message({ msg, onPlayVideo, reflectingLabel, onSpeak }) {
                 className="relative w-28 aspect-video bg-black/40 rounded-xl overflow-hidden cursor-pointer flex-shrink-0"
                 onClick={() => onPlayVideo(msg.pastSelfRecommendation)}
               >
-                <video src={msg.pastSelfRecommendation.videoUrl} className="w-full h-full object-cover" preload="metadata" />
+                <video src={api.getVideoUrl(msg.pastSelfRecommendation.videoUrl)} className="w-full h-full object-cover" preload="metadata" />
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition-colors">
                   <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
                     <Play size={12} fill="white" color="white" className="ml-0.5" />
@@ -371,7 +371,7 @@ export default function Companion() {
             <h3 className="text-base font-bold pr-8 text-text">{playingVideo.title}</h3>
 
             <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/10 relative">
-              <video src={playingVideo.videoUrl} controls autoPlay className="w-full h-full" />
+              <video src={api.getVideoUrl(playingVideo.videoUrl)} controls autoPlay className="w-full h-full" />
             </div>
 
             {playingVideo.note && (

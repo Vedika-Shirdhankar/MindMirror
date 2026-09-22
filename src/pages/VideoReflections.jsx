@@ -56,6 +56,20 @@ export default function VideoReflections() {
     loadReflections()
   }, [])
 
+  // Clean up camera stream on unmount
+  useEffect(() => {
+    return () => {
+      stopCamera()
+    }
+  }, [mediaStream])
+
+  // Attach live camera stream to video preview element whenever stream or mode changes
+  useEffect(() => {
+    if (uploadMode === 'record' && !recordedBlob && mediaStream && videoPreviewRef.current) {
+      videoPreviewRef.current.srcObject = mediaStream
+    }
+  }, [uploadMode, recordedBlob, mediaStream])
+
   // Timer effect for camera recording
   useEffect(() => {
     let interval
@@ -89,7 +103,7 @@ export default function VideoReflections() {
     setRecordedBlob(null)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480 },
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
         audio: true
       })
       setMediaStream(stream)
@@ -97,7 +111,7 @@ export default function VideoReflections() {
         videoPreviewRef.current.srcObject = stream
       }
     } catch (err) {
-      setError('Unable to access camera or microphone. Please check permissions.')
+      setError('Unable to access camera or microphone. Please ensure permissions are granted.')
     }
   }
 
@@ -108,18 +122,30 @@ export default function VideoReflections() {
     }
   }
 
+  function getSupportedMimeType() {
+    const candidates = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm',
+      'video/mp4;codecs=avc1,mp4a.40.2',
+      'video/mp4',
+    ]
+    for (const type of candidates) {
+      if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)) {
+        return type
+      }
+    }
+    return ''
+  }
+
   function handleStartRecording() {
     if (!mediaStream) return
     chunksRef.current = []
+    setError('')
+    setRecordedBlob(null)
     
-    // Choose appropriate mimeType (fallback for browser support)
-    let options = { mimeType: 'video/webm;codecs=vp9,opus' }
-    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-      options = { mimeType: 'video/webm;codecs=vp8,opus' }
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options = { mimeType: 'video/webm' }
-      }
-    }
+    const chosenMime = getSupportedMimeType()
+    const options = chosenMime ? { mimeType: chosenMime } : undefined
 
     try {
       const recorder = new MediaRecorder(mediaStream, options)
@@ -132,11 +158,16 @@ export default function VideoReflections() {
       }
 
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'video/webm' })
-        setRecordedBlob(blob)
+        const actualType = recorder.mimeType || chosenMime || 'video/webm'
+        const blob = new Blob(chunksRef.current, { type: actualType })
+        if (blob.size > 0) {
+          setRecordedBlob(blob)
+        } else {
+          setError('Recorded video was empty. Please record again.')
+        }
       }
 
-      recorder.start(10) // slice of 10ms chunks
+      recorder.start(100) // Collect chunks every 100ms
       setRecording(true)
     } catch (err) {
       setError('Recording failed: ' + err.message)
@@ -145,7 +176,11 @@ export default function VideoReflections() {
 
   function handleStopRecording() {
     if (mediaRecorderRef.current && recording) {
-      mediaRecorderRef.current.stop()
+      try {
+        mediaRecorderRef.current.stop()
+      } catch (e) {
+        console.warn('Error stopping recorder', e)
+      }
       setRecording(false)
     }
   }
@@ -162,19 +197,28 @@ export default function VideoReflections() {
 
   async function handleSaveReflection(e) {
     e.preventDefault()
+    if (recording) {
+      setError('Please click Stop Record before saving.')
+      return
+    }
+
     if (!title.trim()) {
       setError('Please add a title for your reflection.')
       return
     }
 
-    if (uploadMode === 'file' && !file) {
-      setError('Please select a video file.')
-      return
+    if (uploadMode === 'file') {
+      if (!file || file.size === 0) {
+        setError('Please select a valid video file.')
+        return
+      }
     }
 
-    if (uploadMode === 'record' && !recordedBlob) {
-      setError('Please record a video reflection.')
-      return
+    if (uploadMode === 'record') {
+      if (!recordedBlob || recordedBlob.size === 0) {
+        setError('Please record a video reflection before saving.')
+        return
+      }
     }
 
     setSubmitting(true)
@@ -182,17 +226,25 @@ export default function VideoReflections() {
 
     const formData = new FormData()
     formData.append('title', title.trim())
-    formData.append('note', note.trim())
+    if (note && note.trim()) {
+      formData.append('note', note.trim())
+    }
 
     if (uploadMode === 'file') {
-      formData.append('video', file)
+      formData.append('video', file, file.name)
     } else {
-      formData.append('video', recordedBlob, 'recorded-reflection.webm')
+      const actualType = (recordedBlob.type || '').toLowerCase()
+      const ext = actualType.includes('mp4') ? '.mp4' : actualType.includes('mov') ? '.mov' : '.webm'
+      formData.append('video', recordedBlob, `recorded-reflection-${Date.now()}${ext}`)
     }
 
     try {
       const newRef = await api.uploadVideoReflection(formData)
-      setReflections(prev => [newRef, ...prev])
+      if (newRef) {
+        setReflections(prev => [newRef, ...prev.filter(r => r._id !== newRef._id)])
+      } else {
+        await loadReflections()
+      }
       handleCancelForm()
     } catch (err) {
       setError(err.message || 'Failed to save reflection.')
@@ -480,7 +532,7 @@ export default function VideoReflections() {
                   setPlayingVideo(r);
                 }}
               >
-                <video src={r.videoUrl} className="w-full h-full object-cover" preload="metadata" />
+                <video src={api.getVideoUrl(r.videoUrl)} className="w-full h-full object-cover" preload="metadata" />
                 
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   {r.processingStatus === 'processing' ? (
@@ -587,7 +639,7 @@ export default function VideoReflections() {
             <h3 className="text-sm font-semibold pr-8 text-white">{playingVideo.title}</h3>
             
             <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/5 relative shrink-0">
-              <video src={playingVideo.videoUrl} controls autoPlay className="w-full h-full" />
+              <video src={api.getVideoUrl(playingVideo.videoUrl)} controls autoPlay className="w-full h-full" />
             </div>
 
             {playingVideo.note && (

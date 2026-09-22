@@ -37,10 +37,14 @@ async function executeWithFallback(apiCallback) {
       return await apiCallback(genAI, key);
     } catch (err) {
       lastError = err;
-      const isRateLimitOrQuota = err.status === 429 || /quota|too many requests|rate limit|resource_exhausted/i.test(err.message || '');
-      const isAuthError = err.status === 401 || /unauthenticated|invalid api key/i.test(err.message || '');
+      const isRecoverableError = 
+        err.status === 429 || 
+        err.status === 503 || 
+        err.status === 500 || 
+        err.status === 401 ||
+        /quota|too many requests|rate limit|resource_exhausted|high demand|service unavailable|unauthenticated|invalid api key/i.test(err.message || '');
 
-      if ((isRateLimitOrQuota || isAuthError) && i < keys.length - 1) {
+      if (isRecoverableError && i < keys.length - 1) {
         console.warn(`[GeminiHelper] Key #${i + 1} failed (${err.status || err.message}). Switching to fallback key #${i + 2}...`);
         continue;
       }

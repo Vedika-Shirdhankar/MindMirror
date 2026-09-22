@@ -1,18 +1,11 @@
-// utils/actionExtractor.js
-//
-// Automatically extracts actions from text (journal entries, resolution notes,
-// video notes, chat messages) using Gemini and saves them to ActionMemory.
-// All operations are fire-and-forget — never block the calling request.
-
-const { generate } = require('../services/hfService');
+const { executeWithFallback } = require('./geminiHelper');
 const ActionMemory = require('../models/ActionMemory');
 
 /**
  * Ask Gemini to extract concrete actions from a piece of text.
  * Returns an array of { actionTaken, outcome, helpful } objects.
  *
- * @param {string} text        - Raw text to analyse
- * @param {string} apiKey      - Gemini API key
+ * @param {string} text - Raw text to analyse
  * @returns {Promise<Array>}
  */
 async function extractActionsFromText(text) {
@@ -41,37 +34,28 @@ TEXT:
 ${text.trim().slice(0, 1500)}
 """`;
 
-Read the following text and extract any concrete actions the person took or mentions taking.
-Focus on:
-- Coping strategies they used
-- Behavioural changes they made
-- Things they tried that helped or didn't help
-- Habits or routines they mention
+  try {
+    return await executeWithFallback(async (genAI) => {
+      const model = genAI.getGenerativeModel({
+        model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.1 }
+      });
+      const res = await model.generateContent(prompt);
+      const raw = res.response.text();
+      const parsed = JSON.parse(raw);
 
-Return ONLY a valid JSON array (no markdown, no preamble). Each item must have:
-{
-  "actionTaken": "brief description of the action (max 8 words)",
-  "outcome": "brief outcome if mentioned, otherwise empty string",
-  "helpful": true or false (was this action helpful or unhelpful?)
-}
-
-If no concrete actions are found, return an empty array: []
-
-TEXT:
-"""
-${text.trim().slice(0, 1500)}
-"""`;
-
-  const raw = await generate(prompt, { max_new_tokens: 400, temperature: 0.1 });
-  const parsed = JSON.parse(raw);
-
-  if (!Array.isArray(parsed)) return [];
-  return parsed.filter(
-    (a) =>
-      typeof a.actionTaken === 'string' &&
-      a.actionTaken.trim().length > 0 &&
-      typeof a.helpful === 'boolean'
-  );
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(
+        (a) =>
+          typeof a.actionTaken === 'string' &&
+          a.actionTaken.trim().length > 0 &&
+          typeof a.helpful === 'boolean'
+      );
+    });
+  } catch (err) {
+    console.warn('[ActionMemory] extractActionsFromText failed:', err.message);
+    return [];
+  }
 }
 
 /**

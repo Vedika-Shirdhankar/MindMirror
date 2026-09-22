@@ -160,7 +160,7 @@ function AnalysisCard({ entry, onPlayVideo }) {
             {entry.recommendedVideos.map(video => (
               <div key={video._id} className="rounded-standard overflow-hidden border border-white/5 bg-black/20 hover:border-white/10 transition-all flex flex-col group relative">
                 <div className="relative aspect-video bg-black/40 cursor-pointer" onClick={() => onPlayVideo(video)}>
-                  <video src={video.videoUrl} className="w-full h-full object-cover" preload="metadata" />
+                  <video src={api.getVideoUrl(video.videoUrl)} className="w-full h-full object-cover" preload="metadata" />
                   <div className="absolute inset-0 bg-black/35 flex items-center justify-center group-hover:bg-black/55 transition-colors">
                     <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
                       <Play size={14} className="ml-0.5 text-white" />
@@ -620,7 +620,7 @@ export default function Journal() {
             <h3 className="text-sm font-semibold pr-8 text-white">{playingVideo.title}</h3>
             
             <div className="aspect-video w-full rounded-standard overflow-hidden bg-black border border-white/5 relative">
-              <video src={playingVideo.videoUrl} controls autoPlay className="w-full h-full" />
+              <video src={api.getVideoUrl(playingVideo.videoUrl)} controls autoPlay className="w-full h-full" />
             </div>
 
             {playingVideo.note && (

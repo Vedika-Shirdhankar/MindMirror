@@ -195,7 +195,7 @@ export default function MindGames() {
   if (activeGame) {
     const GameComponent = activeGame.component
     return (
-      <div className="min-h-screen py-6 px-4 sm:px-6 max-w-4xl mx-auto">
+      <div className="mind-game-session min-h-screen py-6 px-4 sm:px-6 max-w-4xl mx-auto">
         {/* Distraction-free top navigation bar */}
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/10">
           <button
@@ -219,7 +219,7 @@ export default function MindGames() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-3xl p-6 mb-8 text-center relative overflow-hidden border"
+          className="mind-game-active-header rounded-3xl p-6 mb-5 text-center relative overflow-hidden border"
           style={{
             background: `linear-gradient(135deg, ${activeGame.color}15 0%, rgba(15,15,19,0.8) 100%)`,
             borderColor: activeGame.borderColor,
@@ -229,7 +229,7 @@ export default function MindGames() {
             <span className="text-2xl">{activeGame.emoji}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-text mb-1">{activeGame.title}</h1>
-          <p className="text-sm text-text/60 max-w-lg mx-auto">{activeGame.description}</p>
+          <p className="text-sm max-w-lg mx-auto mind-game-active-description">{activeGame.description}</p>
         </motion.div>
 
         {/* Game Active Container */}
@@ -238,7 +238,7 @@ export default function MindGames() {
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
-          className="rounded-3xl p-6 sm:p-8 bg-surface/70 border border-white/10 backdrop-blur-xl shadow-2xl"
+          className="mind-game-panel rounded-3xl p-5 sm:p-8 shadow-2xl"
         >
           <GameComponent />
         </motion.div>
@@ -248,16 +248,16 @@ export default function MindGames() {
 
   // ─── MAIN DASHBOARD VIEW ─────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen pb-16 px-4 sm:px-6 max-w-5xl mx-auto">
+    <div className="mind-games-page min-h-screen pb-16 px-4 sm:px-6 max-w-6xl mx-auto">
       {/* ─── Hero Welcoming Section ────────────────────────────────────────── */}
-      <section className="pt-8 pb-10 relative">
+      <section className="mind-games-hero pt-8 pb-10 relative">
         {/* Soft Ambient Background Glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[250px] bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 blur-[120px] pointer-events-none -z-10 rounded-full" />
 
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-2xl mx-auto"
+          className="mind-games-intro text-center max-w-2xl mx-auto"
         >
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary uppercase tracking-widest mb-4">
             <Sparkles size={13} />
@@ -265,11 +265,11 @@ export default function MindGames() {
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-bold text-text tracking-tight mb-3">
-            Your Quiet Corner
+            Coping Games
           </h1>
 
           <p className="text-base text-text/60 leading-relaxed font-normal">
-            Short, gentle interactive experiences designed to pause intrusive thoughts, dissolve anxiety, and bring you back to clarity.
+            Small moments, big relief. Choose a gentle exercise for the feeling you are carrying right now.
           </p>
         </motion.div>
 
@@ -278,7 +278,7 @@ export default function MindGames() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mt-8 grid grid-cols-3 gap-3 max-w-lg mx-auto p-3 rounded-2xl bg-surface/60 border border-white/10 backdrop-blur-md text-center"
+          className="mind-games-stats mt-8 grid grid-cols-3 gap-3 max-w-lg mx-auto p-3 rounded-2xl text-center"
         >
           <div className="p-2 border-r border-white/5">
             <div className="text-lg font-bold text-text flex items-center justify-center gap-1">
@@ -312,7 +312,7 @@ export default function MindGames() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="rounded-3xl p-6 sm:p-7 border border-white/10 bg-gradient-to-br from-surface via-surface/80 to-surface/40 backdrop-blur-xl shadow-xl relative overflow-hidden"
+          className="mind-games-checkin rounded-3xl p-6 sm:p-7 relative overflow-hidden"
         >
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-5">
             <div>
@@ -443,7 +443,7 @@ export default function MindGames() {
       </section>
 
       {/* ─── Rich Exercises Grid ───────────────────────────────────────────── */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <section aria-label="Mindful exercises" className="mind-games-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         <AnimatePresence mode="popLayout">
           {filteredGames.map((game, index) => {
             const Icon = game.icon
@@ -455,7 +455,7 @@ export default function MindGames() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: index * 0.05 }}
-                className="group relative rounded-3xl p-6 flex flex-col justify-between border border-white/10 bg-surface/60 backdrop-blur-lg hover:border-white/20 transition-all duration-300 hover:shadow-2xl overflow-hidden"
+                className="mind-game-card group relative rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 overflow-hidden"
               >
                 {/* Background Gradient Accent on Hover */}
                 <div
@@ -506,7 +506,7 @@ export default function MindGames() {
                 {/* Bottom Action Button */}
                 <button
                   onClick={() => handleStartGame(game.key)}
-                  className="w-full py-3 px-4 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 border transition-all duration-300 group-hover:shadow-lg"
+                  className="w-full py-3 px-4 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 border transition-all duration-300 group-hover:shadow-lg group-hover:-translate-y-0.5"
                   style={{
                     background: `${game.color}15`,
                     borderColor: `${game.color}35`,
@@ -514,7 +514,7 @@ export default function MindGames() {
                   }}
                 >
                   <Play size={13} fill="currentColor" className="transition-transform group-hover:scale-110" />
-                  Begin Reset
+                  Play now
                 </button>
               </motion.div>
             )

@@ -4,7 +4,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { GoogleAIFileManager } = require('@google/generative-ai/server');
 const { VALID_THEMES, VALID_TRIGGERS } = require('./aiAnalysis');
 
-const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const CANDIDATE_MODELS = [PRIMARY_MODEL, 'gemini-2.5-flash', 'gemini-3.6-flash'].filter((v, i, a) => a.indexOf(v) === i);
 
 const VALID_STRESS_LEVELS = ['low', 'moderate', 'high', 'severe'];
 const VALID_RISK_LEVELS = ['none', 'low', 'moderate', 'high'];
@@ -16,7 +17,6 @@ async function analyzeVideoReflection(filePath, mimeType = 'video/webm', languag
 
   return await executeWithFallback(async (genAI, apiKey) => {
     const fileManager = new GoogleAIFileManager(apiKey);
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
     // Clean mimeType if it contains codec parameters (e.g. video/webm;codecs=vp9,opus -> video/webm)
     const cleanMimeType = (mimeType || 'video/webm').split(';')[0].trim();
@@ -32,28 +32,29 @@ async function analyzeVideoReflection(filePath, mimeType = 'video/webm', languag
     const fileId = uploadResult.file.name;
     let fileState = uploadResult.file.state;
 
-  // 2. Poll until ACTIVE
-  console.log(`[videoAnalysis] Polling for ACTIVE state. Current state: ${fileState}`);
-  while (fileState === "PROCESSING") {
-    await new Promise(r => setTimeout(r, 3000));
     try {
-      const getResult = await fileManager.getFile(fileId);
-      fileState = getResult.state;
-      console.log(`[videoAnalysis] Polled state: ${fileState}`);
-      if (fileState === "FAILED") {
-        console.error('[videoAnalysis] File processing FAILED in Google AI Manager');
-        throw new Error("Video processing failed in Google AI Manager.");
+      // 2. Poll until ACTIVE
+      console.log(`[videoAnalysis] Polling for ACTIVE state. Current state: ${fileState}`);
+      while (fileState === "PROCESSING") {
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          const getResult = await fileManager.getFile(fileId);
+          fileState = getResult.state;
+          console.log(`[videoAnalysis] Polled state: ${fileState}`);
+          if (fileState === "FAILED") {
+            console.error('[videoAnalysis] File processing FAILED in Google AI Manager');
+            throw new Error("Video processing failed in Google AI Manager.");
+          }
+        } catch (err) {
+          console.error('[videoAnalysis] Error polling file status:', err.message);
+          throw err;
+        }
       }
-    } catch (err) {
-      console.error('[videoAnalysis] Error polling file status:', err.message);
-      throw err;
-    }
-  }
 
-  // 3. Generate content with enhanced multimodal prompt
-  console.log(`[videoAnalysis] Generating content with enhanced multimodal prompt...`);
+      // 3. Generate content with enhanced multimodal prompt
+      console.log(`[videoAnalysis] Generating content with enhanced multimodal prompt...`);
 
-  const systemPrompt = `The user's preferred language is ${language}. Respond entirely in ${language} using its native script for all free-text fields (summary, coping_suggestions, positive_affirmations, actionable_next_steps, recurring_thoughts, emotional_patterns, cognitive_distortions, gratitude_points, anxiety_indicators, burnout_indicators, aiGeneratedInsights, transcript). System fields MUST remain in English.
+      const systemPrompt = `The user's preferred language is ${language}. Respond entirely in ${language} using its native script for all free-text fields (summary, coping_suggestions, positive_affirmations, actionable_next_steps, recurring_thoughts, emotional_patterns, cognitive_distortions, gratitude_points, anxiety_indicators, burnout_indicators, aiGeneratedInsights, transcript). System fields MUST remain in English.
 
 You are a compassionate, clinical-aware emotional analysis engine for a mental wellness app called MindMirror.
 
@@ -148,44 +149,56 @@ IMPORTANT:
 - Never diagnose. Never use clinical labels in user-facing text.
 - Return ONLY the JSON object. No markdown code blocks.`;
 
-  let result;
-  try {
-    result = await model.generateContent([
-      {
-        fileData: {
-          fileUri: uploadResult.file.uri,
-          mimeType: uploadResult.file.mimeType,
+      let result = null;
+      let lastModelErr = null;
+
+      for (const modelName of CANDIDATE_MODELS) {
+        try {
+          console.log(`[videoAnalysis] Trying generation with model: ${modelName}`);
+          const model = genAI.getGenerativeModel({ model: modelName });
+          result = await model.generateContent([
+            {
+              fileData: {
+                fileUri: uploadResult.file.uri,
+                mimeType: uploadResult.file.mimeType,
+              }
+            },
+            { text: systemPrompt }
+          ]);
+          console.log(`[videoAnalysis] Content generated successfully with ${modelName}`);
+          break;
+        } catch (err) {
+          lastModelErr = err;
+          console.warn(`[videoAnalysis] Model ${modelName} failed: ${err.message}. Trying next candidate...`);
         }
-      },
-      { text: systemPrompt }
-    ]);
-    console.log(`[videoAnalysis] Content generated successfully`);
-  } catch (err) {
-    console.error('[videoAnalysis] model.generateContent failed:', err.message, err.stack);
-    throw err;
-  }
+      }
 
-  const rawText = result.response.text();
+      if (!result) {
+        throw lastModelErr || new Error('All model candidates failed for video analysis.');
+      }
 
-  // 4. Cleanup the file to save quota
-  console.log(`[videoAnalysis] Cleaning up file ${fileId}`);
-  try {
-    await fileManager.deleteFile(fileId);
-  } catch (err) {
-    console.warn('[videoAnalysis] Failed to delete file from Gemini:', err.message);
-  }
+      const rawText = result.response.text();
 
-  // 5. Parse and sanitize
-  let parsed;
-  try {
-    parsed = JSON.parse(rawText.replace(/\`\`\`json|\`\`\`/g, '').trim());
-    console.log(`[videoAnalysis] Successfully parsed JSON output`);
-  } catch (err) {
-    console.error('[videoAnalysis] Failed to parse video Gemini output:', rawText);
-    throw new Error('AI returned malformed JSON for video.');
-  }
+      // 4. Parse and sanitize
+      let parsed;
+      try {
+        parsed = JSON.parse(rawText.replace(/\`\`\`json|\`\`\`/g, '').trim());
+        console.log(`[videoAnalysis] Successfully parsed JSON output`);
+      } catch (err) {
+        console.error('[videoAnalysis] Failed to parse video Gemini output:', rawText);
+        throw new Error('AI returned malformed JSON for video.');
+      }
 
-  return sanitizeVideoAnalysis(parsed);
+      return sanitizeVideoAnalysis(parsed);
+    } finally {
+      // 5. Cleanup the file from Gemini to save quota
+      console.log(`[videoAnalysis] Cleaning up file ${fileId}`);
+      try {
+        await fileManager.deleteFile(fileId);
+      } catch (err) {
+        console.warn('[videoAnalysis] Failed to delete file from Gemini:', err.message);
+      }
+    }
   });
 }
 

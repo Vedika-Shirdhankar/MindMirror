@@ -116,7 +116,14 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
-    throw new Error(errorBody.error || `Request failed with status ${response.status}`);
+    let errorMessage = errorBody.error || errorBody.message;
+    if (Array.isArray(errorBody.details) && errorBody.details.length > 0) {
+      const detailsStr = errorBody.details
+        .map(d => `${d.field ? `${d.field}: ` : ''}${d.message}`)
+        .join(', ');
+      errorMessage = `${errorMessage ? `${errorMessage} (${detailsStr})` : detailsStr}`;
+    }
+    throw new Error(errorMessage || `Request failed with status ${response.status}`);
   }
 
   return response.json();
@@ -418,6 +425,16 @@ export async function updateVideoTranscript(id, transcript) {
     body: JSON.stringify({ transcript }),
   });
 }
+export function getVideoUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
+    return url;
+  }
+  const apiBase = import.meta.env.VITE_API_URL || '';
+  const serverBase = apiBase.replace(/\/api\/?$/, '');
+  return `${serverBase}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
 // 9. Letter From MindMirror
 export async function getLetterFromMirror() {
   return request('/letter-from-mirror');

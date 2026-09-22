@@ -213,6 +213,125 @@ body {
 }
 
 /* ============================================================
+   MIND GAMES
+============================================================ */
+
+.mind-games-page {
+  position: relative;
+  isolation: isolate;
+}
+
+.mind-games-page::before,
+.mind-games-page::after {
+  content: '❋';
+  position: absolute;
+  z-index: -1;
+  color: rgba(83, 124, 83, 0.13);
+  font-family: Georgia, serif;
+  font-size: 10rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.mind-games-page::before {
+  top: 3rem;
+  left: -3.5rem;
+  transform: rotate(-20deg);
+}
+
+.mind-games-page::after {
+  right: -2rem;
+  bottom: 5rem;
+  transform: rotate(28deg);
+}
+
+.mind-games-hero {
+  background:
+    radial-gradient(circle at 8% 45%, rgba(116, 151, 103, 0.14), transparent 16%),
+    radial-gradient(circle at 90% 25%, rgba(218, 170, 121, 0.16), transparent 18%);
+}
+
+.mind-games-intro h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+.mind-games-stats,
+.mind-games-checkin {
+  background: rgba(255, 253, 248, 0.7);
+  border: 1px solid rgba(82, 103, 74, 0.14);
+  box-shadow: 0 16px 34px rgba(65, 79, 57, 0.08);
+}
+
+.mind-games-checkin::after {
+  content: '❋';
+  position: absolute;
+  right: 1.5rem;
+  bottom: -2.7rem;
+  font-family: Georgia, serif;
+  font-size: 8rem;
+  color: rgba(93, 202, 165, 0.09);
+  pointer-events: none;
+}
+
+.mind-game-card {
+  border: 1px solid rgba(82, 103, 74, 0.16);
+  background: rgba(255, 253, 248, 0.78);
+  box-shadow: 0 10px 25px rgba(65, 79, 57, 0.08);
+}
+
+.mind-game-card:hover {
+  border-color: rgba(62, 103, 80, 0.36);
+  box-shadow: 0 20px 42px rgba(65, 79, 57, 0.15);
+  transform: translateY(-3px);
+}
+
+.mind-games-grid .mind-game-card:first-child {
+  background: linear-gradient(145deg, rgba(238, 245, 255, 0.92), rgba(255, 253, 248, 0.78));
+}
+
+.mind-games-grid .mind-game-card:nth-child(2) {
+  background: linear-gradient(145deg, rgba(252, 238, 232, 0.92), rgba(255, 253, 248, 0.78));
+}
+
+.mind-games-grid .mind-game-card:nth-child(3) {
+  background: linear-gradient(145deg, rgba(242, 248, 230, 0.92), rgba(255, 253, 248, 0.78));
+}
+
+/* The exercises are an intentional focused space. Keeping this panel dark
+   ensures the game controls retain contrast under every user-selected theme. */
+.mind-game-panel {
+  background: radial-gradient(circle at top right, rgba(127, 119, 221, 0.18), transparent 38%), #172323;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e8e6f0;
+}
+
+.mind-game-active-header {
+  background: color-mix(in srgb, var(--color-surface) 84%, transparent);
+}
+
+.mind-game-active-description {
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 640px) {
+  .mind-games-page::before,
+  .mind-games-page::after {
+    font-size: 6rem;
+  }
+
+  .mind-game-card {
+    padding: 1.25rem;
+  }
+
+  .mind-game-panel {
+    padding: 1rem;
+    border-radius: 1.25rem;
+  }
+}
+
+/* ============================================================
    FADE-UP ANIMATION (Auth page)
 ============================================================ */
 

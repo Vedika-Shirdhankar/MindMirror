@@ -36,11 +36,12 @@ function createVideoUploader() {
   });
 
   const fileFilter = (_req, file, cb) => {
-    const isVideoMime = file.mimetype && file.mimetype.startsWith('video/');
-    const ext = path.extname(file.originalname).toLowerCase();
-    const isVideoExt = ['.webm', '.mp4', '.mov', '.avi', '.mkv', '.ogv'].includes(ext);
+    const mime = (file.mimetype || '').toLowerCase();
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const isVideoMime = mime.startsWith('video/') || mime === 'application/octet-stream' || mime === '';
+    const isVideoExt = ['.webm', '.mp4', '.mov', '.avi', '.mkv', '.ogv', '.m4v', '.3gp', ''].includes(ext);
 
-    if (isVideoMime || isVideoExt || file.mimetype === 'application/octet-stream') {
+    if (isVideoMime || isVideoExt) {
       cb(null, true);
     } else {
       cb(new Error(`Invalid file type: ${file.mimetype}. Only video files are allowed.`), false);

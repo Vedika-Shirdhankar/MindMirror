@@ -622,7 +622,7 @@ export default function LifeReport() {
             </div>
             
             <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/5 relative mt-2">
-              <video src={playingVideo.videoUrl} controls autoPlay className="w-full h-full" />
+              <video src={api.getVideoUrl(playingVideo.videoUrl)} controls autoPlay className="w-full h-full" />
             </div>
 
             {playingVideo.note && (
