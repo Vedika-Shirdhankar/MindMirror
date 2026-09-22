@@ -435,12 +435,35 @@ export function getVideoUrl(url) {
   return `${serverBase}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
-// 9. Letter From MindMirror
+// 9. Anchor Space Operations
+export async function getAnchors() {
+  const data = await request('/anchor');
+  return data;
+}
+
+export async function getEmergencyAnchors(category) {
+  return request(`/anchor/${category}`);
+}
+
+export async function createAnchor(payload) {
+  return request('/anchor', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAnchor(id) {
+  return request(`/anchor/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// 10. Letter From MindMirror
 export async function getLetterFromMirror() {
   return request('/letter-from-mirror');
 }
 
-// 10. Life Report
+// 11. Life Report
 export async function getLifeReport() {
   return request('/life-report');
 }
