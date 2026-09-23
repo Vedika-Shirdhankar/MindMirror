@@ -17,4 +17,6 @@ module.exports = {
   redis: require('./redis'),
   features: require('./features'),
   cloudinaryUrl: process.env.CLOUDINARY_URL,
+  mlServiceUrl: process.env.ML_SERVICE_URL || 'http://localhost:8000',
 };
+

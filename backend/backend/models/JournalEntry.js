@@ -47,6 +47,13 @@ const journalEntrySchema = new mongoose.Schema(
     // ── manually tagged coping strategies actually used (user input, distinct from AI suggestions) ──
     copingUsed: [{ type: String }],
 
+    // ── DistilBERT ML classification signal (language pattern detection) ──
+    ml_analysis: {
+      label: { type: String, default: null },
+      confidence: { type: Number, default: null },
+      scores: { type: mongoose.Schema.Types.Mixed, default: {} },
+    },
+
     resolved: { type: Boolean, default: false },
     resolvedNote: { type: String, default: '' },
     pinned: { type: Boolean, default: false },

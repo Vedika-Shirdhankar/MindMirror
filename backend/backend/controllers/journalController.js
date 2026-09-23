@@ -6,6 +6,7 @@ const { CRISIS_RESOURCES } = require('../utils/crisisResources');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { generateEmbedding, cosineSimilarity } = require('../utils/embeddings');
 const { extractAndSaveActions } = require('../utils/actionExtractor');
+const { classifyJournal } = require('../services/mlService');
 
 // GET /api/journal
 async function getEntries(req, res, next) {
@@ -20,7 +21,7 @@ async function getEntries(req, res, next) {
 }
 
 // POST /api/journal
-// Creates an entry AND runs full AI analysis (enhancements 1,2,3,4,5,6,10) in one step.
+// Creates an entry AND runs full AI analysis (Gemini contextual reflection + DistilBERT ML classification signal) in one step.
 async function createEntry(req, res, next) {
   try {
     const { text, mood, copingUsed } = req.body;
@@ -28,6 +29,7 @@ async function createEntry(req, res, next) {
       return res.status(400).json({ error: 'Entry text is required.' });
     }
 
+    const trimmedText = text.trim();
     const geminiApiKey = process.env.GEMINI_API_KEY;
 
     // Pull recent history for trend comparison + similar-memory matching
@@ -36,6 +38,10 @@ async function createEntry(req, res, next) {
       .limit(15)
       .lean();
 
+    // 1. Run ML DistilBERT Classification (server-side inference) in parallel with Gemini
+    const mlPromise = classifyJournal(trimmedText);
+
+    // 2. Run Gemini Contextual Analysis
     let analysis = {
       themes: [], triggers: [], sentiment: 'neutral', mood_score: mood ?? 5,
       summary: '', coping_suggestions: [], trend: 'unknown',
@@ -45,17 +51,33 @@ async function createEntry(req, res, next) {
     };
 
     let aiError = null;
-    if (geminiApiKey) {
-      try {
-        const user = await User.findById(req.userId).select('language');
-        analysis = await analyzeJournalEntry(text.trim(), previousEntries, geminiApiKey, user?.language || 'en');
-      } catch (e) {
-        aiError = e.message;
-        // Entry is still saved even if AI analysis fails — never block journaling on AI availability.
+    const geminiPromise = (async () => {
+      if (geminiApiKey) {
+        try {
+          const user = await User.findById(req.userId).select('language');
+          return await analyzeJournalEntry(trimmedText, previousEntries, geminiApiKey, user?.language || 'en');
+        } catch (e) {
+          aiError = e.message;
+          return null;
+        }
+      } else {
+        aiError = 'No Gemini API key configured on the server. Configure GEMINI_API_KEY in backend .env to enable AI analysis.';
+        return null;
       }
-    } else {
-      aiError = 'No Gemini API key configured on the server. Configure GEMINI_API_KEY in backend .env to enable AI analysis.';
+    })();
+
+    const [mlResult, geminiResult] = await Promise.all([mlPromise, geminiPromise]);
+    if (geminiResult) {
+      analysis = geminiResult;
     }
+
+    const mlAnalysisData = mlResult?.available
+      ? {
+          label: mlResult.label,
+          confidence: mlResult.confidence,
+          scores: mlResult.scores || {},
+        }
+      : null;
 
     // `mood` from req.body is optional; fall back to AI-derived mood_score.
     // Clamp to [1,10] as a last-resort safeguard — Mongoose schema min is 1,
@@ -65,15 +87,16 @@ async function createEntry(req, res, next) {
 
     const entry = await JournalEntry.create({
       user: req.userId,
-      text: text.trim(),
+      text: trimmedText,
       mood: safeMood,
       copingUsed: copingUsed || [],
+      ml_analysis: mlAnalysisData,
       ...analysis,
     });
 
     let recommendedVideos = [];
     try {
-      const vec = await generateEmbedding(text.trim());
+      const vec = await generateEmbedding(trimmedText);
       await JournalEntry.updateOne({ _id: entry._id }, { embedding: vec });
 
       const VideoReflection = require('../models/VideoReflection');
@@ -89,13 +112,23 @@ async function createEntry(req, res, next) {
     }
 
     // Fire-and-forget: extract actions from the journal text
-    extractAndSaveActions(text.trim(), 'JournalEntry', entry._id, req.userId);
+    extractAndSaveActions(trimmedText, 'JournalEntry', entry._id, req.userId);
 
-    const responseBody = { entry, recommendedVideos, aiError };
+    const responseBody = {
+      entry,
+      recommendedVideos,
+      aiError,
+      mlAnalysis: mlAnalysisData,
+      mlAvailable: Boolean(mlResult?.available),
+    };
 
-    // Safety net: always attach crisis resources at the API layer when risk is flagged,
-    // regardless of what the model included in its own summary text.
-    if (analysis.risk_level === 'moderate' || analysis.risk_level === 'high') {
+    // Safety net: attach crisis resources at the API layer when risk is flagged or ML detects high-confidence suicidal pattern
+    const isCrisisSignal =
+      analysis.risk_level === 'moderate' ||
+      analysis.risk_level === 'high' ||
+      (mlResult?.label === 'suicidal' && (mlResult?.confidence || 0) >= 0.5);
+
+    if (isCrisisSignal) {
       responseBody.support = CRISIS_RESOURCES;
     }
 

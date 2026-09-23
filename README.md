@@ -1,190 +1,171 @@
 # 🧠 MindMirror
 
-MindMirror is an AI-powered mental wellness and self-reflection platform designed to help users understand their emotions, manage overthinking, and build healthier thought patterns.
+MindMirror is an AI/ML-powered mental wellness and self-reflection platform designed to help users understand their emotions, manage overthinking, and build healthier thought patterns.
 
-The application combines AI-assisted journaling, emotional analytics, thought reframing, future self-reflection, AI companionship, and mindfulness games into a single interactive experience.
-
----
-
-# ✨ Features Overview
-
-| Feature                 | Description                                                                                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| 📝 AI Journal           | Create journal entries with AI-powered emotional analysis, sentiment detection, trigger identification, and coping suggestions. |
-| 🤖 AI Companion         | Chat with an empathetic AI assistant powered by Google Gemini for reflection and emotional support.                             |
-| 🪜 Thought Ladder       | Reframe negative thoughts into balanced perspectives using CBT-inspired techniques.                                             |
-| 📊 Analytics Dashboard  | Visualize emotional trends, recurring themes, triggers, and personal growth over time.                                          |
-| 📈 Growth Tracking      | Monitor emotional progress and wellness improvements through interactive charts.                                                |
-| 📨 Future Letters       | Write letters to your future self for motivation, reflection, and encouragement.                                                |
-| 🎮 Mind Games           | Interactive activities designed to reduce stress, anxiety, and overthinking.                                                    |
-| ☁️ Thought Cloud Burst  | Release intrusive thoughts by popping floating thought bubbles.                                                                 |
-| 👾 Anxiety Monster      | Reduce anxiety by completing calming exercises and shrinking the monster.                                                       |
-| 🌱 Gratitude Garden     | Build a virtual garden through gratitude practice and positive reflection.                                                      |
-| 🔐 JWT Authentication   | Secure signup, login, and protected user-specific data.                                                                         |
-| 🗄️ MongoDB Atlas       | Cloud database for storing users, journals, chats, and future letters.                                                          |
-| ⚡ Gemini AI Integration | Google Gemini-powered emotional analysis, journaling insights, and companion responses.                                         |
-| 📱 Responsive UI        | Mobile-friendly and desktop-friendly interface built with React and Tailwind CSS.                                               |
+The application combines a fine-tuned **DistilBERT text-classification model** for language pattern detection, **Google Gemini** for empathetic conversational analysis and journaling reflections, emotional analytics, thought reframing, future self-reflection, and mindfulness games into a single interactive experience.
 
 ---
 
-# 🏗️ Tech Stack
+## 🏛️ System Architecture
 
-| Category           | Technologies                                           |
-| ------------------ | ------------------------------------------------------ |
-| Frontend           | React, Vite, React Router, Tailwind CSS, Framer Motion |
-| Backend            | Node.js, Express.js                                    |
-| Database           | MongoDB Atlas, Mongoose                                |
-| Authentication     | JWT, bcrypt                                            |
-| AI                 | Google Gemini API                                      |
-| Charts & Analytics | Recharts                                               |
-| Icons              | Lucide React                                           |
-| Version Control    | Git & GitHub                                           |
+```text
+React Frontend (Vite)
+       │
+       ▼ (POST /api/journal)
+Node.js / Express Backend
+       │
+ ┌─────┴─────────────────────────┬──────────────────────────┐
+ │                               │                          │
+ ▼                               ▼                          ▼
+Python ML Microservice      Google Gemini AI           MongoDB Atlas
+(FastAPI + Transformers)    (Contextual Analysis)      (Persistent Storage)
+ │                               │                          │
+Fine-Tuned DistilBERT       Themes, triggers,          User journals,
+(7-class language signal)   coping suggestions,        embeddings,
+                            summary & affirmations     chats, & videos
+ └─────┬─────────────────────────┴──────────────────────────┘
+       ▼
+Combined Response (ML Signal + Gemini Contextual Reflection)
+       │
+       ▼
+React UI (Non-diagnostic, supportive reflection display)
+```
 
 ---
 
-# 📂 Project Structure
+## 🤖 Dual AI/ML Design: DistilBERT & Google Gemini
+
+| Feature | Fine-Tuned DistilBERT (ML Service) | Google Gemini (AI Engine) |
+|---|---|---|
+| **Role** | Text classification & language signal detection | Conversational interpretation & qualitative reasoning |
+| **Output** | 7 discrete classes & softmax probability distribution | Empathetic summary, themes, triggers, coping strategies, affirmations |
+| **Classes** | `anxiety`, `normal`, `depression`, `stress`, `personality disorder`, `bipolar`, `suicidal` | Open-ended CBT-informed reflection & thought reframing |
+| **Location** | Local PyTorch model in `ml/mindmirror_distilbert_model/` | Google Generative AI API (`@google/generative-ai`) |
+
+### 🛡️ Safety & Non-Diagnostic Principle
+The DistilBERT model provides **text-classification signals only** for journaling reflection. It is **never** presented to the user as a medical diagnosis. The UI uses cautious, supportive language such as:
+> *"Your journal contains language associated with stress (Confidence: 87%)"*
+
+---
+
+## 📂 Project Structure
 
 ```text
 mindmirror/
+├── ml/                                 # Python ML Inference Microservice & Training
+│   ├── MindMirror_ML_Training.ipynb    # Model training notebook (DistilBERT)
+│   ├── Mental_Health_Condition_Classification.csv # Dataset
+│   ├── mindmirror_distilbert_model/    # Saved fine-tuned model weights & tokenizer
+│   │   ├── config.json
+│   │   ├── model.safetensors
+│   │   ├── tokenizer.json
+│   │   ├── tokenizer_config.json
+│   │   └── labels.json
+│   ├── app.py                          # FastAPI inference service (GET /health, POST /predict)
+│   └── requirements.txt                # Python dependencies
 │
-├── src/
-│   ├── pages/
-│   ├── components/
-│   ├── context/
-│   ├── lib/
-│   └── styles/
+├── backend/                            # Node.js / Express API
+│   ├── backend/
+│   │   ├── config/                     # Centralized configurations & env loaders
+│   │   ├── controllers/                # Route handlers (journal, chat, video, etc.)
+│   │   ├── middleware/                 # Auth JWT, rate limiters, error handling
+│   │   ├── models/                     # Mongoose schemas (JournalEntry with ml_analysis)
+│   │   ├── routes/                     # API route declarations
+│   │   ├── services/                   # mlService.js, hfService.js, storageService.js
+│   │   ├── utils/                      # aiAnalysis.js (Gemini), embeddings, vectorSearch
+│   │   ├── tests/                      # Jest unit & integration tests
+│   │   └── server.js                   # Express server bootstrap
 │
-├── backend/
-│   ├── config/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── models/
-│   ├── routes/
-│   ├── utils/
-│   └── server.js
+├── src/                                # React + Vite Frontend
+│   ├── components/                     # Reusable UI components
+│   ├── context/                        # React context providers
+│   ├── lib/                            # API client & shared constants (api.js)
+│   ├── pages/                          # Application views (Journal, Companion, Dashboard, etc.)
+│   └── styles/                         # Global styles & Tailwind
 │
-├── public/
-├── package.json
+├── package.json                        # Frontend package config
 └── README.md
 ```
 
 ---
 
-# 🚀 Core Modules
+## ⚙️ Environment Variables
 
-### AI Journal
-
-* Emotional analysis
-* Mood detection
-* Theme extraction
-* Trigger identification
-* Coping recommendations
-
-### AI Companion
-
-* Conversational emotional support
-* Reflection prompts
-* Personalized interactions
-
-### Thought Ladder
-
-* Cognitive restructuring
-* Thought reframing
-* CBT-inspired exercises
-
-### Analytics & Growth
-
-* Mood trends
-* Emotional insights
-* Trigger frequency analysis
-* Growth visualization
-
-### Future Letters
-
-* Self-reflection
-* Motivation storage
-* Personal reminders
-
-### Mind Games
-
-* Thought Cloud Burst
-* Anxiety Monster
-* Gratitude Garden
-* Grounding Exercises
-* Thought Traffic
-
----
-
-# ⚙️ Environment Variables
-
-Create a `.env` file inside the backend directory:
-
+### Backend (`backend/backend/.env`)
 ```env
+NODE_ENV=development
 PORT=4000
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/mindmirror
+JWT_SECRET=your_long_random_jwt_secret_key_min_32_chars
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.5-flash
+CORS_ORIGIN=http://localhost:5173
 
-MONGODB_URI=YOUR_MONGODB_CONNECTION_STRING
-
-JWT_SECRET=YOUR_JWT_SECRET
-
-GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+# Python DistilBERT ML Microservice
+ML_SERVICE_URL=http://localhost:8000
 ```
 
 ---
 
-# 🔧 Installation
+## 🚀 Development Setup & Running
 
-### Clone Repository
+To run the complete full-stack application, open three terminal windows:
 
+### Terminal 1: Python ML Inference Service
 ```bash
-git clone https://github.com/your-username/MindMirror.git
-cd MindMirror
+cd ml
+pip install -r requirements.txt
+python -m uvicorn app:app --reload --port 8000
 ```
+*Health check:* `http://localhost:8000/health`  
+*Swagger docs:* `http://localhost:8000/docs`
 
-### Frontend Setup
+### Terminal 2: Node.js Backend API
+```bash
+cd backend/backend
+npm install
+npm run dev
+```
+*Server runs on:* `http://localhost:4000`
 
+### Terminal 3: React Frontend UI
 ```bash
 npm install
 npm run dev
 ```
+*Frontend runs on:* `http://localhost:5173`
 
-### Backend Setup
+---
 
+## 🧪 Testing
+
+### Backend Unit Tests
 ```bash
-cd backend
-npm install
-npm run dev
+cd backend/backend
+npm run test:unit
+```
+
+### ML Service Health & Prediction Test
+```bash
+# Test health
+curl http://localhost:8000/health
+
+# Test prediction
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"text": "I feel overwhelmed with too many exams and deadlines."}'
 ```
 
 ---
 
-# 🎯 Future Enhancements
+## 👩‍💻 Author
 
-* AI-powered mood prediction
-* Personalized wellness recommendations
-* Daily mindfulness challenges
-* Mobile application
-* Community support features
-* Advanced emotional analytics
-* Gamified mental wellness activities
-* AI-based habit tracking
-
----
-
-# 🌟 Motivation
-
-MindMirror was created to provide a safe space for self-reflection, emotional awareness, and mental wellness. By combining artificial intelligence with proven reflection techniques, the platform helps users better understand their emotions and develop healthier thinking patterns.
-
----
-
-# 👩‍💻 Author
-
-**Vedika Shirdhankar**
-
-Computer Science Engineering Student
+**Vedika Shirdhankar**  
+Computer Science Engineering Student  
 Sardar Patel Institute of Technology (SPIT)
 
 ---
 
-# 📜 License
+## 📜 License
 
-This project is intended for educational, research, and personal development purposes.
+This project is intended for educational, research, and personal wellness development purposes.

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2, CheckCircle, Sparkles, AlertTriangle, Loader, Loader2, TrendingUp, TrendingDown, Minus, Play, Search, X, Pin, PinOff, Filter, Mic } from 'lucide-react'
+import { Plus, Trash2, CheckCircle, Sparkles, AlertTriangle, Loader, Loader2, TrendingUp, TrendingDown, Minus, Play, Search, X, Pin, PinOff, Filter, Mic, Activity } from 'lucide-react'
 import * as api from '../lib/api.js'
 import { useVoiceTranscription } from '../lib/useVoice.js'
 import { THEMES, TRIGGERS, COPING_LABELS, RISK_COLORS, EMOTION_META, DISTORTION_LABELS } from '../lib/api.js'
@@ -17,6 +17,16 @@ const MOOD_COLOR = m => {
 const TREND_ICON = { improving: TrendingDown, worsening: TrendingUp, stable: Minus, unknown: Minus }
 const TREND_LABEL = { improving: 'Improving', worsening: 'Worsening', stable: 'Stable', unknown: 'Not enough data' }
 const TREND_COLOR = { improving: '#5DCAA5', worsening: '#E24B4A', stable: '#AFA9EC', unknown: 'rgba(232,230,240,0.4)' }
+
+const ML_LABEL_MAP = {
+  anxiety: { label: 'Anxiety', color: '#AFA9EC', bg: 'rgba(175, 169, 236, 0.15)' },
+  normal: { label: 'Balanced / Calm', color: '#5DCAA5', bg: 'rgba(93, 202, 165, 0.15)' },
+  depression: { label: 'Low Mood / Depressive', color: '#7F77DD', bg: 'rgba(127, 119, 221, 0.15)' },
+  stress: { label: 'Stress', color: '#EF9F27', bg: 'rgba(239, 159, 39, 0.15)' },
+  'personality disorder': { label: 'Emotional Dysregulation', color: '#D4537E', bg: 'rgba(212, 83, 126, 0.15)' },
+  bipolar: { label: 'Mood Fluctuations', color: '#E07A5F', bg: 'rgba(224, 122, 95, 0.15)' },
+  suicidal: { label: 'High Distress / Crisis', color: '#E24B4A', bg: 'rgba(226, 75, 74, 0.15)' },
+}
 
 function CrisisSupportBanner({ support }) {
   if (!support) return null
@@ -39,7 +49,7 @@ function CrisisSupportBanner({ support }) {
 
 function AnalysisCard({ entry, onPlayVideo }) {
   const { t } = useTranslation()
-  if (!entry.summary && !entry.themes?.length) return null
+  if (!entry.summary && !entry.themes?.length && !entry.ml_analysis?.label) return null
   const TrendIcon = TREND_ICON[entry.trend] || Minus
 
   return (
@@ -148,6 +158,42 @@ function AnalysisCard({ entry, onPlayVideo }) {
               • {m.reason} {m.entryId?.date && <span className="opacity-50">({format(new Date(m.entryId.date), 'MMM d')})</span>}
             </p>
           ))}
+        </div>
+      )}
+
+      {entry.ml_analysis?.label && (
+        <div className="mt-3 p-2.5 rounded-standard bg-white/[0.03] border border-white/10">
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <span className="text-[10px] uppercase tracking-wider text-text/50 font-medium flex items-center gap-1.5">
+              <Activity size={12} className="text-primary" />
+              Language Pattern Signal
+            </span>
+            {entry.ml_analysis.confidence != null && (
+              <span className="text-[10px] text-text/40 font-mono">
+                Confidence: {Math.round(entry.ml_analysis.confidence * 100)}%
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="text-xs px-2.5 py-0.5 rounded-full font-medium"
+              style={{
+                backgroundColor: ML_LABEL_MAP[entry.ml_analysis.label]?.bg || 'rgba(175, 169, 236, 0.15)',
+                color: ML_LABEL_MAP[entry.ml_analysis.label]?.color || '#AFA9EC',
+              }}
+            >
+              {ML_LABEL_MAP[entry.ml_analysis.label]?.label || entry.ml_analysis.label}
+            </span>
+            <p className="text-xs text-text/70 leading-relaxed">
+              Your journal contains language associated with{' '}
+              <strong className="font-medium text-text/90">
+                {entry.ml_analysis.label}
+              </strong>.
+            </p>
+          </div>
+          <p className="text-[10px] text-text/40 mt-1.5 italic">
+            * Text pattern signal provided for self-reflection; not a clinical diagnosis or medical evaluation.
+          </p>
         </div>
       )}
 

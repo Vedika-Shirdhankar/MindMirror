@@ -212,6 +212,8 @@ export async function addEntry({ text, copingUsed, mood }) {
     aiError: data.aiError,
     support: data.support,
     recommendedVideos: data.recommendedVideos || [],
+    mlAnalysis: data.mlAnalysis,
+    mlAvailable: data.mlAvailable,
   };
 }
 

@@ -2,6 +2,7 @@
 // MongoDB Atlas connection via Mongoose.
 // Reads MONGODB_URI from .env — see .env.example for the format.
 
+require('dotenv').config();
 const mongoose = require('mongoose');
 
 async function connectDB() {

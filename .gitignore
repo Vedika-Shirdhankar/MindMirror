@@ -16,3 +16,14 @@ backend/backend/uploads/
 *.local
 .DS_Store
 Thumbs.db
+
+# ML model weights (too large for Git — keep locally or use Git LFS)
+ml/mindmirror_distilbert_model/model.safetensors
+ml/mindmirror_distilbert_model/training_args.bin
+
+# ML dataset (large CSV)
+ml/Mental_Health_Condition_Classification.csv
+
+# Python cache
+__pycache__/
+*.pyc
