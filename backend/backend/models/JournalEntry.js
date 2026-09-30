@@ -1,5 +1,6 @@
 // models/JournalEntry.js
 const mongoose = require('mongoose');
+const { encrypt, decrypt } = require('../utils/encryption');
 
 // Sub-schema for a related/similar memory reference returned by AI analysis
 const relatedMemorySchema = new mongoose.Schema(
@@ -14,7 +15,13 @@ const journalEntrySchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
 
-    text: { type: String, required: true },
+    // Sensitive journal text is encrypted at rest using AES-256-GCM
+    text: {
+      type: String,
+      required: true,
+      set: encrypt,
+      get: decrypt,
+    },
 
     // ── manually logged (still supported, e.g. from the slider UI) ──
     mood: { type: Number, min: 1, max: 10 }, // legacy manual mood; AI mood_score below supersedes when present
@@ -24,7 +31,7 @@ const journalEntrySchema = new mongoose.Schema(
     triggers: [{ type: String }],
     sentiment: { type: String, enum: ['positive', 'neutral', 'negative', 'mixed', ''], default: '' },
     mood_score: { type: Number, min: 1, max: 10 },
-    summary: { type: String, default: '' },
+    summary: { type: String, default: '', set: encrypt, get: decrypt },
     coping_suggestions: [{ type: String }],
     trend: { type: String, enum: ['improving', 'worsening', 'stable', 'unknown', ''], default: '' },
     related_memories: [relatedMemorySchema],
@@ -41,8 +48,8 @@ const journalEntrySchema = new mongoose.Schema(
     anxiety_level: { type: Number, min: 1, max: 10 },
     burnout_signal: { type: Boolean, default: false },
     distortions: [{ type: String }],
-    growth_suggestion: { type: String, default: '' },
-    affirmation: { type: String, default: '' },
+    growth_suggestion: { type: String, default: '', set: encrypt, get: decrypt },
+    affirmation: { type: String, default: '', set: encrypt, get: decrypt },
 
     // ── manually tagged coping strategies actually used (user input, distinct from AI suggestions) ──
     copingUsed: [{ type: String }],
@@ -55,7 +62,7 @@ const journalEntrySchema = new mongoose.Schema(
     },
 
     resolved: { type: Boolean, default: false },
-    resolvedNote: { type: String, default: '' },
+    resolvedNote: { type: String, default: '', set: encrypt, get: decrypt },
     pinned: { type: Boolean, default: false },
 
     // ── Semantic embedding (Gemini text-embedding-004, 768-dim) ──
@@ -65,7 +72,11 @@ const journalEntrySchema = new mongoose.Schema(
 
     date: { type: Date, default: Date.now },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { getters: true },
+    toObject: { getters: true },
+  }
 );
 
 // Compound indexes for common access patterns
