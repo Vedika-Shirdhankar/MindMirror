@@ -9,26 +9,49 @@ The application combines a fine-tuned **DistilBERT text-classification model** f
 ## 🏛️ System Architecture
 
 ```text
-React Frontend (Vite)
-       │
-       ▼ (POST /api/journal)
-Node.js / Express Backend
-       │
- ┌─────┴─────────────────────────┬──────────────────────────┐
- │                               │                          │
- ▼                               ▼                          ▼
-Python ML Microservice      Google Gemini AI           MongoDB Atlas
-(FastAPI + Transformers)    (Contextual Analysis)      (Persistent Storage)
- │                               │                          │
-Fine-Tuned DistilBERT       Themes, triggers,          User journals,
-(7-class language signal)   coping suggestions,        embeddings,
-                            summary & affirmations     chats, & videos
- └─────┬─────────────────────────┴──────────────────────────┘
-       ▼
-Combined Response (ML Signal + Gemini Contextual Reflection)
-       │
-       ▼
-React UI (Non-diagnostic, supportive reflection display)
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   React + Vite Frontend (UI)                                    │
+└───────────────────────────────────────────────┬─────────────────────────────────────────────────┘
+                                                │
+                          [Frontend → Backend: HTTPS + JWT]
+                                                │
+                                                ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 🛡️ SECURITY & PRIVACY LAYER 🛡️                                  │
+│ ─────────────────────────────────────────────────────────────────────────────────────────────── │
+│  1. HTTPS / TLS                  • Data in transit encryption across all boundaries             │
+│  2. CORS                         • Restrict API access to trusted frontend origins              │
+│  3. Helmet                       • Secure HTTP response headers (XSS, Sniffing, Clickjack)      │
+│  4. Rate Limiting                • Protect login & API endpoints from brute-force/abuse         │
+│  5. JWT Authentication           • Verify JWT via backend secret; protect private API routes    │
+│  6. Authorization / User Scope   • Enforce req.userId ownership (users access only their data)  │
+│  7. bcrypt Password Hashing      • Secure 12-round salted hashing; zero plaintext storage       │
+│  8. Input Validation & Sanitizer • Mongoose/Zod validation + MongoSanitize (NoSQL injection)   │
+│  9. Secrets Management           • JWT_SECRET, GEMINI_API_KEY, DB credentials in backend .env   │
+│ 10. AI Data Minimization         • Transmit only necessary text; strip identifiable info        │
+│ 11. AI Output Validation         • Validate & sanitize LLM/ML JSON payloads before DB storage   │
+│ 12. Encryption at Rest           • [PRODUCTION SECURITY ENHANCEMENT] Field-level DB encryption  │
+└───────────────────────────────────────────────┬─────────────────────────────────────────────────┘
+                                                │
+                                                ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 Node.js + Express Backend API                                   │
+└──────────────┬────────────────────────┬───────────────────────────────┬─────────────────────────┘
+               │                        │                               │
+   [Backend → Gemini/DistilBERT:        │ [Backend → MongoDB:           │ [Backend → Redis/BullMQ:
+    Secure API + Data Minimization]     │  Auth & Authorized Access]    │  Authenticated Internal]
+               │                        │                               │
+               ├────────────────────────┼──────────────┐                │
+               ▼                        ▼              ▼                ▼
+┌──────────────────────────┐ ┌──────────────────┐ ┌───────────────────────────┐ ┌─────────────────┐
+│    Google Gemini AI      │ │ Python ML API    │ │       MongoDB Atlas       │ │  Redis + BullMQ │
+│ (Flash & Embeddings)     │ │ (FastAPI)        │ │   (Persistent Storage)    │ │ (Async Worker)  │
+│ ──────────────────────── │ │ ──────────────── │ │ ───────────────────────── │ │ ─────────────── │
+│ • Contextual Analysis    │ │ • Fine-Tuned     │ │ • Users & Auth Hashes     │ │ • Video Jobs    │
+│ • 768-dim Vector Embed.  │ │   DistilBERT     │ │ • Journal Entries         │ │   (Optional)    │
+│ • Vector Similarity      │ │ • 7-Class Signal │ │ • Vector Similarity Index │ └─────────────────┘
+│ • Video Recommendations  │ └──────────────────┘ │ • Video Recommendations   │
+└──────────────────────────┘                      └───────────────────────────┘
 ```
 
 ---
