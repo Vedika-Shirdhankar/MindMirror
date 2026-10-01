@@ -46,15 +46,51 @@ const TRENDS = ['improving', 'worsening', 'stable', 'unknown'];
 /**
  * Builds the system prompt instructing Gemini to return ONLY the structured JSON shape.
  */
-function buildSystemPrompt(previousEntries, language = 'en') {
+function buildSystemPrompt(previousEntries, language = 'en', supportPreferences = {}) {
   const history = previousEntries
     .slice(0, 8)
     .map(e => `- [${new Date(e.date).toISOString().split('T')[0]}] mood_score:${e.mood_score ?? e.mood ?? '?'} themes:${(e.themes || []).join(',')} text:"${e.text.slice(0, 100)}"`)
     .join('\n');
 
+  // Build personalized support constraints
+  let personalizationInstructions = '';
+  if (supportPreferences && typeof supportPreferences === 'object') {
+    const parts = [];
+
+    // Spiritual boundaries
+    if (supportPreferences.spiritualContentInclusion === 'no') {
+      parts.push('- USER BOUNDARY: Strictly DO NOT include spiritual, religious, or faith-based advice or framing.');
+    } else if (supportPreferences.spiritualContentInclusion === 'yes') {
+      parts.push('- USER PREFERENCE: The user is open to spiritual/faith-based grounding concepts when genuinely relevant to the reflection.');
+    } else if (supportPreferences.spiritualContentInclusion === 'only_when_asked') {
+      parts.push('- USER BOUNDARY: Include spiritual or faith references ONLY if the user explicitly mentions faith, prayer, or spirituality in THIS journal entry.');
+    }
+
+    // Sources of hope
+    if (supportPreferences.sourcesOfHope?.length) {
+      const hopeList = supportPreferences.sourcesOfHope.join(', ') + (supportPreferences.customSourcesOfHope ? `, ${supportPreferences.customSourcesOfHope}` : '');
+      parts.push(`- USER IDENTIFIED SOURCES OF HOPE & MEANING: ${hopeList}. When offering growth suggestions or affirmations, gently anchor in these meaningful areas where appropriate.`);
+    }
+
+    // Preferred coping activities
+    if (supportPreferences.copingPreferences?.length) {
+      const copingList = supportPreferences.copingPreferences.join(', ') + (supportPreferences.customCopingPreferences ? `, ${supportPreferences.customCopingPreferences}` : '');
+      parts.push(`- USER PREFERRED COPING ACTIVITIES: ${copingList}. Prioritize these strategies in coping_suggestions when suitable.`);
+    }
+
+    // Personal values
+    if (supportPreferences.personalValues) {
+      parts.push(`- USER PERSONAL VALUES & ANCHOR REMINDERS: "${supportPreferences.personalValues}".`);
+    }
+
+    if (parts.length) {
+      personalizationInstructions = `\n\nUSER PERSONALIZED SUPPORT PREFERENCES:\n${parts.join('\n')}\n(IMPORTANT: Never assume or preach beliefs. Treat these as supportive anchors only.)`;
+    }
+  }
+
   return `The user's preferred language is ${language}. Respond entirely in ${language} using its native script for all free-text fields (summary, coping_suggestions, growth_suggestion, affirmation). System fields (themes, triggers, sentiment, trend, risk_level, emotions, distortions) MUST remain in English to match the database enums.
 
-You are a clinical-aware (but NOT diagnostic) emotional analysis engine for a mental wellness journaling app called MindMirror.
+You are a clinical-aware (but NOT diagnostic) emotional analysis engine for a mental wellness journaling app called MindMirror.${personalizationInstructions}
 
 Given a NEW journal entry and the user's past entries (for context), analyze the new entry and return ONLY a single valid JSON object matching EXACTLY this shape:
 
@@ -109,9 +145,10 @@ Return ONLY the JSON object. Do not wrap in markdown code blocks.`;
  * @param {Array} previousEntries - array of past JournalEntry docs (plain objects), most recent first
  * @param {string} [userApiKey] - legacy user API key fallback
  * @param {string} [language] - preferred language code
+ * @param {object} [supportPreferences] - user's personalized support preferences
  * @returns {Promise<object>} structured analysis object matching the spec shape
  */
-async function analyzeJournalEntry(entryText, previousEntries, userApiKey, language = 'en') {
+async function analyzeJournalEntry(entryText, previousEntries, userApiKey, language = 'en', supportPreferences = {}) {
   const { executeWithFallback } = require('./geminiHelper');
   const config = require('../config');
 
@@ -120,7 +157,7 @@ async function analyzeJournalEntry(entryText, previousEntries, userApiKey, langu
   const rawText = await executeWithFallback(async (genAI) => {
     const model = genAI.getGenerativeModel({
       model: config.gemini.model || 'gemini-3.6-flash',
-      systemInstruction: buildSystemPrompt(previousEntries, language),
+      systemInstruction: buildSystemPrompt(previousEntries, language, supportPreferences),
     });
 
     const result = await model.generateContent({

@@ -1,10 +1,35 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { clearAllData } from '../lib/store.js'
 import * as api from '../lib/api.js'
 import { useAuth } from '../lib/AuthContext.jsx'
-import { User, Trash2, Shield, CheckCircle, Brain, Settings as SettingsIcon, Heart, Lock, Download, KeyRound, Loader2, AlertTriangle, Globe } from 'lucide-react'
+import {
+  User,
+  Trash2,
+  Shield,
+  CheckCircle,
+  Brain,
+  Settings as SettingsIcon,
+  Heart,
+  Lock,
+  Download,
+  KeyRound,
+  Loader2,
+  AlertTriangle,
+  Globe,
+  Compass,
+  Video,
+  Mic,
+  Type,
+  Sparkles,
+  RefreshCw,
+  Plus,
+  Play,
+  X,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useLanguage } from '../context/LanguageContext.jsx'
+import FutureSelfRecorder from '../components/FutureSelfRecorder.jsx'
 
 export default function Settings() {
   const { user, setUser } = useAuth()
@@ -33,6 +58,40 @@ export default function Settings() {
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [deleting, setDeleting] = useState(false)
+
+  // Future Self Message & Support Preferences
+  const [futureSelfMessage, setFutureSelfMessage] = useState(null)
+  const [loadingFutureSelf, setLoadingFutureSelf] = useState(true)
+  const [showRecorderModal, setShowRecorderModal] = useState(false)
+  const [deletingMessage, setDeletingMessage] = useState(false)
+
+  useEffect(() => {
+    api.getFutureSelfMessage()
+      .then(msg => setFutureSelfMessage(msg))
+      .catch(err => console.warn('Could not load future-self message:', err.message))
+      .finally(() => setLoadingFutureSelf(false))
+  }, [])
+
+  async function handleDeleteFutureSelf() {
+    setDeletingMessage(true)
+    try {
+      await api.deleteFutureSelfMessage()
+      setFutureSelfMessage(null)
+      if (user) {
+        setUser({
+          ...user,
+          supportPreferences: {
+            ...user.supportPreferences,
+            futureSelfMessageStatus: 'not_created',
+          },
+        })
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to delete message.')
+    } finally {
+      setDeletingMessage(false)
+    }
+  }
 
   useEffect(() => {
     if (user) {
@@ -338,6 +397,211 @@ export default function Settings() {
           {t('settings.aiConfigDesc')}
         </p>
       </section>
+
+      {/* ── Personalized Support & Grounding Preferences ──── */}
+      <section className="rounded-2xl p-5 mb-4"
+        style={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-border)' }}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-xl flex items-center justify-center"
+              style={{ background: 'rgba(139,130,236,0.15)' }}>
+              <Compass size={13} style={{ color: 'var(--color-primary)' }} />
+            </div>
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+              Support & Grounding Preferences
+            </h2>
+          </div>
+          <Link
+            to="/onboarding"
+            className="text-xs px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-medium transition-colors"
+          >
+            Update in Onboarding Setup &rarr;
+          </Link>
+        </div>
+
+        <div className="space-y-3 text-xs mt-3">
+          {/* Spiritual boundary */}
+          <div className="p-3 rounded-xl bg-surface-border/15 flex flex-col gap-1">
+            <span className="font-semibold text-text">Spiritual / Faith Boundary:</span>
+            <span className="text-text-muted">
+              {user?.supportPreferences?.spiritualContentInclusion === 'yes'
+                ? '✓ Open to spiritual/faith perspectives when relevant'
+                : user?.supportPreferences?.spiritualContentInclusion === 'only_when_asked'
+                ? '✓ Included only when explicitly requested in reflections'
+                : '✓ Spiritual/faith content strictly excluded'}
+            </span>
+          </div>
+
+          {/* Sources of hope */}
+          <div className="p-3 rounded-xl bg-surface-border/15 flex flex-col gap-1.5">
+            <span className="font-semibold text-text">Identified Sources of Hope & Meaning:</span>
+            <div className="flex flex-wrap gap-1.5">
+              {user?.supportPreferences?.sourcesOfHope?.length > 0 ? (
+                user.supportPreferences.sourcesOfHope.map(h => (
+                  <span key={h} className="px-2.5 py-0.5 rounded-md bg-accent/15 text-accent font-medium text-[11px]">
+                    {h}
+                  </span>
+                ))
+              ) : (
+                <span className="text-text-faint italic">None selected yet</span>
+              )}
+              {user?.supportPreferences?.customSourcesOfHope && (
+                <span className="px-2.5 py-0.5 rounded-md bg-accent/15 text-accent font-medium text-[11px]">
+                  {user.supportPreferences.customSourcesOfHope}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Coping preferences */}
+          <div className="p-3 rounded-xl bg-surface-border/15 flex flex-col gap-1.5">
+            <span className="font-semibold text-text">Preferred Grounding Activities:</span>
+            <div className="flex flex-wrap gap-1.5">
+              {user?.supportPreferences?.copingPreferences?.length > 0 ? (
+                user.supportPreferences.copingPreferences.map(c => (
+                  <span key={c} className="px-2.5 py-0.5 rounded-md bg-pink-400/15 text-pink-300 font-medium text-[11px]">
+                    {c}
+                  </span>
+                ))
+              ) : (
+                <span className="text-text-faint italic">None selected yet</span>
+              )}
+            </div>
+          </div>
+
+          {/* Personal Values */}
+          {user?.supportPreferences?.personalValues && (
+            <div className="p-3 rounded-xl bg-surface-border/15 flex flex-col gap-1">
+              <span className="font-semibold text-text">Personal Values Reminder:</span>
+              <p className="text-text-muted italic leading-relaxed">
+                "{user.supportPreferences.personalValues}"
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Future-Self Grounding Message ─────────────────── */}
+      <section className="rounded-2xl p-5 mb-4"
+        style={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-border)' }}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-xl flex items-center justify-center"
+              style={{ background: 'rgba(139,130,236,0.15)' }}>
+              <Sparkles size={13} style={{ color: 'var(--color-primary)' }} />
+            </div>
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+              Message to Future Self
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowRecorderModal(true)}
+            className="text-xs px-3 py-1.5 rounded-lg bg-primary text-white font-medium flex items-center gap-1.5 shadow-sm hover:opacity-90 transition-opacity"
+          >
+            {futureSelfMessage ? <><RefreshCw size={12} /> Replace Message</> : <><Plus size={12} /> Record Message</>}
+          </button>
+        </div>
+
+        <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+          A private message recorded when you were feeling okay, surfaced during moments of distress as a grounding anchor.
+        </p>
+
+        {loadingFutureSelf ? (
+          <div className="p-4 rounded-xl bg-surface-border/10 text-center text-xs text-text-faint">
+            Checking for existing message…
+          </div>
+        ) : futureSelfMessage ? (
+          <div className="p-4 rounded-2xl bg-surface-border/15 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold text-text">
+                {futureSelfMessage.messageType === 'video' && <Video size={14} className="text-primary" />}
+                {futureSelfMessage.messageType === 'audio' && <Mic size={14} className="text-primary" />}
+                {futureSelfMessage.messageType === 'text' && <Type size={14} className="text-primary" />}
+                <span className="capitalize">{futureSelfMessage.messageType} Message Active</span>
+              </div>
+              <span className="text-[11px] text-text-faint">
+                {new Date(futureSelfMessage.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+
+            {futureSelfMessage.promptUsed && (
+              <p className="text-[11px] text-primary italic">
+                Prompt: "{futureSelfMessage.promptUsed}"
+              </p>
+            )}
+
+            {futureSelfMessage.messageType === 'video' && futureSelfMessage.mediaUrl && (
+              <video
+                src={futureSelfMessage.mediaUrl}
+                controls
+                playsInline
+                className="w-full aspect-video rounded-xl object-cover bg-black/60 shadow-inner"
+              />
+            )}
+
+            {futureSelfMessage.messageType === 'audio' && futureSelfMessage.mediaUrl && (
+              <audio src={futureSelfMessage.mediaUrl} controls className="w-full" />
+            )}
+
+            {futureSelfMessage.messageType === 'text' && futureSelfMessage.text && (
+              <div className="p-3 rounded-xl bg-surface text-xs text-text leading-relaxed whitespace-pre-wrap">
+                {futureSelfMessage.text}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={handleDeleteFutureSelf}
+                disabled={deletingMessage}
+                className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              >
+                <Trash2 size={12} /> {deletingMessage ? 'Deleting…' : 'Delete Message'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 rounded-2xl bg-surface-border/10 border border-dashed border-surface-border text-center flex flex-col items-center gap-2">
+            <p className="text-xs text-text-muted">No future-self message created yet.</p>
+            <button
+              type="button"
+              onClick={() => setShowRecorderModal(true)}
+              className="text-xs text-primary font-semibold hover:underline"
+            >
+              Record or write one now &rarr;
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* Recorder Modal */}
+      {showRecorderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div
+            className="w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto"
+            style={{ background: 'var(--color-surface, #18181f)', border: '1px solid var(--color-surface-border)' }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-text">Create Message to Future Self</h3>
+              <button
+                onClick={() => setShowRecorderModal(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-text-muted hover:text-text"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <FutureSelfRecorder
+              existingMessage={futureSelfMessage}
+              onComplete={() => {
+                setShowRecorderModal(false)
+                api.getFutureSelfMessage().then(msg => setFutureSelfMessage(msg))
+              }}
+              onSkip={() => setShowRecorderModal(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ── Privacy ──────────────────────────────────────── */}
       <section className="rounded-2xl p-5 mb-4"

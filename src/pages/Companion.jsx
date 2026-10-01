@@ -5,18 +5,47 @@ import * as api from '../lib/api.js'
 import { useVoiceTranscription, useTextToSpeech } from '../lib/useVoice.js'
 import { format } from 'date-fns'
 
-function CrisisBanner({ support }) {
+import SafetyModeModal from '../components/SafetyModeModal.jsx'
+
+function CrisisBanner({ support, onOpenModal }) {
   if (!support) return null
   return (
     <div className="rounded-2xl p-4 mb-3 fade-up bg-red-500/10 border border-red-500/30 text-red-300">
-      <div className="flex items-center gap-2 mb-2">
-        <AlertTriangle size={15} className="text-red-400" />
-        <p className="text-sm font-semibold">{support.message}</p>
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={15} className="text-red-400 shrink-0" />
+          <p className="text-sm font-semibold">{support.message || "You don't have to handle this moment alone."}</p>
+        </div>
+        {onOpenModal && (
+          <button
+            type="button"
+            onClick={onOpenModal}
+            className="text-xs px-3 py-1 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 font-medium transition-colors shrink-0"
+          >
+            Open Safety Mode &rarr;
+          </button>
+        )}
       </div>
+
+      {support.groundingMessage && (
+        <div className="p-2.5 my-2 rounded-xl bg-primary/10 border border-primary/20 text-xs text-text-muted flex items-center justify-between gap-2">
+          <span>✨ Grounding anchor available from your future-self message.</span>
+          {onOpenModal && (
+            <button
+              type="button"
+              onClick={onOpenModal}
+              className="text-primary font-semibold hover:underline text-[11px]"
+            >
+              View Anchor
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2">
-        {support.resources.map(r => (
-          <div key={r.name} className="text-xs px-3 py-1.5 rounded-xl bg-white/10 text-white/90 font-medium">
-            <strong>{r.name}:</strong> {r.contact}
+        {support.resources?.map(r => (
+          <div key={r.name} className="text-xs px-3 py-1.5 rounded-xl bg-surface border border-surface-border text-text font-medium">
+            <strong>{r.name}:</strong> <a href={`tel:${r.contact}`} className="font-mono text-red-400 font-bold hover:underline">{r.contact}</a>
           </div>
         ))}
       </div>
@@ -159,6 +188,7 @@ export default function Companion() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [support, setSupport] = useState(null)
+  const [showSafetyModal, setShowSafetyModal] = useState(false)
   const [playingVideo, setPlayingVideo] = useState(null)
   const bottomRef = useRef(null)
 
@@ -229,7 +259,10 @@ export default function Companion() {
         }
         return next
       })
-      if (supportData) setSupport(supportData)
+      if (supportData) {
+        setSupport(supportData)
+        setShowSafetyModal(true)
+      }
     } catch (e) {
       setMessages(prev => {
         const next = [...prev]
@@ -285,7 +318,10 @@ export default function Companion() {
       </div>
 
       {/* Crisis Banner */}
-      <CrisisBanner support={support} />
+      <CrisisBanner support={support} onOpenModal={() => setShowSafetyModal(true)} />
+      {showSafetyModal && support && (
+        <SafetyModeModal support={support} onClose={() => setShowSafetyModal(false)} />
+      )}
 
       {/* Quick Prompts */}
       <div className="pb-3">

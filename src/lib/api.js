@@ -532,3 +532,61 @@ export async function transcribeVoice(audioBase64, mimeType) {
     body: JSON.stringify({ audio: audioBase64, mimeType })
   });
 }
+
+// ── Support Preferences & Grounding ──────────────────────────────────────────
+export async function getSupportPreferences() {
+  const data = await request('/users/me/support-preferences');
+  return data.supportPreferences || {};
+}
+
+export async function updateSupportPreferences(preferences) {
+  const data = await request('/users/me/support-preferences', {
+    method: 'PUT',
+    body: JSON.stringify(preferences),
+  });
+  return data.supportPreferences;
+}
+
+// ── Future-Self Grounding Message ────────────────────────────────────────────
+export async function getFutureSelfMessage() {
+  const data = await request('/future-self/message');
+  return data.message || null;
+}
+
+export async function saveFutureSelfTextMessage({ text, promptUsed }) {
+  return request('/future-self/text', {
+    method: 'POST',
+    body: JSON.stringify({ text, promptUsed }),
+  });
+}
+
+export async function uploadFutureSelfMedia(formData) {
+  const token = getToken();
+  const res = await fetch(`${BASE_URL}/future-self/upload`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Media upload failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function deleteFutureSelfMessage() {
+  return request('/future-self/message', {
+    method: 'DELETE',
+  });
+}
+
+export async function updateFutureSelfStatus(status) {
+  return request('/future-self/status', {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+

@@ -21,6 +21,7 @@ import LifeReport from './pages/LifeReport.jsx'
 import Appearance from './pages/Appearance.jsx'
 import AnchorSpace from './pages/AnchorSpace.jsx'
 import Auth from './pages/Auth.jsx'
+import Onboarding from './pages/Onboarding.jsx'
 import { AuthProvider, useAuth } from './lib/AuthContext.jsx'
 
 function ProtectedShell() {
@@ -53,6 +54,11 @@ function ProtectedShell() {
   // Authenticated: redirect /login and /signup back to dashboard
   if (location.pathname === '/login' || location.pathname === '/signup') {
     return <Navigate to="/" replace />
+  }
+
+  // Onboarding page rendered fullscreen for minimal calm experience
+  if (location.pathname === '/onboarding') {
+    return <Onboarding />
   }
 
   return (

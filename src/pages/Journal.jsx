@@ -18,6 +18,8 @@ const TREND_ICON = { improving: TrendingDown, worsening: TrendingUp, stable: Min
 const TREND_LABEL = { improving: 'Improving', worsening: 'Worsening', stable: 'Stable', unknown: 'Not enough data' }
 const TREND_COLOR = { improving: '#5DCAA5', worsening: '#E24B4A', stable: '#AFA9EC', unknown: 'rgba(232,230,240,0.4)' }
 
+import SafetyModeModal from '../components/SafetyModeModal.jsx'
+
 const ML_LABEL_MAP = {
   anxiety: { label: 'Anxiety', color: '#AFA9EC', bg: 'rgba(175, 169, 236, 0.15)' },
   normal: { label: 'Balanced / Calm', color: '#5DCAA5', bg: 'rgba(93, 202, 165, 0.15)' },
@@ -28,18 +30,45 @@ const ML_LABEL_MAP = {
   suicidal: { label: 'High Distress / Crisis', color: '#E24B4A', bg: 'rgba(226, 75, 74, 0.15)' },
 }
 
-function CrisisSupportBanner({ support }) {
+function CrisisSupportBanner({ support, onOpenModal }) {
   if (!support) return null
   return (
-    <div className="rounded-standard p-4 mb-4 fade-up bg-red-500/10 border border-red-500/30">
-      <div className="flex items-center gap-2 mb-2">
-        <AlertTriangle size={14} className="text-red-400" />
-        <p className="text-sm font-medium text-red-400">{support.message}</p>
+    <div className="rounded-2xl p-4 mb-4 fade-up bg-red-500/10 border border-red-500/30">
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={16} className="text-red-400 shrink-0" />
+          <p className="text-sm font-semibold text-red-400">{support.message || "You don't have to handle this moment alone."}</p>
+        </div>
+        {onOpenModal && (
+          <button
+            type="button"
+            onClick={onOpenModal}
+            className="text-xs px-3 py-1 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 font-medium transition-colors shrink-0"
+          >
+            Open Safety Mode &rarr;
+          </button>
+        )}
       </div>
+
+      {support.groundingMessage && (
+        <div className="p-2.5 my-2 rounded-xl bg-primary/10 border border-primary/20 text-xs text-text-muted flex items-center justify-between gap-2">
+          <span>✨ Grounding anchor available from your future-self message.</span>
+          {onOpenModal && (
+            <button
+              type="button"
+              onClick={onOpenModal}
+              className="text-primary font-semibold hover:underline text-[11px]"
+            >
+              View Anchor
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2 mt-2">
-        {support.resources.map(r => (
-          <div key={r.name} className="text-xs px-3 py-1.5 rounded-standard bg-surface text-text/80">
-            <strong>{r.name}:</strong> {r.contact} <span className="opacity-50">({r.hours})</span>
+        {support.resources?.map(r => (
+          <div key={r.name} className="text-xs px-3 py-1.5 rounded-xl bg-surface border border-surface-border text-text">
+            <strong>{r.name}:</strong> <a href={`tel:${r.contact}`} className="font-mono text-red-400 font-bold hover:underline">{r.contact}</a> <span className="opacity-50 text-[10px]">({r.hours})</span>
           </div>
         ))}
       </div>
@@ -237,6 +266,7 @@ export default function Journal() {
   const [coping, setCoping] = useState([])
   const [saving, setSaving] = useState(false)
   const [lastSupport, setLastSupport] = useState(null)
+  const [showSafetyModal, setShowSafetyModal] = useState(false)
   const [lastAiError, setLastAiError] = useState('')
   const [error, setError] = useState('')
   const [resolvingId, setResolvingId] = useState(null)
@@ -303,7 +333,10 @@ export default function Journal() {
       const entryWithRecs = { ...entry, recommendedVideos };
       setEntries(prev => [entryWithRecs, ...prev])
       if (aiError) setLastAiError(aiError)
-      if (support) setLastSupport(support)
+      if (support) {
+        setLastSupport(support)
+        setShowSafetyModal(true)
+      }
       setText('')
       setCoping([])
       setWriting(false)
@@ -417,7 +450,10 @@ export default function Journal() {
       </div>
 
       {error && <p className="text-xs mb-4 text-red-400">{error}</p>}
-      <CrisisSupportBanner support={lastSupport} />
+      <CrisisSupportBanner support={lastSupport} onOpenModal={() => setShowSafetyModal(true)} />
+      {showSafetyModal && lastSupport && (
+        <SafetyModeModal support={lastSupport} onClose={() => setShowSafetyModal(false)} />
+      )}
       {lastAiError && (
         <p className="text-xs mb-4 px-3 py-2 rounded-standard bg-orange-500/10 text-orange-400">{lastAiError}</p>
       )}

@@ -21,8 +21,10 @@ async function getEntries(req, res, next) {
 }
 
 // POST /api/journal
-// Creates an entry AND runs full AI analysis (Gemini contextual reflection + DistilBERT ML classification signal) in one step.
+// Reliability First: Saves the user's reflection to MongoDB FIRST before executing AI/ML analysis.
+// If AI fails, the journal is guaranteed to remain saved and safely returned.
 async function createEntry(req, res, next) {
+  let entry;
   try {
     const { text, mood, copingUsed } = req.body;
     if (!text?.trim()) {
@@ -30,20 +32,37 @@ async function createEntry(req, res, next) {
     }
 
     const trimmedText = text.trim();
+    const rawMood = mood ?? 5;
+    const safeMood = Math.min(10, Math.max(1, Number.isFinite(+rawMood) ? +rawMood : 5));
+
+    // ── 1. MANDATORY PERSISTENCE: Save journal entry immediately ──
+    entry = await JournalEntry.create({
+      user: req.userId,
+      text: trimmedText,
+      mood: safeMood,
+      copingUsed: copingUsed || [],
+      sentiment: 'neutral',
+      risk_level: 'none',
+    });
+
     const geminiApiKey = process.env.GEMINI_API_KEY;
 
+    // Pull user configuration & support preferences for personalized grounding
+    const user = await User.findById(req.userId).select('language supportPreferences').lean();
+
     // Pull recent history for trend comparison + similar-memory matching
-    const previousEntries = await JournalEntry.find({ user: req.userId })
+    const previousEntries = await JournalEntry.find({ user: req.userId, _id: { $ne: entry._id } })
       .sort({ date: -1 })
       .limit(15)
       .lean();
 
-    // 1. Run ML DistilBERT Classification (server-side inference) in parallel with Gemini
+    // ── 2. PARALLEL AI / ML PROCESSING ──
+    // 2a. DistilBERT text pattern signal (FastAPI microservice)
     const mlPromise = classifyJournal(trimmedText);
 
-    // 2. Run Gemini Contextual Analysis
+    // 2b. Gemini contextual analysis with user's support preferences
     let analysis = {
-      themes: [], triggers: [], sentiment: 'neutral', mood_score: mood ?? 5,
+      themes: [], triggers: [], sentiment: 'neutral', mood_score: safeMood,
       summary: '', coping_suggestions: [], trend: 'unknown',
       related_memories: [], risk_level: 'none', needs_support: false,
       emotions: [], stress_level: 5, anxiety_level: 5, burnout_signal: false,
@@ -54,14 +73,19 @@ async function createEntry(req, res, next) {
     const geminiPromise = (async () => {
       if (geminiApiKey) {
         try {
-          const user = await User.findById(req.userId).select('language');
-          return await analyzeJournalEntry(trimmedText, previousEntries, geminiApiKey, user?.language || 'en');
+          return await analyzeJournalEntry(
+            trimmedText,
+            previousEntries,
+            geminiApiKey,
+            user?.language || 'en',
+            user?.supportPreferences || {}
+          );
         } catch (e) {
           aiError = e.message;
           return null;
         }
       } else {
-        aiError = 'No Gemini API key configured on the server. Configure GEMINI_API_KEY in backend .env to enable AI analysis.';
+        aiError = 'No Gemini API key configured on server.';
         return null;
       }
     })();
@@ -79,21 +103,34 @@ async function createEntry(req, res, next) {
         }
       : null;
 
-    // `mood` from req.body is optional; fall back to AI-derived mood_score.
-    // Clamp to [1,10] as a last-resort safeguard — Mongoose schema min is 1,
-    // and Gemini can occasionally return 0 for very calm entries.
-    const rawMood = mood ?? analysis.mood_score ?? 5;
-    const safeMood = Math.min(10, Math.max(1, Number.isFinite(+rawMood) ? +rawMood : 5));
+    // AI mood_score supersedes when available
+    const finalMood = Number.isFinite(+analysis.mood_score)
+      ? Math.min(10, Math.max(1, +analysis.mood_score))
+      : safeMood;
 
-    const entry = await JournalEntry.create({
-      user: req.userId,
-      text: trimmedText,
-      mood: safeMood,
-      copingUsed: copingUsed || [],
-      ml_analysis: mlAnalysisData,
-      ...analysis,
-    });
+    // ── 3. UPDATE SAVED JOURNAL WITH AI INSIGHTS ──
+    entry.mood_score = finalMood;
+    entry.themes = analysis.themes || [];
+    entry.triggers = analysis.triggers || [];
+    entry.sentiment = analysis.sentiment || 'neutral';
+    entry.summary = analysis.summary || '';
+    entry.coping_suggestions = analysis.coping_suggestions || [];
+    entry.trend = analysis.trend || 'unknown';
+    entry.related_memories = analysis.related_memories || [];
+    entry.risk_level = analysis.risk_level || 'none';
+    entry.needs_support = Boolean(analysis.needs_support);
+    entry.emotions = analysis.emotions || [];
+    entry.stress_level = analysis.stress_level || 5;
+    entry.anxiety_level = analysis.anxiety_level || 5;
+    entry.burnout_signal = Boolean(analysis.burnout_signal);
+    entry.distortions = analysis.distortions || [];
+    entry.growth_suggestion = analysis.growth_suggestion || '';
+    entry.affirmation = analysis.affirmation || '';
+    entry.ml_analysis = mlAnalysisData;
 
+    await entry.save();
+
+    // ── 4. VECTOR EMBEDDING & PAST-SELF VIDEO RECOMMENDATIONS ──
     let recommendedVideos = [];
     try {
       const vec = await generateEmbedding(trimmedText);
@@ -104,7 +141,7 @@ async function createEntry(req, res, next) {
       const videoResults = await findSimilarVideos(VideoReflection, {
         embedding: vec,
         userId: req.userId,
-        limit: 3
+        limit: 3,
       });
       recommendedVideos = videoResults.map(r => r.video);
     } catch (e) {
@@ -122,18 +159,42 @@ async function createEntry(req, res, next) {
       mlAvailable: Boolean(mlResult?.available),
     };
 
-    // Safety net: attach crisis resources at the API layer when risk is flagged or ML detects high-confidence suicidal pattern
+    // ── 5. DEDICATED HIGH-RISK SAFETY MODE & GROUNDING RESOURCE ──
     const isCrisisSignal =
       analysis.risk_level === 'moderate' ||
       analysis.risk_level === 'high' ||
       (mlResult?.label === 'suicidal' && (mlResult?.confidence || 0) >= 0.5);
 
     if (isCrisisSignal) {
-      responseBody.support = CRISIS_RESOURCES;
+      const FutureSelfMessage = require('../models/FutureSelfMessage');
+      const futureSelf = await FutureSelfMessage.findOne({ user: req.userId }).lean();
+
+      responseBody.support = {
+        ...CRISIS_RESOURCES,
+        isSafetyMode: true,
+        riskLevel: analysis.risk_level || (mlResult?.label === 'suicidal' ? 'high' : 'moderate'),
+        groundingMessage: futureSelf
+          ? {
+              messageType: futureSelf.messageType,
+              text: futureSelf.text,
+              mediaUrl: futureSelf.mediaUrl,
+              promptUsed: futureSelf.promptUsed,
+              createdAt: futureSelf.createdAt,
+            }
+          : null,
+      };
     }
 
     res.status(201).json(responseBody);
   } catch (err) {
+    // If journal entry was created before a downstream error, return the saved entry
+    if (entry && entry._id) {
+      return res.status(201).json({
+        entry,
+        aiError: 'AI analysis could not be completed at this moment, but your journal is safely saved.',
+        mlAvailable: false,
+      });
+    }
     next(err);
   }
 }

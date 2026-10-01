@@ -39,12 +39,14 @@ function createVideoUploader() {
     const mime = (file.mimetype || '').toLowerCase();
     const ext = path.extname(file.originalname || '').toLowerCase();
     const isVideoMime = mime.startsWith('video/') || mime === 'application/octet-stream' || mime === '';
+    const isAudioMime = mime.startsWith('audio/');
     const isVideoExt = ['.webm', '.mp4', '.mov', '.avi', '.mkv', '.ogv', '.m4v', '.3gp', ''].includes(ext);
+    const isAudioExt = ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.weba'].includes(ext);
 
-    if (isVideoMime || isVideoExt) {
+    if (isVideoMime || isAudioMime || isVideoExt || isAudioExt) {
       cb(null, true);
     } else {
-      cb(new Error(`Invalid file type: ${file.mimetype}. Only video files are allowed.`), false);
+      cb(new Error(`Invalid file type: ${file.mimetype}. Only audio/video files are allowed.`), false);
     }
   };
 

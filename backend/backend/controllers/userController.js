@@ -111,6 +111,7 @@ async function deleteAccount(req, res, next) {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     // Cascade delete all associated user data
+    const FutureSelfMessage = require('../models/FutureSelfMessage');
     await Promise.all([
       JournalEntry.deleteMany({ user: req.userId }),
       VideoReflection.deleteMany({ user: req.userId }),
@@ -118,6 +119,7 @@ async function deleteAccount(req, res, next) {
       FutureLetter.deleteMany({ user: req.userId }),
       ActionMemory.deleteMany({ user: req.userId }),
       AnchorItem.deleteMany({ user: req.userId }),
+      FutureSelfMessage.deleteMany({ user: req.userId }),
       User.findByIdAndDelete(req.userId),
     ]);
 
@@ -135,10 +137,74 @@ async function deleteAccount(req, res, next) {
   }
 }
 
+// GET /api/users/me/support-preferences
+async function getSupportPreferences(req, res, next) {
+  try {
+    const user = await User.findById(req.userId).select('supportPreferences');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ supportPreferences: user.supportPreferences || {} });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PUT /api/users/me/support-preferences
+async function updateSupportPreferences(req, res, next) {
+  try {
+    const {
+      spiritualPreference,
+      spiritualitySupport,
+      spiritualContentInclusion,
+      sourcesOfHope,
+      customSourcesOfHope,
+      copingPreferences,
+      customCopingPreferences,
+      personalValues,
+      futureSelfMessageStatus,
+      onboardingCompleted,
+    } = req.body;
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    user.supportPreferences = {
+      ...user.supportPreferences?.toObject?.() || {},
+      ...(spiritualPreference !== undefined && { spiritualPreference }),
+      ...(spiritualitySupport !== undefined && { spiritualitySupport }),
+      ...(spiritualContentInclusion !== undefined && { spiritualContentInclusion }),
+      ...(sourcesOfHope !== undefined && { sourcesOfHope }),
+      ...(customSourcesOfHope !== undefined && { customSourcesOfHope }),
+      ...(copingPreferences !== undefined && { copingPreferences }),
+      ...(customCopingPreferences !== undefined && { customCopingPreferences }),
+      ...(personalValues !== undefined && { personalValues }),
+      ...(futureSelfMessageStatus !== undefined && { futureSelfMessageStatus }),
+      ...(onboardingCompleted !== undefined && {
+        onboardingCompleted,
+        ...(onboardingCompleted && { onboardingCompletedAt: new Date() }),
+      }),
+    };
+
+    await user.save();
+
+    logSecurityEvent({
+      event: SecurityEvent.SUPPORT_PREFERENCES_UPDATED,
+      userId: req.userId,
+      status: 'SUCCESS',
+      req,
+    });
+
+    res.json({ success: true, supportPreferences: user.supportPreferences });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   updateProfile,
   updatePreferences,
   updateLanguage,
   exportUserData,
   deleteAccount,
+  getSupportPreferences,
+  updateSupportPreferences,
 };

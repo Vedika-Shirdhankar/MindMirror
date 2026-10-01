@@ -154,8 +154,60 @@ export default function Dashboard() {
     { icon: Gamepad2, label: 'Mind Games', desc: 'Two-minute resets for a racing mind', color: '#D4537E', to: '/mind-games' },
   ]
 
+  const [dismissOnboardingBanner, setDismissOnboardingBanner] = useState(
+    localStorage.getItem('mm_dismiss_onboarding_banner') === 'true'
+  )
+
+  const showPersonalizationPrompt =
+    !dismissOnboardingBanner &&
+    (!user?.supportPreferences?.onboardingCompleted ||
+      user?.supportPreferences?.futureSelfMessageStatus === 'remind_later')
+
+  function handleDismissBanner() {
+    setDismissOnboardingBanner(true)
+    localStorage.setItem('mm_dismiss_onboarding_banner', 'true')
+  }
+
   return (
     <div className={`sanctuary-dashboard max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 pb-16 ${pickedMood ? `sanctuary-dashboard--${pickedMood}` : ''}`}>
+      {/* ── Personalization Setup Banner (Non-intrusive) ── */}
+      {showPersonalizationPrompt && (
+        <div className="mb-5 rounded-2xl p-4 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 fade-up">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center text-primary shrink-0">
+              <Sparkles size={16} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-text">
+                {!user?.supportPreferences?.onboardingCompleted
+                  ? 'Help MindMirror Understand You'
+                  : 'Complete Your Future-Self Grounding Anchor'}
+              </p>
+              <p className="text-[11px] text-text-muted">
+                {!user?.supportPreferences?.onboardingCompleted
+                  ? 'Set your personal boundaries, sources of hope, and grounding preferences in 2 minutes.'
+                  : 'Record a private message to yourself while feeling okay, to revisit during difficult days.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-center">
+            <button
+              onClick={() => navigate('/onboarding')}
+              className="text-xs px-3.5 py-1.5 rounded-xl bg-primary text-white font-semibold shadow-sm hover:opacity-90 active:scale-95 transition-all shrink-0"
+            >
+              {!user?.supportPreferences?.onboardingCompleted ? 'Get Started' : 'Record Now'} &rarr;
+            </button>
+            <button
+              onClick={handleDismissBanner}
+              className="text-xs px-2 py-1.5 text-text-faint hover:text-text-muted"
+              title="Dismiss"
+            >
+              Later
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Signature hero: greeting + daily affirmation ── */}
       <div className="dashboard-hero relative min-h-[330px] rounded-[30px] p-7 sm:p-10 mb-5 overflow-hidden fade-up shadow-[0_18px_45px_rgba(36,59,58,0.08)]">
         <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-primary/20 blur-[90px] animate-breathe pointer-events-none" />

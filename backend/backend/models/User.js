@@ -34,6 +34,36 @@ const userSchema = new mongoose.Schema(
         highContrast: { type: Boolean, default: false },
         dyslexiaFont: { type: Boolean, default: false }
       }
+    },
+    // ── Personalized Support & Grounding Preferences ──
+    supportPreferences: {
+      spiritualPreference: {
+        type: String,
+        enum: ['yes', 'no', 'not_sure', 'prefer_not_to_say', ''],
+        default: ''
+      },
+      spiritualitySupport: {
+        type: String,
+        enum: ['yes', 'sometimes', 'no', 'prefer_not_to_say', ''],
+        default: ''
+      },
+      spiritualContentInclusion: {
+        type: String,
+        enum: ['yes', 'no', 'only_when_asked', ''],
+        default: 'no'
+      },
+      sourcesOfHope: [{ type: String }],
+      customSourcesOfHope: { type: String, default: '', trim: true },
+      copingPreferences: [{ type: String }],
+      customCopingPreferences: { type: String, default: '', trim: true },
+      personalValues: { type: String, default: '', trim: true },
+      futureSelfMessageStatus: {
+        type: String,
+        enum: ['not_created', 'recorded', 'written', 'dismissed', 'remind_later'],
+        default: 'not_created'
+      },
+      onboardingCompleted: { type: Boolean, default: false },
+      onboardingCompletedAt: { type: Date }
     }
   },
   { timestamps: true }

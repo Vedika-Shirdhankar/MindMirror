@@ -45,9 +45,9 @@ describe('Auth API', () => {
     await User.deleteMany({ email: /test-jest@/ });
   });
 
-  describe('POST /api/auth/register', () => {
+  describe('POST /api/auth/signup', () => {
     it('should register a new user and return a token', async () => {
-      const res = await request(testApp).post('/api/auth/register').send({
+      const res = await request(testApp).post('/api/auth/signup').send({
         name: 'Jest User',
         email: 'test-jest@example.com',
         password: 'TestPass123!',
@@ -60,13 +60,13 @@ describe('Auth API', () => {
     });
 
     it('should reject registration with a duplicate email', async () => {
-      await request(testApp).post('/api/auth/register').send({
+      await request(testApp).post('/api/auth/signup').send({
         name: 'Jest User',
         email: 'test-jest@example.com',
         password: 'TestPass123!',
       });
 
-      const res = await request(testApp).post('/api/auth/register').send({
+      const res = await request(testApp).post('/api/auth/signup').send({
         name: 'Another User',
         email: 'test-jest@example.com',
         password: 'AnotherPass!',
@@ -76,7 +76,7 @@ describe('Auth API', () => {
     });
 
     it('should reject registration with missing required fields', async () => {
-      const res = await request(testApp).post('/api/auth/register').send({
+      const res = await request(testApp).post('/api/auth/signup').send({
         email: 'test-jest-incomplete@example.com',
       });
       expect(res.status).toBeGreaterThanOrEqual(400);
@@ -85,7 +85,7 @@ describe('Auth API', () => {
 
   describe('POST /api/auth/login', () => {
     beforeEach(async () => {
-      await request(testApp).post('/api/auth/register').send({
+      await request(testApp).post('/api/auth/signup').send({
         name: 'Login Test User',
         email: 'test-jest@example.com',
         password: 'TestPass123!',

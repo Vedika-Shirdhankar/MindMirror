@@ -7,6 +7,8 @@ const {
   updateLanguage,
   exportUserData,
   deleteAccount,
+  getSupportPreferences,
+  updateSupportPreferences,
 } = require('../controllers/userController');
 const { requireAuth } = require('../middleware/auth');
 
@@ -14,6 +16,8 @@ router.use(requireAuth);
 
 router.get('/me/export', exportUserData);
 router.delete('/me', deleteAccount);
+router.get('/me/support-preferences', getSupportPreferences);
+router.put('/me/support-preferences', updateSupportPreferences);
 router.put('/me', updateProfile);
 router.patch('/me/preferences', updatePreferences);
 router.patch('/me/language', updateLanguage);

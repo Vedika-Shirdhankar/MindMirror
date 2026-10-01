@@ -147,13 +147,45 @@ function buildCompanionSystemPrompt({
   relevantVideos,
   allVideos,
   actionMemories,
-  pastSelfRec
+  pastSelfRec,
+  supportPreferences = {},
 }) {
   const memoryContext    = buildMemoryContext(relevantMemories);
   const videoContext     = buildVideoContext(relevantVideos, pastSelfRec);
   const allVideosContext = buildAllVideosContext(allVideos);
   const actionContext    = buildActionContext(actionMemories);
   const recentContext    = buildRecentJourneyContext(recentEntries);
+
+  // User personalized boundaries & support preferences
+  let userPrefSection = '';
+  if (supportPreferences && typeof supportPreferences === 'object') {
+    const prefLines = [];
+    if (supportPreferences.spiritualContentInclusion === 'no') {
+      prefLines.push('• USER BOUNDARY: Do NOT include spiritual, religious, or faith-based advice or framing.');
+    } else if (supportPreferences.spiritualContentInclusion === 'yes') {
+      prefLines.push('• USER PREFERENCE: Open to spiritual/faith-based grounding perspectives when relevant.');
+    } else if (supportPreferences.spiritualContentInclusion === 'only_when_asked') {
+      prefLines.push('• USER BOUNDARY: Only reference faith/spirituality if the user explicitly mentions it.');
+    }
+
+    if (supportPreferences.sourcesOfHope?.length) {
+      const hopeStr = supportPreferences.sourcesOfHope.join(', ') + (supportPreferences.customSourcesOfHope ? ` (${supportPreferences.customSourcesOfHope})` : '');
+      prefLines.push(`• USER IDENTIFIED SOURCES OF HOPE & MEANING: ${hopeStr}. Draw from these meaningful anchors when encouraging the user.`);
+    }
+
+    if (supportPreferences.copingPreferences?.length) {
+      const copingStr = supportPreferences.copingPreferences.join(', ') + (supportPreferences.customCopingPreferences ? ` (${supportPreferences.customCopingPreferences})` : '');
+      prefLines.push(`• USER PREFERRED COPING ACTIVITIES: ${copingStr}. Suggest these when recommending actions.`);
+    }
+
+    if (supportPreferences.personalValues) {
+      prefLines.push(`• USER PERSONAL VALUES & FUTURE-SELF REMINDERS: "${supportPreferences.personalValues}".`);
+    }
+
+    if (prefLines.length) {
+      userPrefSection = `\n\n── USER PERSONAL SUPPORT PREFERENCES ─────────────────────────────────────\n${prefLines.join('\n')}\n(IMPORTANT: Never assume or preach. Respect boundaries strictly.)`;
+    }
+  }
 
   // Determine personalization level
   const hasMemories  = !!memoryContext;
@@ -196,6 +228,8 @@ ${actionContext}`;
 (Last 5 entries, for trend and recency awareness.)
 ${recentContext}`;
   }
+
+  contextSection += userPrefSection;
 
   // Personalization level header for Gemini's reasoning
   let personalizationGuidance = '';
@@ -366,10 +400,11 @@ async function sendMessage(req, res, next) {
       return res.json({ reply: fallback, messages: chat.messages });
     }
 
-    // ── Fetch user name ────────────────────────────────────────────────────────
-    const userDoc = await User.findById(req.userId).select('name language').lean();
+    // ── Fetch user details & support preferences ─────────────────────────────
+    const userDoc = await User.findById(req.userId).select('name language supportPreferences').lean();
     const userName = userDoc?.name?.split(' ')[0] || 'there';
     const userLanguage = userDoc?.language || 'en';
+    const supportPreferences = userDoc?.supportPreferences || {};
 
     // ── Generate query embedding (single generation, used everywhere) ──────────
     let embedding = null;
@@ -433,7 +468,8 @@ async function sendMessage(req, res, next) {
       relevantVideos,
       allVideos,
       actionMemories,
-      pastSelfRec
+      pastSelfRec,
+      supportPreferences,
     });
 
     // Translate stored messages → Gemini format
@@ -471,11 +507,30 @@ async function sendMessage(req, res, next) {
 
     // Crisis detection on user's raw message
     const riskFlag = /\b(suicide|kill myself|end my life|self harm|hurt myself|no reason to live)\b/i.test(content);
+    let supportPayload = undefined;
+    if (riskFlag) {
+      const FutureSelfMessage = require('../models/FutureSelfMessage');
+      const futureSelf = await FutureSelfMessage.findOne({ user: req.userId }).lean();
+      supportPayload = {
+        ...CRISIS_RESOURCES,
+        isSafetyMode: true,
+        riskLevel: 'high',
+        groundingMessage: futureSelf
+          ? {
+              messageType: futureSelf.messageType,
+              text: futureSelf.text,
+              mediaUrl: futureSelf.mediaUrl,
+              promptUsed: futureSelf.promptUsed,
+              createdAt: futureSelf.createdAt,
+            }
+          : null,
+      };
+    }
 
     res.json({
       reply,
       messages: chat.messages,
-      support: riskFlag ? CRISIS_RESOURCES : undefined,
+      support: supportPayload,
       recommendedVideos: relevantVideos,
       pastSelfRecommendation: pastSelfRec,
     });
@@ -515,9 +570,10 @@ async function streamMessage(req, res, next) {
       return res.end();
     }
 
-    const userDoc = await User.findById(req.userId).select('name language').lean();
+    const userDoc = await User.findById(req.userId).select('name language supportPreferences').lean();
     const userName = userDoc?.name?.split(' ')[0] || 'there';
     const userLanguage = userDoc?.language || 'en';
+    const supportPreferences = userDoc?.supportPreferences || {};
 
     let embedding = null;
     res.write(`data: ${JSON.stringify({ status: 'Remembering what has helped before...' })}\n\n`);
@@ -561,7 +617,8 @@ async function streamMessage(req, res, next) {
       relevantVideos,
       allVideos,
       actionMemories,
-      pastSelfRec
+      pastSelfRec,
+      supportPreferences,
     });
 
     const geminiContents = chat.messages
@@ -603,10 +660,29 @@ async function streamMessage(req, res, next) {
     await chat.save();
 
     const riskFlag = /\b(suicide|kill myself|end my life|self harm|hurt myself|no reason to live)\b/i.test(content);
+    let streamSupport = undefined;
+    if (riskFlag) {
+      const FutureSelfMessage = require('../models/FutureSelfMessage');
+      const futureSelf = await FutureSelfMessage.findOne({ user: req.userId }).lean();
+      streamSupport = {
+        ...CRISIS_RESOURCES,
+        isSafetyMode: true,
+        riskLevel: 'high',
+        groundingMessage: futureSelf
+          ? {
+              messageType: futureSelf.messageType,
+              text: futureSelf.text,
+              mediaUrl: futureSelf.mediaUrl,
+              promptUsed: futureSelf.promptUsed,
+              createdAt: futureSelf.createdAt,
+            }
+          : null,
+      };
+    }
 
     res.write(`data: ${JSON.stringify({
       final: {
-        support: riskFlag ? CRISIS_RESOURCES : undefined,
+        support: streamSupport,
         recommendedVideos: relevantVideos,
         pastSelfRecommendation: pastSelfRec,
       }
