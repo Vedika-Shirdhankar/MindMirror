@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Heart, Sparkles } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext.jsx';
+import GoogleSignInButton from '../components/GoogleSignInButton.jsx';
 
 export default function Auth({ isModal = false, onClose = null, initialMode = 'login' }) {
   const [mode, setMode] = useState(initialMode); // 'login' | 'signup'
@@ -56,6 +57,18 @@ export default function Auth({ isModal = false, onClose = null, initialMode = 'l
             ? 'Welcome back. Your space is waiting. 🌿'
             : 'Begin your journey inward. ✨'}
         </p>
+      </div>
+
+      {/* ── GOOGLE ONE-CLICK SIGN IN / SIGN UP ── */}
+      <div className="mb-4">
+        <GoogleSignInButton mode={mode} onError={(err) => setError(err)} />
+      </div>
+
+      <div className="relative flex items-center justify-center my-4">
+        <div className="border-t border-surface-border w-full"></div>
+        <span className="bg-[var(--color-bg,#0f0f13)] px-3 text-[11px] uppercase tracking-wider text-text-faint absolute">
+          or continue with email
+        </span>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">

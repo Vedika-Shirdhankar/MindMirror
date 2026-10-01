@@ -72,6 +72,10 @@ async function login(req, res, next) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
+    if (!user.passwordHash) {
+      return res.status(400).json({ error: 'This account was registered with Google Sign-In. Please click "Continue with Google".' });
+    }
+
     const valid = await user.comparePassword(password);
     if (!valid) {
       logSecurityEvent({
@@ -94,6 +98,115 @@ async function login(req, res, next) {
 
     const token = generateToken(user._id);
     res.json({ token, user: user.toJSON() });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/auth/google
+async function googleAuth(req, res, next) {
+  try {
+    const { credential, accessToken } = req.body;
+    if (!credential && !accessToken) {
+      return res.status(400).json({ error: 'Google credential token is required.' });
+    }
+
+    let payload = null;
+
+    if (credential) {
+      try {
+        const { OAuth2Client } = require('google-auth-library');
+        const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+        const ticket = await googleClient.verifyIdToken({
+          idToken: credential,
+          audience: process.env.GOOGLE_CLIENT_ID ? [process.env.GOOGLE_CLIENT_ID] : undefined,
+        });
+        payload = ticket.getPayload();
+      } catch (verifyErr) {
+        // Fallback: verify via Google tokeninfo endpoint
+        const fetch = globalThis.fetch || require('node-fetch');
+        const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
+        if (!response.ok) {
+          return res.status(401).json({ error: 'Invalid Google credential token.' });
+        }
+        payload = await response.json();
+      }
+    } else if (accessToken) {
+      const fetch = globalThis.fetch || require('node-fetch');
+      const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!response.ok) {
+        return res.status(401).json({ error: 'Invalid Google access token.' });
+      }
+      payload = await response.json();
+    }
+
+    if (!payload || !payload.email) {
+      return res.status(400).json({ error: 'Unable to extract email from Google profile.' });
+    }
+
+    const { email, name, sub: googleId, picture } = payload;
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Find existing user by googleId or email
+    let user = await User.findOne({
+      $or: [{ googleId }, { email: normalizedEmail }],
+    });
+
+    let isNewUser = false;
+
+    if (!user) {
+      user = await User.create({
+        name: name || normalizedEmail.split('@')[0],
+        email: normalizedEmail,
+        googleId,
+        authProvider: 'google',
+        avatarUrl: picture || '',
+        supportPreferences: {
+          onboardingCompleted: false,
+        },
+      });
+      isNewUser = true;
+
+      logSecurityEvent({
+        event: SecurityEvent.SIGNUP_SUCCESS,
+        userId: user._id,
+        status: 'SUCCESS',
+        req,
+        metadata: { provider: 'google', email: normalizedEmail },
+      });
+    } else {
+      let needsSave = false;
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.authProvider = 'google';
+        needsSave = true;
+      }
+      if (picture && !user.avatarUrl) {
+        user.avatarUrl = picture;
+        needsSave = true;
+      }
+      if (needsSave) {
+        await user.save();
+      }
+
+      logSecurityEvent({
+        event: SecurityEvent.LOGIN_SUCCESS,
+        userId: user._id,
+        status: 'SUCCESS',
+        req,
+        metadata: { provider: 'google', email: normalizedEmail },
+      });
+    }
+
+    const token = generateToken(user._id);
+    res.json({
+      success: true,
+      token,
+      user: user.toJSON(),
+      isNewUser,
+    });
   } catch (err) {
     next(err);
   }
@@ -154,4 +267,4 @@ async function getMe(req, res, next) {
   }
 }
 
-module.exports = { signup, login, getMe, changePassword };
+module.exports = { signup, login, googleAuth, getMe, changePassword };

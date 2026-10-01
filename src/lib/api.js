@@ -154,6 +154,17 @@ export async function signup(name, email, password) {
   return data.user;
 }
 
+export async function googleAuth(credential, accessToken) {
+  const data = await request('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ credential, accessToken }),
+  });
+  if (data.token) {
+    localStorage.setItem('mm_token', data.token);
+  }
+  return data;
+}
+
 export async function getMe() {
   const data = await request('/auth/me');
   return data.user;
