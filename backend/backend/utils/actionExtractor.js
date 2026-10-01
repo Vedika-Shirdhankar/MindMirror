@@ -37,7 +37,7 @@ ${text.trim().slice(0, 1500)}
   try {
     return await executeWithFallback(async (genAI) => {
       const model = genAI.getGenerativeModel({
-        model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+        model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
         generationConfig: { responseMimeType: 'application/json', temperature: 0.1 }
       });
       const res = await model.generateContent(prompt);

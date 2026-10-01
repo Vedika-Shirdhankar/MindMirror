@@ -4,8 +4,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { GoogleAIFileManager } = require('@google/generative-ai/server');
 const { VALID_THEMES, VALID_TRIGGERS } = require('./aiAnalysis');
 
-const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-const CANDIDATE_MODELS = [PRIMARY_MODEL, 'gemini-2.5-flash', 'gemini-3.6-flash'].filter((v, i, a) => a.indexOf(v) === i);
+const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+const CANDIDATE_MODELS = [PRIMARY_MODEL, 'gemini-3.8-flash', 'gemini-3.6-flash'].filter((v, i, a) => a.indexOf(v) === i);
 
 const VALID_STRESS_LEVELS = ['low', 'moderate', 'high', 'severe'];
 const VALID_RISK_LEVELS = ['none', 'low', 'moderate', 'high'];

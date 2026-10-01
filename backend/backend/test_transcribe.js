@@ -21,7 +21,7 @@ async function testTranscription() {
   console.log('Base64 size:', Math.round(base64Data.length / 1024 / 1024 * 10) / 10, 'MB');
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.8-flash' });
 
   console.log('Sending request to Gemini...');
   try {
