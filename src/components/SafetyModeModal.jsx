@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { Phone, Heart, ShieldAlert, Sparkles, UserCheck, X, Play, Video, Mic, Type } from 'lucide-react'
+import { Phone, Heart, ShieldAlert, Sparkles, UserCheck, X, Play, Video, Mic, Type, AlertCircle } from 'lucide-react'
+import { getVideoUrl } from '../lib/api'
 
 export default function SafetyModeModal({ support, onClose }) {
   const [showGroundingMessage, setShowGroundingMessage] = useState(false)
+  const [mediaError, setMediaError] = useState(false)
 
   if (!support) return null
 
@@ -75,17 +77,33 @@ export default function SafetyModeModal({ support, onClose }) {
               </button>
             ) : (
               <div className="mt-2 p-3 rounded-xl bg-surface border border-surface-border flex flex-col gap-2">
-                {groundingMessage.messageType === 'video' && (
-                  <video
-                    src={groundingMessage.mediaUrl}
-                    controls
-                    autoPlay
-                    playsInline
-                    className="w-full aspect-video rounded-lg object-cover"
-                  />
-                )}
-                {groundingMessage.messageType === 'audio' && (
-                  <audio src={groundingMessage.mediaUrl} controls autoPlay className="w-full" />
+                {mediaError ? (
+                  <div className="flex items-center gap-2 text-xs text-amber-300 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <AlertCircle size={14} className="shrink-0" />
+                    <span>Media file not available locally. You can record a new grounding message in Settings.</span>
+                  </div>
+                ) : (
+                  <>
+                    {groundingMessage.messageType === 'video' && groundingMessage.mediaUrl && (
+                      <video
+                        src={getVideoUrl(groundingMessage.mediaUrl)}
+                        controls
+                        autoPlay
+                        playsInline
+                        onError={() => setMediaError(true)}
+                        className="w-full aspect-video rounded-lg object-cover bg-black"
+                      />
+                    )}
+                    {groundingMessage.messageType === 'audio' && groundingMessage.mediaUrl && (
+                      <audio
+                        src={getVideoUrl(groundingMessage.mediaUrl)}
+                        controls
+                        autoPlay
+                        onError={() => setMediaError(true)}
+                        className="w-full"
+                      />
+                    )}
+                  </>
                 )}
                 {groundingMessage.messageType === 'text' && (
                   <p className="text-xs text-text leading-relaxed whitespace-pre-wrap">

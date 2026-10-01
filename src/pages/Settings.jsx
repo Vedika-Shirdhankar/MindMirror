@@ -533,7 +533,7 @@ export default function Settings() {
 
             {futureSelfMessage.messageType === 'video' && futureSelfMessage.mediaUrl && (
               <video
-                src={futureSelfMessage.mediaUrl}
+                src={api.getVideoUrl(futureSelfMessage.mediaUrl)}
                 controls
                 playsInline
                 className="w-full aspect-video rounded-xl object-cover bg-black/60 shadow-inner"
@@ -541,7 +541,7 @@ export default function Settings() {
             )}
 
             {futureSelfMessage.messageType === 'audio' && futureSelfMessage.mediaUrl && (
-              <audio src={futureSelfMessage.mediaUrl} controls className="w-full" />
+              <audio src={api.getVideoUrl(futureSelfMessage.mediaUrl)} controls className="w-full" />
             )}
 
             {futureSelfMessage.messageType === 'text' && futureSelfMessage.text && (
