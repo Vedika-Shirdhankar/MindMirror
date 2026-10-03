@@ -87,7 +87,25 @@ function encrypt(text) {
 }
 
 /**
- * Decrypts AES-256-GCM encrypted string
+ * Derives candidate encryption keys for robust decryption across environments
+ */
+function getCandidateKeys() {
+  const keys = [];
+  if (process.env.ENCRYPTION_KEY) {
+    keys.push(crypto.createHash('sha256').update(String(process.env.ENCRYPTION_KEY)).digest());
+  }
+  if (process.env.JWT_SECRET) {
+    keys.push(crypto.createHash('sha256').update(String(process.env.JWT_SECRET)).digest());
+  }
+  // Dedicated migration & fallback keys
+  keys.push(crypto.createHash('sha256').update('mindmirror_secret_key_2026').digest());
+  keys.push(crypto.createHash('sha256').update('mindmirror-dev-fallback-key-32bytes').digest());
+
+  return keys;
+}
+
+/**
+ * Decrypts AES-256-GCM encrypted string with key fallback candidate support
  * @param {string} cipherText - Encrypted string (or legacy plaintext)
  * @returns {string} Decrypted plaintext string
  */
@@ -101,28 +119,36 @@ function decrypt(cipherText) {
     return cipherText;
   }
 
-  try {
-    const parts = cipherText.slice(PREFIX.length).split(':');
-    if (parts.length !== 3) {
-      return cipherText;
-    }
-
-    const [ivHex, authTagHex, encryptedHex] = parts;
-    const key = getEncryptionKey();
-    const iv = Buffer.from(ivHex, 'hex');
-    const authTag = Buffer.from(authTagHex, 'hex');
-
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-    decipher.setAuthTag(authTag);
-
-    let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-
-    return decrypted;
-  } catch (err) {
-    logger.warn({ message: 'Decryption failed or invalid key/tag', error: err.message });
+  const parts = cipherText.slice(PREFIX.length).split(':');
+  if (parts.length !== 3) {
     return cipherText;
   }
+
+  const [ivHex, authTagHex, encryptedHex] = parts;
+  const iv = Buffer.from(ivHex, 'hex');
+  const authTag = Buffer.from(authTagHex, 'hex');
+
+  const candidateKeys = getCandidateKeys();
+
+  for (const key of candidateKeys) {
+    try {
+      const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+      decipher.setAuthTag(authTag);
+
+      let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+
+      return decrypted; // Successfully decrypted!
+    } catch {
+      // Try next key candidate
+    }
+  }
+
+  logger.warn({
+    message: 'Decryption failed across all key candidates',
+    snippet: cipherText.slice(0, 30),
+  });
+  return cipherText;
 }
 
 module.exports = {
