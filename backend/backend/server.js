@@ -41,18 +41,40 @@ const futureSelfRoutes = require('./routes/futureSelfRoutes');
 const app = express();
 
 // ─── CORS (must be FIRST — before helmet, rate limiter, everything) ───────────
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://mind-mirror-bay.vercel.app',
+  ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map(s => s.trim()) : []),
+];
+
 const corsOptions = {
-  origin: 'http://localhost:5173',          // reflect the request origin — works with credentials
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+
+    logger.warn({ message: 'CORS request rejected for origin', origin });
+    callback(new Error(`CORS not allowed for origin: ${origin}`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 };
 app.use(cors(corsOptions));
 // Explicitly handle OPTIONS preflight for all routes
 app.options('*', cors(corsOptions));
 
 // ─── Security ────────────────────────────────────────────────────────────────
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  })
+);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
