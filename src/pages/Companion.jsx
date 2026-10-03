@@ -283,28 +283,28 @@ export default function Companion() {
   }
 
   return (
-    <div className="companion-sanctuary flex flex-col h-screen max-w-4xl mx-auto px-4 sm:px-6">
+    <div className="companion-sanctuary flex flex-col h-[calc(100vh-5rem)] max-w-4xl mx-auto px-3 sm:px-6 pb-28 sm:pb-8 relative z-0">
       {/* Header */}
-      <div className="py-5 border-b border-white/10 bg-surface/40 backdrop-blur-md sticky top-0 z-10 flex items-center justify-between rounded-b-2xl">
+      <div className="py-3 px-4 mb-2 bg-surface/70 border border-surface-border backdrop-blur-md rounded-2xl flex items-center justify-between gap-3 shadow-sm shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white shadow-md shadow-primary/20">
-            <Heart size={18} fill="white" />
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white shadow-md shadow-primary/20 shrink-0">
+            <Heart size={16} fill="white" />
           </div>
           <div>
-            <h1 className="font-bold text-base text-text">Someone who remembers what helped before</h1>
-            <p className="text-xs text-text/50 font-normal">A safe, non-judgmental space to talk and reflect</p>
+            <h1 className="font-bold text-sm sm:text-base text-text">Someone who remembers what helped before</h1>
+            <p className="text-[11px] text-text/60 font-normal">A safe, non-judgmental space to talk and reflect</p>
           </div>
         </div>
-        <div className="hidden sm:flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full bg-accent/15 text-accent border border-accent/30">
+        <div className="hidden sm:flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full bg-accent/15 text-accent border border-accent/30 shrink-0">
           <Sparkles size={13} />
           Memory-Aware
         </div>
       </div>
 
       {/* Messages Feed */}
-      <div className="flex-1 overflow-y-auto py-6 flex flex-col gap-5">
+      <div className="flex-1 overflow-y-auto py-3 px-1 flex flex-col gap-4 min-h-0">
         {loadingHistory ? (
-          <p className="text-sm text-text/40 text-center py-10">Preparing your space…</p>
+          <p className="text-sm text-text/50 text-center py-10">Preparing your space…</p>
         ) : (
           messages.map((msg, i) => <Message key={i} msg={msg} onPlayVideo={setPlayingVideo} reflectingLabel={t('companion.reflecting')} onSpeak={speak} />)
         )}
@@ -324,13 +324,14 @@ export default function Companion() {
       )}
 
       {/* Quick Prompts */}
-      <div className="pb-3">
+      <div className="pb-2 pt-1 shrink-0">
         <div className="flex gap-2 flex-wrap">
           {["I'm feeling anxious today", "I need to vent about work", "Help me reframe this thought", "How have I grown over time?"].map(p => (
             <button
               key={p}
+              type="button"
               onClick={() => setInput(p)}
-              className="text-xs px-3.5 py-2 rounded-xl border border-white/10 text-text/70 bg-surface hover:bg-white/10 hover:text-text transition-all font-medium"
+              className="text-xs px-3.5 py-2 rounded-2xl border border-surface-border text-text/80 bg-surface/80 hover:bg-primary/15 hover:text-primary hover:border-primary/30 transition-all font-medium shadow-sm active:scale-95"
             >
               {p}
             </button>
@@ -339,8 +340,8 @@ export default function Companion() {
       </div>
 
       {/* Input Field */}
-      <div className="pb-6 pt-2">
-        <div className="flex gap-2 items-end p-2 rounded-3xl bg-surface border border-white/10 shadow-xl backdrop-blur-lg">
+      <div className="pb-4 pt-1 shrink-0">
+        <div className="flex gap-2 items-end p-2 rounded-3xl bg-surface/90 border border-surface-border shadow-xl backdrop-blur-xl">
           <button
             type="button"
             onClick={() => {

@@ -2294,4 +2294,24 @@ body {
     transition: none !important;
   }
 }
+
+/* ============================================================
+   COMPANION & CHAT BUBBLE STYLES
+   ============================================================ */
+
+.chat-bubble-user {
+  background: linear-gradient(135deg, var(--color-primary, #7F77DD) 0%, var(--color-accent, #5DCAA5) 100%);
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(127, 119, 221, 0.25);
+}
+
+.chat-bubble-ai {
+  background: var(--color-surface, rgba(255, 255, 255, 0.85));
+  color: var(--color-text, #243B3A) !important;
+  border: 1px solid var(--color-surface-border, rgba(127, 119, 221, 0.2));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
  
