@@ -9,11 +9,42 @@ const IV_LENGTH = 16;       // 16 bytes IV
 const PREFIX = 'enc:v1:';   // Format: enc:v1:<iv_hex>:<authTag_hex>:<ciphertext_hex>
 
 /**
- * Derives a consistent 32-byte (256-bit) encryption key
+ * Derives a consistent 32-byte (256-bit) encryption key.
+ *
+ * SECURITY NOTE — Two issues this function guards against:
+ *   1. If ENCRYPTION_KEY is missing in production, encryption would silently
+ *      use a predictable fallback, making field-level encryption meaningless.
+ *      We now throw at startup in production so the deploy fails fast.
+ *   2. ENCRYPTION_KEY was not listed in .env.example, so future deploys
+ *      could easily miss setting it.  It has been added there as well.
  */
+let _encryptionKeyWarned = false;
+
 function getEncryptionKey() {
-  const rawKey = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'mindmirror-default-secure-key-32bytes!';
-  return crypto.createHash('sha256').update(String(rawKey)).digest();
+  if (process.env.ENCRYPTION_KEY) {
+    return crypto.createHash('sha256').update(String(process.env.ENCRYPTION_KEY)).digest();
+  }
+
+  // In production: refuse to start with a fallback key
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      '[SECURITY] ENCRYPTION_KEY environment variable is not set. ' +
+      'Refusing to start in production with a fallback key. ' +
+      'Generate a strong random key: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+    );
+  }
+
+  // In development: fall back to JWT_SECRET but warn loudly (once)
+  if (!_encryptionKeyWarned) {
+    _encryptionKeyWarned = true;
+    logger.warn({
+      message: '[SECURITY] ENCRYPTION_KEY is not set — falling back to JWT_SECRET for development. ' +
+               'Set a dedicated ENCRYPTION_KEY before deploying to production.',
+    });
+  }
+
+  const fallback = process.env.JWT_SECRET || 'mindmirror-dev-fallback-key-32bytes';
+  return crypto.createHash('sha256').update(String(fallback)).digest();
 }
 
 /**

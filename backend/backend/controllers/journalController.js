@@ -27,6 +27,9 @@ async function createEntry(req, res, next) {
   let entry;
   try {
     const { text, mood, copingUsed } = req.body;
+    if (typeof text !== "string") {
+      return res.status(400).json({ error: "Text must be a string." });
+    }
     if (!text?.trim()) {
       return res.status(400).json({ error: 'Entry text is required.' });
     }

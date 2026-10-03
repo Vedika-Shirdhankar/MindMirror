@@ -42,7 +42,7 @@ const app = express();
 
 // ─── CORS (must be FIRST — before helmet, rate limiter, everything) ───────────
 const corsOptions = {
-  origin: true,          // reflect the request origin — works with credentials
+  origin: 'http://localhost:5173',          // reflect the request origin — works with credentials
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
