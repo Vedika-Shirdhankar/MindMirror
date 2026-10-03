@@ -6,6 +6,7 @@ import {
   ArrowRight, ShieldCheck, Sun, Palette
 } from 'lucide-react';
 import * as api from '../lib/api';
+import { useAuth } from '../lib/AuthContext.jsx';
 
 const CATEGORIES = ['anxious', 'sad', 'overthinking', 'tired', 'lost', 'unmotivated'];
 
@@ -188,6 +189,8 @@ const PERMANENT_REMINDERS = [
 ];
 
 export default function AnchorSpace() {
+  const { user } = useAuth();
+  const supportPrefs = user?.supportPreferences || {};
   const [anchors, setAnchors] = useState({});
   const [activeTab, setActiveTab] = useState('anxious');
   const [quickAccessOpen, setQuickAccessOpen] = useState(false);
@@ -755,6 +758,62 @@ export default function AnchorSpace() {
                 </a>
               </div>
             </div>
+
+            {/* Personalized Onboarding Grounding Anchors */}
+            {(supportPrefs.sourcesOfHope?.length > 0 || supportPrefs.customSourcesOfHope || supportPrefs.copingPreferences?.length > 0 || supportPrefs.customCopingPreferences || supportPrefs.personalValues) && (
+              <div className="p-4 rounded-2xl bg-primary/10 border border-primary/25 text-text space-y-3 shadow-sm">
+                <div className="flex items-center gap-2 text-primary font-bold text-xs">
+                  <Heart size={14} className="fill-primary shrink-0" />
+                  <span>Your Personal Onboarding Anchors</span>
+                </div>
+
+                {/* Sources of Hope */}
+                {(supportPrefs.sourcesOfHope?.length > 0 || supportPrefs.customSourcesOfHope) && (
+                  <div className="text-xs space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-text/60 block">Sources of Hope You Value</span>
+                    {supportPrefs.sourcesOfHope?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {supportPrefs.sourcesOfHope.map(s => (
+                          <span key={s} className="px-2.5 py-1 rounded-xl bg-primary/20 text-primary text-[11px] font-semibold border border-primary/30 capitalize">
+                            ✨ {s.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {supportPrefs.customSourcesOfHope && (
+                      <p className="italic text-text/80 text-[11px] mt-1 pl-1">"{supportPrefs.customSourcesOfHope}"</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Coping Remedies */}
+                {(supportPrefs.copingPreferences?.length > 0 || supportPrefs.customCopingPreferences) && (
+                  <div className="text-xs space-y-1 pt-2 border-t border-primary/15">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-text/60 block">Remedies That Help You Settle</span>
+                    {supportPrefs.copingPreferences?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {supportPrefs.copingPreferences.map(c => (
+                          <span key={c} className="px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold border border-emerald-500/30 capitalize">
+                            🌿 {c.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {supportPrefs.customCopingPreferences && (
+                      <p className="italic text-text/80 text-[11px] mt-1 pl-1">"{supportPrefs.customCopingPreferences}"</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Personal Core Values */}
+                {supportPrefs.personalValues && (
+                  <div className="text-xs pt-2 border-t border-primary/15">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-text/60 block">Core Centering Values</span>
+                    <p className="italic text-text/80 text-[11px] pl-1">"{supportPrefs.personalValues}"</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             <p className="text-xs text-text/70 leading-relaxed">
               Here is your grounding anchor for when you feel <strong className="text-primary font-bold capitalize">{activeTab}</strong>:
