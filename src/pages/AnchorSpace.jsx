@@ -718,55 +718,76 @@ export default function AnchorSpace() {
       {/* Quick Access Modal ("I'm not okay right now") */}
       {quickAccessOpen && (
         <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-up"
+          className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 fade-up"
           onClick={() => setQuickAccessOpen(false)}
         >
           <div 
-            className="bg-[#13121a] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative space-y-5"
+            className="bg-surface border border-surface-border text-text rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative space-y-5 backdrop-blur-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
+              type="button"
               onClick={() => setQuickAccessOpen(false)}
-              className="absolute top-4 right-4 text-text/40 hover:text-white p-1 rounded-lg"
+              className="absolute top-4 right-4 text-text/50 hover:text-text p-1.5 rounded-full hover:bg-primary/10 transition-colors"
             >
               <X size={18} />
             </button>
             
-            <div className="flex items-center gap-2 text-rose-400">
-              <Sparkles size={18} />
-              <h3 className="text-base font-bold text-text">Breathe. We've got you.</h3>
+            <div className="flex items-center gap-2.5 text-rose-500">
+              <Sparkles size={20} className="animate-pulse shrink-0" />
+              <div>
+                <h3 className="text-base font-bold text-text">Breathe. We've got you.</h3>
+                <p className="text-[11px] text-text/60">You don't have to carry everything right now.</p>
+              </div>
             </div>
             
-            <p className="text-xs text-text/60 leading-relaxed">
-              Here are calming anchors saved for when you feel <strong className="text-text capitalize">{activeTab}</strong>:
+            {/* Quick 24/7 Helpline Banner */}
+            <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-xs text-text space-y-2">
+              <p className="font-semibold text-rose-500 text-xs flex items-center gap-1.5">
+                <AlertCircle size={14} /> Immediate Human Support Available 24/7:
+              </p>
+              <div className="flex flex-wrap gap-2 text-[11px]">
+                <a href="tel:9999666555" className="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-400 font-bold hover:bg-rose-500/30 transition-colors">
+                  📞 Vandrevala: 9999 666 555
+                </a>
+                <a href="tel:14416" className="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-400 font-bold hover:bg-rose-500/30 transition-colors">
+                  📞 Tele-MANAS: 14416
+                </a>
+              </div>
+            </div>
+
+            <p className="text-xs text-text/70 leading-relaxed">
+              Here is your grounding anchor for when you feel <strong className="text-primary font-bold capitalize">{activeTab}</strong>:
             </p>
 
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
               {emergencyAnchors.length > 0 ? (
                 emergencyAnchors.map((item) => (
-                  <div key={item._id} className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl space-y-1">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-rose-400">{item.type}</span>
-                    <p className="text-text/90 text-xs sm:text-sm leading-relaxed font-serif">"{item.content}"</p>
+                  <div key={item._id} className="p-4 bg-primary/10 border border-primary/20 rounded-2xl space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-primary">{item.type}</span>
+                    <p className="text-text text-xs sm:text-sm leading-relaxed font-serif">"{item.content}"</p>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-6 border border-dashed border-white/10 rounded-2xl space-y-2">
-                  <p className="text-xs text-text/40 italic">No saved anchors for this category yet.</p>
-                  <p className="text-xs font-serif text-text/80">“{currentEmotion.anchor}”</p>
+                <div className="text-center py-6 border border-dashed border-surface-border rounded-2xl space-y-2 bg-surface/50">
+                  <p className="text-xs text-text/50 italic">Centering Truth for Right Now:</p>
+                  <p className="text-xs sm:text-sm font-serif text-text font-medium px-4">“{currentEmotion.anchor}”</p>
                   <button
+                    type="button"
                     onClick={() => { setQuickAccessOpen(false); setIsAdding(true); }}
-                    className="text-xs text-[#AFA9EC] hover:text-white font-medium underline mt-2 block mx-auto"
+                    className="text-xs text-primary hover:underline font-semibold mt-2 block mx-auto"
                   >
-                    Add a personal anchor now →
+                    + Save a custom personal anchor →
                   </button>
                 </div>
               )}
             </div>
 
-            <div className="pt-2 border-t border-white/5 flex justify-end">
+            <div className="pt-2 border-t border-surface-border flex justify-end">
               <button
+                type="button"
                 onClick={() => setQuickAccessOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/15 text-text"
+                className="px-5 py-2.5 rounded-2xl text-xs font-semibold bg-primary text-white hover:bg-primary/90 transition-all shadow-md shadow-primary/20"
               >
                 Close & Stay Centered
               </button>
@@ -778,64 +799,64 @@ export default function AnchorSpace() {
       {/* Add Anchor Modal */}
       {isAdding && (
         <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-up"
+          className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 fade-up"
           onClick={() => setIsAdding(false)}
         >
           <form 
             onSubmit={handleCreate} 
-            className="bg-[#13121a] border border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+            className="bg-surface border border-surface-border text-text rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 backdrop-blur-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <div className="flex items-center justify-between border-b border-surface-border pb-3">
               <h3 className="text-sm font-bold text-text flex items-center gap-2">
                 <span>{currentEmotion.emoji}</span> Add a {currentEmotion.label} Anchor
               </h3>
-              <button type="button" onClick={() => setIsAdding(false)} className="text-text/40 hover:text-white p-1">
+              <button type="button" onClick={() => setIsAdding(false)} className="text-text/50 hover:text-text p-1.5 rounded-full hover:bg-primary/10">
                 <X size={16} />
               </button>
             </div>
 
             <div>
-              <label className="text-[10px] uppercase font-bold tracking-wider text-text/50 block mb-1">Type</label>
+              <label className="text-[10px] uppercase font-bold tracking-wider text-text/60 block mb-1">Type</label>
               <select
                 value={newItem.type}
                 onChange={(e) => setNewItem({ ...newItem, type: e.target.value })}
-                className="w-full p-2.5 bg-black/30 border border-white/10 rounded-xl text-xs text-text outline-none focus:border-[#7F77DD]"
+                className="w-full p-2.5 bg-surface/80 border border-surface-border rounded-xl text-xs text-text outline-none focus:border-primary"
               >
-                <option value="quote" className="bg-[#13121a]">Quote / Affirmation</option>
-                <option value="reminder" className="bg-[#13121a]">Personal Reminder</option>
-                <option value="song" className="bg-[#13121a]">Song / Track</option>
-                <option value="memory" className="bg-[#13121a]">Safe Memory</option>
-                <option value="person" className="bg-[#13121a]">Person / Place</option>
+                <option value="quote">Quote / Affirmation</option>
+                <option value="reminder">Personal Reminder</option>
+                <option value="song">Song / Track</option>
+                <option value="memory">Safe Memory</option>
+                <option value="person">Person / Place</option>
               </select>
             </div>
 
             <div>
-              <label className="text-[10px] uppercase font-bold tracking-wider text-text/50 block mb-1">Content</label>
+              <label className="text-[10px] uppercase font-bold tracking-wider text-text/60 block mb-1">Content</label>
               <textarea
                 required
                 rows={4}
                 value={newItem.content}
                 onChange={(e) => setNewItem({ ...newItem, content: e.target.value })}
                 placeholder="What words, memory, or gentle reminder helps you feel safe?"
-                className="w-full p-3 bg-black/30 border border-white/10 rounded-xl text-xs text-text outline-none focus:border-[#7F77DD] resize-none leading-relaxed"
+                className="w-full p-3 bg-surface/80 border border-surface-border rounded-xl text-xs text-text placeholder-text/40 outline-none focus:border-primary resize-none leading-relaxed"
               />
             </div>
 
             <div>
-              <label className="text-[10px] uppercase font-bold tracking-wider text-text/50 block mb-1">
-                Tags <span className="text-text/30 font-normal">(comma separated)</span>
+              <label className="text-[10px] uppercase font-bold tracking-wider text-text/60 block mb-1">
+                Tags <span className="text-text/40 font-normal">(comma separated)</span>
               </label>
               <input
                 type="text"
                 value={newItem.tags}
                 onChange={(e) => setNewItem({ ...newItem, tags: e.target.value })}
                 placeholder="exams, panic, breathe, coding"
-                className="w-full p-2.5 bg-black/30 border border-white/10 rounded-xl text-xs text-text outline-none focus:border-[#7F77DD]"
+                className="w-full p-2.5 bg-surface/80 border border-surface-border rounded-xl text-xs text-text placeholder-text/40 outline-none focus:border-primary"
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+            <div className="flex justify-end gap-2 pt-2 border-t border-surface-border">
               <button
                 type="button"
                 onClick={() => setIsAdding(false)}
@@ -846,7 +867,7 @@ export default function AnchorSpace() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center gap-1.5 px-5 py-2 text-xs bg-[#7F77DD] hover:bg-[#6c64cf] text-white rounded-xl font-semibold disabled:opacity-60 transition-colors shadow-lg shadow-[#7F77DD]/25"
+                className="flex items-center gap-1.5 px-5 py-2 text-xs bg-primary hover:bg-primary/90 text-white rounded-xl font-semibold disabled:opacity-60 transition-colors shadow-lg shadow-primary/25"
               >
                 {saving && <Loader2 size={13} className="animate-spin" />}
                 {saving ? 'Saving...' : 'Save Anchor'}
