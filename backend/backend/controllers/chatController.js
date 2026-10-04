@@ -493,9 +493,9 @@ async function sendMessage(req, res, next) {
         reply = result.response.text() || reply;
         break;
       } catch (err) {
-        const isFallbackError = err.status === 429 || err.status === 401 || err.status === 404 || /quota|too many requests|rate limit|resource_exhausted|unauthenticated|not found/i.test(err.message || '');
+        const isFallbackError = err.status === 429 || err.status === 503 || err.status === 500 || err.status === 401 || err.status === 404 || /quota|too many requests|rate limit|resource_exhausted|unauthenticated|not found|high demand|service unavailable/i.test(err.message || '');
         if (isFallbackError && i < apiKeys.length - 1) {
-          console.warn(`[companion sync] Key ${i+1} rate limited, switching to key ${i+2}`);
+          console.warn(`[companion sync] Key ${i+1} failed (${err.status || err.message}), switching to key ${i+2}`);
           continue;
         }
         throw err;
@@ -647,9 +647,9 @@ async function streamMessage(req, res, next) {
         }
         break;
       } catch (err) {
-        const isFallbackError = err.status === 429 || err.status === 401 || err.status === 404 || /quota|too many requests|rate limit|resource_exhausted|unauthenticated|not found/i.test(err.message || '');
+        const isFallbackError = err.status === 429 || err.status === 503 || err.status === 500 || err.status === 401 || err.status === 404 || /quota|too many requests|rate limit|resource_exhausted|unauthenticated|not found|high demand|service unavailable/i.test(err.message || '');
         if (isFallbackError && i < apiKeys.length - 1) {
-          console.warn(`[companion stream] Key ${i+1} rate limited, switching to fallback key ${i+2}`);
+          console.warn(`[companion stream] Key ${i+1} failed (${err.status || err.message}), switching to fallback key ${i+2}`);
           continue;
         }
         throw err;
@@ -693,7 +693,7 @@ async function streamMessage(req, res, next) {
     console.error('[companion stream] error:', err);
     if (!res.headersSent) {
       next(err);
-    } else if (err.status === 429 || /quota|too many requests|rate limit/i.test(err.message || '')) {
+    } else if (err.status === 429 || err.status === 503 || /quota|too many requests|rate limit|high demand|service unavailable/i.test(err.message || '')) {
       const fallback = buildQuotaFallback(req.body.content || '');
       if (activeChat) {
         activeChat.messages.push({ role: 'assistant', content: fallback });

@@ -68,11 +68,11 @@ ${text.trim().slice(0, 1500)}
  * @param {string} userId      - ObjectId of the user
  */
 async function extractAndSaveActions(text, sourceType, sourceId, userId) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || !text?.trim()) return;
+  const { getApiKeys } = require('./geminiHelper');
+  if (!getApiKeys().length || !text?.trim()) return;
 
   try {
-    const actions = await extractActionsFromText(text, apiKey);
+    const actions = await extractActionsFromText(text);
     if (!actions.length) return;
 
     const docs = actions.map((a) => ({

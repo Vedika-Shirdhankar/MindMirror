@@ -1,6 +1,6 @@
 // utils/pastSelfRetrieval.js
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { executeWithFallback } = require('./geminiHelper');
 const VideoReflection = require('../models/VideoReflection');
 const { generateEmbedding } = require('./embeddings');
 const { findSimilarVideos } = require('./vectorSearch');
@@ -33,14 +33,10 @@ async function retrievePastSelfRecommendation(currentConcernText, userId) {
     // Pick the top match
     const topVideo = candidateVideos[0];
 
-    // 2. Ask Gemini to evaluate the match and extract a snippet
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return null;
+    const rawText = await executeWithFallback(async (genAI) => {
+      const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-
-    const prompt = `You are a memory retrieval engine for MindMirror.
+      const prompt = `You are a memory retrieval engine for MindMirror.
 Your task is to determine if a user's past video reflection is highly relevant to their current concern.
 
 CURRENT CONCERN:
@@ -67,15 +63,15 @@ RULES:
 - "transcriptSnippet" MUST be an exact quote from the transcript provided. Do not hallucinate.
 Return ONLY JSON. Do not wrap in markdown code blocks.`;
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.1,
-      },
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.1,
+        },
+      });
+      return result.response.text();
     });
-
-    const rawText = result.response.text();
     let parsed;
     try {
       parsed = JSON.parse(rawText.replace(/\`\`\`json|\`\`\`/g, '').trim());

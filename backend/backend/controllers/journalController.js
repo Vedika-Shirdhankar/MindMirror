@@ -3,7 +3,6 @@ const JournalEntry = require('../models/JournalEntry');
 const User = require('../models/User');
 const { analyzeJournalEntry } = require('../utils/aiAnalysis');
 const { CRISIS_RESOURCES } = require('../utils/crisisResources');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { generateEmbedding, cosineSimilarity } = require('../utils/embeddings');
 const { extractAndSaveActions } = require('../utils/actionExtractor');
 const { classifyJournal } = require('../services/mlService');
@@ -48,7 +47,8 @@ async function createEntry(req, res, next) {
       risk_level: 'none',
     });
 
-    const geminiApiKey = process.env.GEMINI_API_KEY;
+    const { getApiKeys } = require('../utils/geminiHelper');
+    const hasApiKeys = getApiKeys().length > 0;
 
     // Pull user configuration & support preferences for personalized grounding
     const user = await User.findById(req.userId).select('language supportPreferences').lean();
@@ -74,12 +74,12 @@ async function createEntry(req, res, next) {
 
     let aiError = null;
     const geminiPromise = (async () => {
-      if (geminiApiKey) {
+      if (hasApiKeys) {
         try {
           return await analyzeJournalEntry(
             trimmedText,
             previousEntries,
-            geminiApiKey,
+            null, // legacy param — executeWithFallback handles keys internally
             user?.language || 'en',
             user?.supportPreferences || {}
           );
@@ -253,11 +253,7 @@ async function buildThoughtLadder(req, res, next) {
     const { situation } = req.body;
     if (!situation?.trim()) return res.status(400).json({ error: 'A situation description is required.' });
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return res.status(400).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
+    const { executeWithFallback } = require('../utils/geminiHelper');
 
     const prompt = `You help people challenge cognitive distortions by breaking down catastrophic thinking into a "Thought Ladder."
 
@@ -276,15 +272,18 @@ Return ONLY a JSON object (no markdown code blocks, no preamble, no commentary) 
   "question": "one reflective question to help them examine the ladder"
 }`;
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.2,
-      },
+    const rawText = await executeWithFallback(async (genAI) => {
+      const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.2,
+        },
+      });
+      return result.response.text();
     });
 
-    const rawText = result.response.text();
     let ladder;
     try {
       ladder = JSON.parse(rawText.replace(/```json|```/g, '').trim());

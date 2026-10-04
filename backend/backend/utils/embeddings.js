@@ -4,26 +4,15 @@
 // Generates vector embeddings for journal text using Google's current Gemini
 // embedding model, and computes cosine similarity between vectors.
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { executeWithFallback } = require('./geminiHelper');
 
 const EMBEDDING_MODEL = 'gemini-embedding-001';
 // Keep this aligned with the existing MongoDB vector index and stored entries.
 const EMBEDDING_DIMENSIONS = 768;
 
-let cachedGenAI = null;
-function getGenAI() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not configured on the server.');
-  }
-  if (!cachedGenAI) {
-    cachedGenAI = new GoogleGenerativeAI(apiKey);
-  }
-  return cachedGenAI;
-}
-
 /**
  * Generates an embedding vector for a piece of text using Gemini's embedding model.
+ * Uses key rotation via executeWithFallback for resilience.
  * @param {string} text
  * @returns {Promise<number[]>} a 768-dimension embedding vector
  */
@@ -32,18 +21,18 @@ async function generateEmbedding(text) {
     throw new Error('Cannot generate an embedding for empty text.');
   }
 
-  const genAI = getGenAI();
-  const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
-
-  const result = await model.embedContent({
-    content: { parts: [{ text: text.trim() }] },
-    outputDimensionality: EMBEDDING_DIMENSIONS,
+  const values = await executeWithFallback(async (genAI) => {
+    const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
+    const result = await model.embedContent({
+      content: { parts: [{ text: text.trim() }] },
+      outputDimensionality: EMBEDDING_DIMENSIONS,
+    });
+    const vals = result?.embedding?.values;
+    if (!Array.isArray(vals) || vals.length === 0) {
+      throw new Error('Gemini returned an empty embedding.');
+    }
+    return vals;
   });
-  const values = result?.embedding?.values;
-
-  if (!Array.isArray(values) || values.length === 0) {
-    throw new Error('Gemini returned an empty embedding.');
-  }
 
   return values;
 }

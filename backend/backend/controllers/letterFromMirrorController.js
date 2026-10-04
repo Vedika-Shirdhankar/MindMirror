@@ -6,15 +6,11 @@ const JournalEntry = require('../models/JournalEntry');
 const FutureLetter = require('../models/FutureLetter');
 const Chat = require('../models/Chat');
 const User = require('../models/User');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { executeWithFallback } = require('../utils/geminiHelper');
 
 // GET /api/letter-from-mirror
 async function generateLetter(req, res, next) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return res.status(503).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
-    }
 
     const user = await User.findById(req.userId).lean();
     const firstName = (user?.name || 'there').split(' ')[0];
@@ -137,15 +133,14 @@ Now write the letter. Rules:
 
 Return ONLY the letter text. No title. No "Letter from MindMirror" header. No preamble.`;
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
-
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.85, maxOutputTokens: 1024 },
+    const letterText = await executeWithFallback(async (genAI) => {
+      const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.85, maxOutputTokens: 1024 },
+      });
+      return result.response.text().trim();
     });
-
-    const letterText = result.response.text().trim();
 
     // Build metadata to pass to frontend for display context
     const meta = {

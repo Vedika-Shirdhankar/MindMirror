@@ -5,15 +5,11 @@ const VideoReflection = require('../models/VideoReflection');
 const FutureLetter = require('../models/FutureLetter');
 const Chat = require('../models/Chat');
 const ActionMemory = require('../models/ActionMemory');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { executeWithFallback } = require('../utils/geminiHelper');
 
 // GET /api/life-report
 async function getLifeReport(req, res, next) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return res.status(503).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
-    }
 
     const user = await User.findById(req.userId).lean();
     if (!user) {
@@ -270,20 +266,19 @@ GUIDELINES & RULES FOR GENERATION:
 
 Return ONLY the raw JSON block. No markdown wrapper (no \`\`\`json), no text before or after. Ensure all quotes are properly escaped.`;
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
-
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { 
-        temperature: 0.8, 
-        maxOutputTokens: 4096,
-        responseMimeType: 'application/json'
-      },
+    const responseText = await executeWithFallback(async (genAI) => {
+      const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { 
+          temperature: 0.8, 
+          maxOutputTokens: 4096,
+          responseMimeType: 'application/json'
+        },
+      });
+      return result.response.text().trim();
     });
-
     let jsonResponse;
-    const responseText = result.response.text().trim();
     try {
       // Clean up potential markdown formatting in case Gemini wraps it in ```json ... ```
       const cleanedText = responseText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
