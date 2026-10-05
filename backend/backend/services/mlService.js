@@ -61,63 +61,79 @@ async function classifyJournal(text) {
     return { label: null, confidence: null, scores: null, available: false, error: 'Empty text' };
   }
 
+  const hfToken = process.env.HF_TOKEN;
+
   // ── Production path: Hugging Face Inference API ──────────────────────────
-  if (HF_TOKEN) {
-    return classifyViaHF(text.trim());
+  if (hfToken) {
+    return classifyViaHF(text.trim(), hfToken);
   }
 
   // ── Dev fallback: local Python FastAPI service ───────────────────────────
   logger.warn({
-    message: 'HF_TOKEN not set — falling back to local Python ML service',
+    message: 'HF_TOKEN not set in process.env — falling back to local Python ML service',
     url: ML_SERVICE_URL,
   });
   return classifyViaLocalService(text.trim());
 }
 
-async function classifyViaHF(text) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+async function classifyViaHF(text, hfToken) {
+  const modelRepo = process.env.HF_MODEL_REPO || 'Vedika16S/mindmirror-distilbert';
+  const candidateUrls = [
+    `https://router.huggingface.co/hf-inference/v1/models/${modelRepo}`,
+    `https://router.huggingface.co/models/${modelRepo}`,
+  ];
 
-  try {
-    const response = await fetch(HF_INFERENCE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${HF_TOKEN}`,
-      },
-      body: JSON.stringify({ inputs: text }),
-      signal: controller.signal,
-    });
+  let lastError = null;
 
-    clearTimeout(timeoutId);
+  for (const url of candidateUrls) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
-    // HF returns 503 while the model is loading — treat as transient unavailability
-    if (response.status === 503) {
-      const body = await response.json().catch(() => ({}));
-      const waitSecs = body.estimated_time ? Math.ceil(body.estimated_time) : '?';
-      logger.warn({ message: `HF model is loading, estimated wait: ${waitSecs}s` });
-      return { label: null, confidence: null, scores: null, available: false, error: 'Model loading' };
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${hfToken}`,
+        },
+        body: JSON.stringify({ inputs: text }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      // HF returns 503 while the model is loading — treat as transient unavailability
+      if (response.status === 503) {
+        const body = await response.json().catch(() => ({}));
+        const waitSecs = body.estimated_time ? Math.ceil(body.estimated_time) : '?';
+        logger.warn({ message: `HF model is loading, estimated wait: ${waitSecs}s` });
+        return { label: null, confidence: null, scores: null, available: false, error: 'Model loading' };
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        logger.warn({ message: 'HF Inference API non-200', url, status: response.status, error: errorText });
+        lastError = `HF API status ${response.status} at ${url}`;
+        continue; // try next candidate URL if 404/bad router route
+      }
+
+      const data = await response.json();
+      const result = parseHFResponse(data);
+      logger.info({ message: 'HF ML classification success', label: result.label, confidence: result.confidence });
+      return result;
+
+    } catch (err) {
+      clearTimeout(timeoutId);
+      logger.warn({
+        message: 'HF Inference API fetch failed',
+        url,
+        error: err.name === 'AbortError' ? 'Request timed out' : err.message,
+      });
+      lastError = err.message;
     }
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      logger.warn({ message: 'HF Inference API non-200', status: response.status, error: errorText });
-      return { label: null, confidence: null, scores: null, available: false, error: `HF API ${response.status}` };
-    }
-
-    const data = await response.json();
-    const result = parseHFResponse(data);
-    logger.info({ message: 'HF ML classification', label: result.label, confidence: result.confidence });
-    return result;
-
-  } catch (err) {
-    clearTimeout(timeoutId);
-    logger.warn({
-      message: 'HF Inference API unreachable',
-      error: err.name === 'AbortError' ? 'Request timed out' : err.message,
-    });
-    return { label: null, confidence: null, scores: null, available: false, error: err.message };
   }
+
+  return { label: null, confidence: null, scores: null, available: false, error: lastError };
 }
 
 async function classifyViaLocalService(text) {
