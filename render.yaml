@@ -18,5 +18,21 @@ services:
         value: gemini-2.5-flash
       - key: CORS_ORIGIN
         sync: false
+      # URL of the Python DistilBERT ML service (other Render service below)
+      - key: ML_SERVICE_URL
+        value: https://mindmirror-ml.onrender.com
       # PORT is set automatically by Render — do not set it here
-      # REDIS_URL — add if you provision a Redis instance on Render
+
+  - type: web
+    name: mindmirror-ml
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    rootDir: ml
+    envVars:
+      # Your fine-tuned DistilBERT model on HF Hub (model.safetensors is gitignored)
+      - key: HF_MODEL_REPO
+        value: Vedika16S/mindmirror-distilbert
+      # HF read token — set this as a secret in the Render dashboard (sync: false)
+      - key: HF_TOKEN
+        sync: false

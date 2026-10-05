@@ -40,6 +40,34 @@ device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cp
 def load_model_and_labels():
     global tokenizer, model, id2label
 
+    # ── Auto-download weights from Hugging Face Hub if missing ───────────────
+    # model.safetensors is gitignored (255 MB). On Render (or any fresh deploy),
+    # we download it at startup using the HF_MODEL_REPO + HF_TOKEN env vars.
+    weights_path = os.path.join(MODEL_DIR, "model.safetensors")
+    hf_repo = os.getenv("HF_MODEL_REPO")   # e.g. "Vedika16S/mindmirror-distilbert"
+    hf_token = os.getenv("HF_TOKEN")        # HF read token (secret on Render)
+
+    if not os.path.exists(weights_path) and hf_repo:
+        logger.info(f"model.safetensors not found locally — downloading from HF Hub: {hf_repo}")
+        try:
+            from huggingface_hub import snapshot_download
+            snapshot_download(
+                repo_id=hf_repo,
+                local_dir=MODEL_DIR,
+                token=hf_token,
+                ignore_patterns=["*.msgpack", "flax_model*", "tf_model*", "rust_model*"],
+            )
+            logger.info("HF Hub download complete.")
+        except Exception as dl_err:
+            logger.error(f"Failed to download model from HF Hub: {dl_err}")
+            raise RuntimeError(f"Model weights missing and HF Hub download failed: {dl_err}") from dl_err
+    elif not os.path.exists(weights_path) and not hf_repo:
+        raise RuntimeError(
+            "model.safetensors not found and HF_MODEL_REPO env var is not set. "
+            "Set HF_MODEL_REPO=Vedika16S/mindmirror-distilbert (and HF_TOKEN if private) on Render."
+        )
+    # ─────────────────────────────────────────────────────────────────────────
+
     logger.info(f"Loading model from: {MODEL_DIR} (Device: {device})")
     if not os.path.exists(MODEL_DIR):
         raise RuntimeError(f"Model directory not found at: {MODEL_DIR}")
