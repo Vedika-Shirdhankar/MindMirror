@@ -40,6 +40,9 @@ const futureSelfRoutes = require('./routes/futureSelfRoutes');
 
 const app = express();
 
+// ─── Trust Render's reverse proxy (fixes express-rate-limit X-Forwarded-For) ──
+app.set('trust proxy', 1);
+
 // ─── CORS (must be FIRST — before helmet, rate limiter, everything) ───────────
 const allowedOrigins = [
   'http://localhost:5173',
