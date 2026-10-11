@@ -249,6 +249,13 @@ export async function togglePinEntry(id) {
   return data.entry;
 }
 
+export async function toggleNextStep(id) {
+  const data = await request(`/journal/${id}/next-step`, {
+    method: 'PATCH',
+  });
+  return data.entry;
+}
+
 export async function searchEntries(query) {
   const data = await request('/journal/search', {
     method: 'POST',
@@ -600,4 +607,3 @@ export async function updateFutureSelfStatus(status) {
     body: JSON.stringify({ status }),
   });
 }
-

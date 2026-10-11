@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2, CheckCircle, Sparkles, AlertTriangle, Loader, Loader2, TrendingUp, TrendingDown, Minus, Play, Search, X, Pin, PinOff, Filter, Mic, Activity } from 'lucide-react'
+import { Plus, Trash2, CheckCircle, Sparkles, AlertTriangle, Loader, Loader2, TrendingUp, TrendingDown, Minus, Play, Search, X, Pin, PinOff, Filter, Mic, Activity, Check, Target, Repeat } from 'lucide-react'
 import * as api from '../lib/api.js'
 import { useVoiceTranscription } from '../lib/useVoice.js'
 import { THEMES, TRIGGERS, COPING_LABELS, RISK_COLORS, EMOTION_META, DISTORTION_LABELS } from '../lib/api.js'
@@ -255,6 +255,43 @@ function AnalysisCard({ entry, onPlayVideo }) {
   )
 }
 
+// ── Action layer: one concrete next step + rumination notice ─────────────
+function NextStepCard({ entry, onToggle, busy }) {
+  const step = entry.next_step
+  if (!step?.text) return null
+  const ruminating = entry.rumination?.flagged
+
+  return (
+    <div className={`mt-3 rounded-standard p-3 border ${ruminating ? 'bg-orange-500/5 border-orange-500/20' : 'bg-accent/5 border-accent/20'}`}>
+      {ruminating && (
+        <div className="flex items-start gap-1.5 mb-2.5 pb-2.5 border-b border-white/5">
+          <Repeat size={12} className="text-orange-400 mt-0.5 shrink-0" />
+          <p className="text-xs text-text/70 leading-relaxed">
+            You've written about this {entry.rumination.similarCount + 1} times recently with nothing new.
+            More reflection won't help here, so pick the step below and do it, or decide and move on.
+          </p>
+        </div>
+      )}
+      <div className="flex items-start gap-2.5">
+        <button
+          onClick={() => onToggle(entry._id)}
+          disabled={busy}
+          aria-label={step.done ? 'Mark next step as not done' : 'Mark next step as done'}
+          className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-all ${step.done ? 'bg-accent border-accent text-white' : 'border-white/30 hover:border-accent'}`}
+        >
+          {step.done && <Check size={12} />}
+        </button>
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-wider font-medium text-accent flex items-center gap-1 mb-1">
+            <Target size={10} /> Next step · 10 min or less
+          </p>
+          <p className={`text-sm leading-relaxed ${step.done ? 'line-through text-text/40' : 'text-text/90'}`}>{step.text}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const DRAFT_KEY = 'mm_journal_draft'
 
 export default function Journal() {
@@ -274,6 +311,8 @@ export default function Journal() {
   const [resolving, setResolving] = useState(false)
   const [playingVideo, setPlayingVideo] = useState(null)
   const [pinningId, setPinningId] = useState(null)
+  const [stepBusyId, setStepBusyId] = useState(null)
+  const [expandedAnalysis, setExpandedAnalysis] = useState({})
 
   // Search
   const [searchQuery, setSearchQuery] = useState('')
@@ -364,6 +403,18 @@ export default function Journal() {
       setError(e.message)
     } finally {
       setPinningId(null)
+    }
+  }
+
+  async function handleToggleNextStep(id) {
+    setStepBusyId(id)
+    try {
+      const updated = await api.toggleNextStep(id)
+      setEntries(prev => prev.map(e => e._id === id ? { ...e, next_step: updated.next_step } : e))
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setStepBusyId(null)
     }
   }
 
@@ -632,7 +683,18 @@ export default function Journal() {
                     </div>
                   )}
 
-                  <AnalysisCard entry={e} onPlayVideo={setPlayingVideo} />
+                  <NextStepCard entry={e} onToggle={handleToggleNextStep} busy={stepBusyId === e._id} />
+
+                  {e.rumination?.flagged && !expandedAnalysis[e._id] ? (
+                    <button
+                      onClick={() => setExpandedAnalysis(prev => ({ ...prev, [e._id]: true }))}
+                      className="mt-2 text-[10px] text-text/40 hover:text-text/70 transition-colors underline underline-offset-2"
+                    >
+                      Show full analysis
+                    </button>
+                  ) : (
+                    <AnalysisCard entry={e} onPlayVideo={setPlayingVideo} />
+                  )}
                 </div>
                 <div className="flex flex-col gap-1 items-center">
                   <button

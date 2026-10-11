@@ -8,22 +8,39 @@
 
 import { useState } from 'react'
 import * as api from '../lib/api.js'
-import { Loader, ChevronRight, AlertTriangle, HelpCircle, Lightbulb } from 'lucide-react'
+import { Loader, ChevronDown, AlertTriangle, HelpCircle, Lightbulb, CheckCircle2 } from 'lucide-react'
 
 const TYPE_STYLE = {
-  assumption: { label: 'Assumption', color: '#EF9F27', bg: 'rgba(239,159,39,0.08)', border: 'rgba(239,159,39,0.2)' },
-  prediction: { label: 'Prediction', color: '#D85A30', bg: 'rgba(216,90,48,0.08)', border: 'rgba(216,90,48,0.2)' },
+  fact: { label: 'Fact', color: '#5fb89a', bg: 'rgba(135, 194, 179, 0.28)', border: 'rgba(95, 184, 154, 0.2)' },
+  assumption: { label: 'Assumption', color: '#e7a356', bg: 'rgba(231, 163, 86, 0.12)', border: 'rgba(231, 163, 86, 0.16)' },
+  prediction: { label: 'Prediction', color: '#d77b5e', bg: 'rgba(215, 123, 94, 0.12)', border: 'rgba(215, 123, 94, 0.16)' },
+  catastrophe: { label: 'Catastrophic conclusion', color: '#e58789', bg: 'rgba(229, 135, 137, 0.12)', border: 'rgba(229, 135, 137, 0.16)' },
+  reframe: { label: 'A more realistic view', color: '#9a9ad8', bg: 'rgba(154, 154, 216, 0.12)', border: 'rgba(154, 154, 216, 0.2)' },
+}
+
+const DEMO_LADDER = {
+  fact: 'I went through the final round of interviews and did not receive an offer.',
+  predictions: [
+    { type: 'assumption', text: 'The interview panel probably saw me as less capable than I really am.' },
+    { type: 'prediction', text: 'If I do not get this role, my career path is probably over before it even starts.' },
+    { type: 'prediction', text: 'This means I am likely to fail in every future interview and never get placed.' },
+  ],
+  catastrophe: 'If this happens, my entire future is ruined and I will be stuck with no career options.',
+  reframe: "It's common to feel anxious and self-critical after an interview, but your perception of your performance might not align with the interviewer's, and the actual outcome is still unknown.",
 }
 
 export default function ThoughtLadder() {
   const [situation, setSituation] = useState('')
-  const [ladder, setLadder] = useState(null)
+  const [ladder, setLadder] = useState(DEMO_LADDER)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   async function analyze() {
     if (!situation.trim()) return
-    setLoading(true); setError(''); setLadder(null)
+    setLoading(true)
+    setError('')
+    setLadder(null)
+
     try {
       const result = await api.buildThoughtLadder(situation.trim())
       setLadder(result)
@@ -35,117 +52,161 @@ export default function ThoughtLadder() {
   }
 
   const EXAMPLES = [
-    "I left my internship and now my career is over",
+    'I left my internship and now my career is over',
     "I failed this exam and I'll never get placed",
     "My friend hasn't replied in days — they hate me",
     "I made a mistake at work, I'll get fired",
   ]
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text">Untangle One Thought at a Time</h1>
-        <p className="text-xs mt-1 text-text/50">Climb down from catastrophic anxiety to reality by separating raw facts from assumptions.</p>
-      </div>
-
-      <div className="rounded-2xl p-5 mb-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-border)' }}>
-        <label className="text-xs font-medium block mb-2" style={{ color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Describe your situation or worry
-        </label>
-        <textarea
-          value={situation}
-          onChange={e => setSituation(e.target.value)}
-          placeholder="e.g. I ruined my future by leaving my internship…"
-          rows={3}
-          className="w-full text-sm outline-none resize-none leading-relaxed mb-4"
-          style={{ background: 'transparent', color: 'var(--color-text)', border: 'none' }}
-        />
-        <div className="flex flex-wrap gap-2 mb-4">
-          {EXAMPLES.map(ex => (
-            <button key={ex} onClick={() => setSituation(ex)} className="text-xs px-3 py-1.5 rounded-full border transition-opacity hover:opacity-80" style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'var(--color-text-muted)', background: 'transparent' }}>
-              {ex.slice(0, 35)}…
+    <div className="min-h-screen" style={{ background: '#f1efe9' }}>
+      <div className="mx-auto max-w-[760px] px-4 py-8 sm:px-6 lg:px-8">
+        {!ladder ? (
+          <div className="rounded-2xl border p-5 shadow-sm" style={{ background: 'rgba(255,255,255,0.38)', borderColor: 'rgba(132, 125, 114, 0.15)' }}>
+            <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.2em]" style={{ color: '#6f756d' }}>
+              Describe your situation or worry
+            </label>
+            <textarea
+              value={situation}
+              onChange={e => setSituation(e.target.value)}
+              placeholder="e.g. I ruined my future by leaving my internship…"
+              rows={3}
+              className="mb-4 w-full resize-none border-none bg-transparent text-sm leading-relaxed text-[#2d2a2a] outline-none placeholder:text-[#7b7b7b]"
+            />
+            <div className="mb-4 flex flex-wrap gap-2">
+              {EXAMPLES.map(ex => (
+                <button
+                  key={ex}
+                  onClick={() => setSituation(ex)}
+                  className="rounded-full border px-3 py-1.5 text-[11px] transition-opacity hover:opacity-80"
+                  style={{ borderColor: 'rgba(84, 80, 72, 0.18)', color: '#5b615c', background: 'rgba(255,255,255,0.25)' }}
+                >
+                  {ex.slice(0, 35)}…
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={analyze}
+              disabled={!situation.trim() || loading}
+              className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-40"
+              style={{ background: '#7f7ad8' }}
+            >
+              {loading ? <><Loader size={13} className="animate-spin" /> Analyzing…</> : 'Break it down →'}
             </button>
-          ))}
-        </div>
-        <button onClick={analyze} disabled={!situation.trim() || loading} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-30" style={{ background: '#7F77DD', color: 'white' }}>
-          {loading ? <><Loader size={13} className="animate-spin" /> Analyzing…</> : 'Break it down →'}
-        </button>
-        {error && <p className="text-xs mt-3" style={{ color: '#f09595' }}>{error}</p>}
-      </div>
-
-      {ladder && (
-        <div className="fade-up">
-          <div className="rounded-xl p-4 mb-2 flex items-start gap-3" style={{ background: 'rgba(29,158,117,0.08)', border: '1px solid rgba(29,158,117,0.2)' }}>
-            <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" style={{ background: 'rgba(29,158,117,0.2)' }}>
-              <CheckIcon />
-            </div>
-            <div>
-              <p className="text-xs font-medium mb-1" style={{ color: '#5DCAA5', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fact</p>
-              <p className="text-sm" style={{ color: 'rgba(232,230,240,0.8)' }}>{ladder.fact}</p>
-            </div>
+            {error && <p className="mt-3 text-xs" style={{ color: '#d77b5e' }}>{error}</p>}
           </div>
-
-          <div className="flex justify-center mb-2"><ChevronRight size={14} style={{ color: 'var(--color-text-faint)', transform: 'rotate(90deg)' }} /></div>
-
-          {ladder.predictions?.map((p, i) => {
-            const style = TYPE_STYLE[p.type] || TYPE_STYLE.prediction
-            return (
-              <div key={i}>
-                <div className="rounded-xl p-4 mb-2 flex items-start gap-3" style={{ background: style.bg, border: `1px solid ${style.border}` }}>
-                  <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" style={{ background: `${style.color}20` }}>
-                    <HelpCircle size={12} color={style.color} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium mb-1" style={{ color: style.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{style.label}</p>
-                    <p className="text-sm" style={{ color: 'rgba(232,230,240,0.8)' }}>{p.text}</p>
-                  </div>
-                </div>
-                {i < ladder.predictions.length - 1 && <div className="flex justify-center mb-2"><ChevronRight size={14} style={{ color: 'var(--color-text-faint)', transform: 'rotate(90deg)' }} /></div>}
+        ) : (
+          <div className="space-y-3">
+            <div
+              className="flex items-start gap-3 rounded-[18px] border p-4"
+              style={{ background: TYPE_STYLE.fact.bg, borderColor: TYPE_STYLE.fact.border }}
+            >
+              <div
+                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                style={{ background: 'rgba(95, 184, 154, 0.18)' }}
+              >
+                <CheckCircle2 size={12} color={TYPE_STYLE.fact.color} />
               </div>
-            )
-          })}
-
-          <div className="flex justify-center mb-2"><ChevronRight size={14} style={{ color: 'var(--color-text-faint)', transform: 'rotate(90deg)' }} /></div>
-
-          <div className="rounded-xl p-4 mb-5 flex items-start gap-3" style={{ background: 'rgba(226,75,74,0.08)', border: '1px solid rgba(226,75,74,0.2)' }}>
-            <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" style={{ background: 'rgba(226,75,74,0.15)' }}>
-              <AlertTriangle size={12} color="#f09595" />
+              <div className="min-w-0 flex-1">
+                <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.2em]" style={{ color: TYPE_STYLE.fact.color }}>
+                  {TYPE_STYLE.fact.label}
+                </p>
+                <p className="text-[15px] leading-relaxed" style={{ color: '#4b4a4a' }}>{ladder.fact}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-medium mb-1" style={{ color: '#f09595', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Catastrophic conclusion</p>
-              <p className="text-sm" style={{ color: 'rgba(232,230,240,0.8)' }}>{ladder.catastrophe}</p>
+
+            <div className="flex justify-center py-0.5 text-[#7d7a74]">
+              <ChevronDown size={16} />
             </div>
+
+            {ladder.predictions?.map((prediction, index) => {
+              const style = TYPE_STYLE[prediction.type] || TYPE_STYLE.prediction
+              return (
+                <div key={`${prediction.type}-${index}`}>
+                  <div
+                    className="flex items-start gap-3 rounded-[18px] border p-4"
+                    style={{ background: style.bg, borderColor: style.border }}
+                  >
+                    <div
+                      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                      style={{ background: `${style.color}20` }}
+                    >
+                      <HelpCircle size={12} color={style.color} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.2em]" style={{ color: style.color }}>
+                        {style.label}
+                      </p>
+                      <p className="text-[15px] leading-relaxed" style={{ color: '#4b4a4a' }}>{prediction.text}</p>
+                    </div>
+                  </div>
+                  {index < ladder.predictions.length - 1 && (
+                    <div className="flex justify-center py-0.5 text-[#7d7a74]">
+                      <ChevronDown size={16} />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+
+            <div className="flex justify-center py-0.5 text-[#7d7a74]">
+              <ChevronDown size={16} />
+            </div>
+
+            <div
+              className="flex items-start gap-3 rounded-[18px] border p-4"
+              style={{ background: TYPE_STYLE.catastrophe.bg, borderColor: TYPE_STYLE.catastrophe.border }}
+            >
+              <div
+                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                style={{ background: 'rgba(229, 135, 137, 0.18)' }}
+              >
+                <AlertTriangle size={12} color={TYPE_STYLE.catastrophe.color} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.2em]" style={{ color: TYPE_STYLE.catastrophe.color }}>
+                  {TYPE_STYLE.catastrophe.label}
+                </p>
+                <p className="text-[15px] leading-relaxed" style={{ color: '#4b4a4a' }}>{ladder.catastrophe}</p>
+              </div>
+            </div>
+
+            <div
+              className="rounded-[18px] border p-4"
+              style={{ background: TYPE_STYLE.reframe.bg, borderColor: TYPE_STYLE.reframe.border }}
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <Lightbulb size={14} color={TYPE_STYLE.reframe.color} />
+                <p className="text-[11px] font-medium uppercase tracking-[0.2em]" style={{ color: TYPE_STYLE.reframe.color }}>
+                  {TYPE_STYLE.reframe.label}
+                </p>
+              </div>
+              <p className="text-[15px] leading-relaxed" style={{ color: '#4b4a4a' }}>{ladder.reframe}</p>
+            </div>
+
+            {ladder.question && (
+              <div className="rounded-[18px] border p-4" style={{ background: 'rgba(255,255,255,0.34)', borderColor: 'rgba(123, 117, 110, 0.12)' }}>
+                <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em]" style={{ color: '#7a7b7c' }}>
+                  Reflect on this
+                </p>
+                <p className="text-[15px] italic leading-relaxed" style={{ color: '#4b4a4a' }}>"{ladder.question}"</p>
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                setLadder(null)
+                setSituation('')
+                setError('')
+              }}
+              className="mt-2 rounded-lg border px-4 py-2 text-[11px] uppercase tracking-[0.15em] transition-opacity hover:opacity-70"
+              style={{ borderColor: 'rgba(94, 90, 85, 0.18)', color: '#6b6a68', background: 'rgba(255,255,255,0.2)' }}
+            >
+              Try another situation
+            </button>
           </div>
-
-          <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(127,119,221,0.08)', border: '1px solid rgba(127,119,221,0.2)' }}>
-            <div className="flex items-center gap-1.5 mb-2">
-              <Lightbulb size={13} color="#AFA9EC" />
-              <p className="text-xs font-medium" style={{ color: '#AFA9EC', textTransform: 'uppercase', letterSpacing: '0.5px' }}>A more realistic view</p>
-            </div>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>{ladder.reframe}</p>
-          </div>
-
-          {ladder.question && (
-            <div className="rounded-xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-border)' }}>
-              <p className="text-xs font-medium mb-1" style={{ color: 'var(--color-text-faint)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Reflect on this</p>
-              <p className="text-sm italic leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>"{ladder.question}"</p>
-            </div>
-          )}
-
-          <button onClick={() => { setLadder(null); setSituation('') }} className="mt-4 text-xs px-4 py-2 rounded-lg border transition-opacity hover:opacity-70" style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'var(--color-text-faint)' }}>
-            Try another situation
-          </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
-  )
-}
-
-function CheckIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
-    </svg>
   )
 }

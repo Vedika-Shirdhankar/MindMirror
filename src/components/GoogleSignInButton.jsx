@@ -37,7 +37,7 @@ export default function GoogleSignInButton({ mode = 'login', onError }) {
           text: mode === 'signup' ? 'signup_with' : 'signin_with',
           shape: 'pill',
           logo_alignment: 'left',
-          width: '100%',
+          width: 320,
         })
       } catch (err) {
         console.warn('Google Sign-In initialization error:', err)
