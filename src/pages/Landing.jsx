@@ -23,6 +23,7 @@ import AmbientAudio from "../components/landing/AmbientAudio.jsx";
 import ReflectionWidget from "../components/landing/ReflectionWidget.jsx";
 import LandingNav from "../components/landing/LandingNav.jsx";
 import LandingFooter from "../components/landing/LandingFooter.jsx";
+import "../styles/landing-extra.css";
 
 export default function Landing({ autoOpenAuth = false }) {
   const [authOpen, setAuthOpen] = useState(false);
@@ -160,13 +161,12 @@ export default function Landing({ autoOpenAuth = false }) {
           }}
         >
           <h1 className="landing-hero-title">
-            Some thoughts are easier to<br />
-            understand when you see them<br />
-            from a different perspective.
+            Some thoughts are easier to understand when you see them from a different perspective.
           </h1>
 
           <p className="landing-hero-subtitle">
-            Journal. Reflect. Understand. Grow.
+            Write or speak an entry. MindMirror spots the patterns, remembers
+            what helped you before, and steps in if you're struggling.
           </p>
 
           <div className="landing-hero-btn-wrap">
@@ -226,60 +226,64 @@ export default function Landing({ autoOpenAuth = false }) {
       {/* ================= HOW IT WORKS ================= */}
       <section className="landing-v2-section landing-v2-how" id="landing-how">
         <div className="landing-v2-heading">
-          <span className="landing-v2-section-label">THE JOURNEY WITHIN</span>
-          <h2>Your mind deserves a little more space.</h2>
+          <h2>What happens after you write an entry.</h2>
           <p>
-            MindMirror gives you a quiet harbor to slow down, gently untangle what you're carrying,
-            and reconnect with yourself through kind, thoughtful reflection.
+            Four steps, in order. Each one says what you get, and how it works
+            underneath.
           </p>
         </div>
 
         <div className="landing-v2-cards">
           <article className="landing-v2-card">
-            <span className="landing-v2-card-number">01</span>
-            <div className="landing-v2-card-icon">
-              <PenLine size={22} />
-            </div>
-            <h3>Put it into words.</h3>
-            <p>
-              Write freely. Let the thoughts that have been sitting inside your head
-              finally have a gentle, unjudged place to go.
+            <span className="landing-v2-card-number">1</span>
+            <div className="landing-v2-card-icon"><PenLine size={22} /></div>
+            <h3>Write or speak.</h3>
+            <p>Type your entry, or say it out loud and it is turned into text.</p>
+            <p className="landing-v2-card-tech">
+              Sent to a JWT-protected API. Journal text is encrypted with
+              AES-256-GCM before it is stored.
             </p>
           </article>
 
           <article className="landing-v2-card">
-            <span className="landing-v2-card-number">02</span>
-            <div className="landing-v2-card-icon">
-              <Brain size={22} />
-            </div>
-            <h3>Understand yourself.</h3>
+            <span className="landing-v2-card-number">2</span>
+            <div className="landing-v2-card-icon"><Brain size={22} /></div>
+            <h3>See the pattern.</h3>
             <p>
-              Discover emotional rhythms, recurring themes, and patterns that help you
-              meet yourself with clarity instead of frustration.
+              Get a short reflection on your mood, what triggered it, and any
+              thinking traps in the entry.
+            </p>
+            <p className="landing-v2-card-tech">
+              A fine-tuned DistilBERT model classifies 7 language patterns.
+              Gemini writes the analysis.
             </p>
           </article>
 
           <article className="landing-v2-card">
-            <span className="landing-v2-card-number">03</span>
-            <div className="landing-v2-card-icon">
-              <Compass size={22} />
-            </div>
-            <h3>Shift your perspective.</h3>
+            <span className="landing-v2-card-number">3</span>
+            <div className="landing-v2-card-icon"><Anchor size={22} /></div>
+            <h3>Recall what helped.</h3>
             <p>
-              Gently step onto the Thought Ladder. Transform heavy, looping worries
-              into compassionate, balanced points of view.
+              When you feel the same way again, the companion brings up what you
+              wrote before and what worked.
+            </p>
+            <p className="landing-v2-card-tech">
+              Every entry becomes a 768-dimension embedding. Vector search finds
+              similar past entries and passes them to Gemini (RAG).
             </p>
           </article>
 
           <article className="landing-v2-card">
-            <span className="landing-v2-card-number">04</span>
-            <div className="landing-v2-card-icon">
-              <Sparkles size={22} />
-            </div>
-            <h3>Grow gently.</h3>
+            <span className="landing-v2-card-number">4</span>
+            <div className="landing-v2-card-icon"><Compass size={22} /></div>
+            <h3>Try another angle.</h3>
             <p>
-              Turn daily reflections into small, achievable steps that help you
-              move forward with peace, at your own rhythm.
+              Walk a heavy thought down the Thought Ladder, or open your Anchor
+              space of quotes and notes you saved.
+            </p>
+            <p className="landing-v2-card-tech">
+              A CBT-style exercise. Anchor items are suggested from the
+              emotional state detected in your entry.
             </p>
           </article>
         </div>
@@ -288,6 +292,42 @@ export default function Landing({ autoOpenAuth = false }) {
       {/* ================= INTERACTIVE REFLECTION EXPERIENCE ================= */}
       <section className="landing-v2-reflection-section">
         <ReflectionWidget onGetStarted={() => openAuth("signup")} />
+      </section>
+
+      {/* ================= SAFETY ================= */}
+      <section className="landing-v2-safety" id="landing-safety">
+        <div className="landing-v2-safety-inner">
+          <div className="landing-v2-safety-head">
+            <ShieldCheck size={26} />
+            <h2>If an entry sounds like a crisis, the screen changes.</h2>
+            <p>
+              Two separate checks run on every entry. If either one fires,
+              MindMirror switches to a support screen with free helplines, plus
+              a message you wrote to your future self when you were feeling okay.
+            </p>
+          </div>
+
+          <div className="landing-v2-safety-checks">
+            <div className="landing-v2-safety-check">
+              <h3>Pattern model</h3>
+              <p>
+                Flags suicidal language when its confidence is 50% or higher.
+              </p>
+            </div>
+            <div className="landing-v2-safety-check">
+              <h3>Gemini review</h3>
+              <p>
+                Rates the entry's risk as none, low, moderate or high. Moderate
+                and high both trigger support.
+              </p>
+            </div>
+          </div>
+
+          <p className="landing-v2-safety-note">
+            These are signals from language patterns, not a diagnosis, and
+            MindMirror is not a substitute for professional care.
+          </p>
+        </div>
       </section>
 
       {/* ================= FOR YOU ================= */}
@@ -302,7 +342,7 @@ export default function Landing({ autoOpenAuth = false }) {
             </h2>
             <div className="landing-safety-pill">
               <ShieldCheck size={16} />
-              <span>Private by design. Your reflections stay yours.</span>
+              <span>Private by design. Your entries are encrypted before they are stored.</span>
             </div>
           </div>
 

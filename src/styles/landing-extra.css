@@ -1,0 +1,108 @@
+/* Landing page additions: pipeline "under the hood" lines + safety section.
+   Reuses the existing palette and type from globals.css. */
+
+.landing-hero-subtitle {
+  max-width: 580px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.65;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+.landing-v2-card-tech {
+  margin-top: auto !important;
+  padding-top: 18px;
+  border-top: 1px solid #e5dcce;
+  color: #597365 !important;
+  font-size: 12px !important;
+  line-height: 1.6 !important;
+}
+
+.landing-v2-card .landing-v2-card-tech + * { margin-top: 0; }
+.landing-v2-card p:first-of-type { margin-bottom: 18px; }
+
+.landing-v2-safety {
+  padding: 110px 7%;
+  background: var(--green-dark, #142921);
+  color: #f7f2ea;
+}
+
+.landing-v2-safety-inner {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.landing-v2-safety-head {
+  text-align: center;
+  max-width: 740px;
+  margin: 0 auto;
+}
+
+.landing-v2-safety-head svg {
+  color: #a9c7b6;
+  margin: 0 auto 18px;
+}
+
+.landing-v2-safety-head h2 {
+  margin: 0 auto 18px;
+  max-width: 700px;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(34px, 4vw, 48px);
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.landing-v2-safety-head p {
+  max-width: 640px;
+  margin: 0 auto;
+  color: #cfdcd3;
+  font-size: 15px;
+  line-height: 1.75;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.landing-v2-safety-checks {
+  margin-top: 44px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.landing-v2-safety-check {
+  padding: 26px 28px;
+  border: 1px solid rgba(247, 242, 234, 0.18);
+  border-radius: 16px;
+}
+
+.landing-v2-safety-check h3 {
+  margin: 0 0 8px;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.landing-v2-safety-check p {
+  margin: 0;
+  color: #cfdcd3;
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+.landing-v2-safety-note {
+  margin: 28px auto 0;
+  max-width: 680px;
+  color: #a9bcb0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .landing-v2-safety { padding: 80px 7%; }
+  .landing-v2-safety-checks { grid-template-columns: 1fr; }
+}
