@@ -37,6 +37,7 @@ const jobRoutes = require('./routes/jobRoutes');
 const anchorRoutes = require('./routes/anchorRoutes');
 const voiceRoutes = require('./routes/voiceRoutes');
 const futureSelfRoutes = require('./routes/futureSelfRoutes');
+const studioRoutes = require('./routes/studioRoutes');
 
 const app = express();
 
@@ -126,6 +127,7 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/anchor', anchorRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/future-self', futureSelfRoutes);
+app.use('/api/journal-studio', studioRoutes);
 // Bhashini route removed
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
