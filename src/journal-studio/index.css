@@ -1,0 +1,188 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #3A3040;
+  --ink-soft: #5E5466;
+  --line-h: 32px;
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .32  0 0 0 0 .28  0 0 0 .55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+html, body, #root { min-height: 100%; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: 'Figtree', ui-sans-serif, system-ui, sans-serif;
+  background-color: #FBF5E9;
+  background-image:
+    radial-gradient(60rem 36rem at 8% -6%, rgba(245, 203, 205, .55), transparent 62%),
+    radial-gradient(52rem 34rem at 100% 4%, rgba(214, 204, 239, .5), transparent 60%),
+    radial-gradient(46rem 30rem at 50% 110%, rgba(200, 216, 188, .45), transparent 60%);
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: var(--grain); opacity: .09; mix-blend-mode: multiply;
+}
+#root { position: relative; z-index: 1; }
+
+::selection { background: #E9E3F7; }
+:focus-visible { outline: 2.5px solid #9C8BCF; outline-offset: 2px; border-radius: 10px; }
+button { -webkit-tap-highlight-color: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+/* ---------- Shared controls ---------- */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 min-h-[44px] text-[15px] font-semibold
+           transition-colors duration-150 select-none disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary { @apply btn bg-ink text-cream hover:bg-[#51435a] shadow-soft; }
+  .btn-soft    { @apply btn bg-white/80 text-ink border border-blush-200 hover:bg-blush-50; }
+  .btn-lav     { @apply btn bg-lav-100 text-[#4d3d78] hover:bg-lav-200; }
+  .btn-danger  { @apply btn bg-[#B94A4A] text-white hover:bg-[#a13d3d]; }
+  .btn-ghost   { @apply btn px-3 text-ink-soft hover:bg-white/70; }
+  .icon-btn {
+    @apply inline-flex items-center justify-center rounded-full min-w-[40px] min-h-[40px] text-ink-soft
+           transition-colors hover:bg-white/80 hover:text-ink disabled:opacity-40 disabled:pointer-events-none;
+  }
+  .icon-btn[aria-pressed='true'] { @apply bg-lav-100 text-[#4d3d78]; }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3.5 min-h-[36px] text-sm font-medium border border-blush-200
+           bg-white/70 text-ink-soft transition-colors hover:bg-white;
+  }
+  .chip[aria-pressed='true'] { @apply bg-ink text-cream border-ink; }
+  .field {
+    @apply w-full rounded-full border border-blush-200 bg-white/85 px-5 min-h-[48px] text-[15px] placeholder:text-ink-mute;
+  }
+  .panel { @apply rounded-3xl border border-blush-200/70 bg-white/70 backdrop-blur-sm shadow-soft; }
+}
+
+/* ---------- The journal page ---------- */
+.page-wrap { container-type: inline-size; }
+
+.paper {
+  position: relative;
+  border-radius: 6px 18px 18px 6px;
+  background-color: #FFFCF5;
+  box-shadow: 0 1px 0 rgba(58,48,64,.04), 0 18px 40px -18px rgba(120,90,110,.38), 0 3px 8px rgba(120,90,110,.1);
+}
+.paper-bg {
+  position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; z-index: 0;
+}
+.paper-bg::after { content: ''; position: absolute; inset: 0; background-image: var(--grain); opacity: .16; mix-blend-mode: multiply; }
+/* faint page-edge shading, like the gutter of a bound book */
+.paper-bg::before {
+  content: ''; position: absolute; inset: 0 auto 0 0; width: 26px;
+  background: linear-gradient(90deg, rgba(120,90,110,.10), transparent);
+}
+
+.theme-cream    { background-color: #FFFCF5; }
+.theme-lined    { background-color: #FFFCF5; }
+.theme-dotted   { background-color: #FFFCF5; }
+.theme-dotted .paper-bg { background-image: radial-gradient(rgba(150,130,170,.38) 1.1px, transparent 1.3px); background-size: 24px 24px; background-position: 12px 12px; }
+.theme-grid     { background-color: #FFFCF5; }
+.theme-grid .paper-bg { background-image: linear-gradient(rgba(150,130,170,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(150,130,170,.16) 1px, transparent 1px); background-size: 28px 28px; }
+.theme-blush    { background-color: #FDEDEE; }
+.theme-lavender { background-color: #F1ECFA; }
+.theme-sage     { background-color: #EBF1E4; }
+
+/* Ruled lines belong to the writing surface so they stay aligned with the text baseline */
+.theme-lined .editor-surface {
+  background-image: linear-gradient(to bottom, transparent calc(var(--line-h) - 1px), rgba(157,140,200,.32) calc(var(--line-h) - 1px));
+  background-size: 100% var(--line-h);
+}
+
+/* binder holes */
+.holes { position: absolute; left: 14px; top: 0; bottom: 0; display: none; flex-direction: column; justify-content: space-evenly; z-index: 0; pointer-events: none; }
+.holes i { display: block; width: 12px; height: 12px; border-radius: 50%; background: #EFE4D2; box-shadow: inset 0 1px 2px rgba(80,60,60,.3); }
+@media (min-width: 768px) { .holes { display: flex; } }
+
+/* ---------- Rich-text surface ---------- */
+.journal-prose { font-size: 17px; line-height: var(--line-h); color: var(--ink); }
+.journal-prose .ProseMirror, .journal-prose.static { outline: none; min-height: 100%; word-wrap: break-word; }
+.journal-prose p { margin: 0; min-height: var(--line-h); }
+.journal-prose h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.5rem; line-height: var(--line-h); margin: var(--line-h) 0 0; }
+.journal-prose ul, .journal-prose ol { margin: 0; padding-left: 1.5rem; }
+.journal-prose ul { list-style: none; }
+.journal-prose ul > li { position: relative; }
+.journal-prose ul > li::before { content: '✿'; position: absolute; left: -1.35rem; color: #DD8590; font-size: .8em; }
+.journal-prose ol { list-style: decimal; }
+.journal-prose ol > li::marker { color: #9C8BCF; font-weight: 600; }
+.journal-prose li > p { margin: 0; }
+.journal-prose blockquote {
+  margin: 0; padding: 0 0 0 1rem; border-left: 3px solid #C8D8BC; font-family: 'Fraunces', Georgia, serif; font-style: italic; color: var(--ink-soft);
+}
+.journal-prose mark { border-radius: 4px; padding: 0 .12em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.journal-prose strong { font-weight: 700; }
+.journal-prose p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder); float: left; height: 0; pointer-events: none; color: #A39AAB; font-family: 'Caveat', cursive; font-size: 1.45rem;
+}
+
+.editor-surface { display: flex; flex-direction: column; }
+.editor-surface .ProseMirror { flex: 1; min-height: 14rem; caret-color: #9C8BCF; }
+
+/* ---------- Stickers ---------- */
+.sticker {
+  position: absolute; container-type: inline-size; touch-action: none; user-select: none; -webkit-user-select: none;
+  cursor: grab; transform-origin: 50% 50%;
+}
+.sticker.is-dragging { cursor: grabbing; }
+.sticker-art { width: 100%; height: 100%; display: grid; place-items: center; pointer-events: none; }
+.sticker-art img { width: 100%; height: 100%; display: block; -webkit-user-drag: none; user-select: none; }
+.sticker-emoji { font-size: 74cqw; line-height: 1; }
+.sticker-die-cut {
+  filter:
+    drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+    drop-shadow(0 2px 2.5px rgba(70,45,65,.28));
+}
+.sticker-soft { filter: drop-shadow(0 1.5px 1.5px rgba(70,45,65,.22)); }
+.sticker-label {
+  width: 100%; height: 100%; display: grid; place-items: center; border-radius: 999px; white-space: nowrap;
+  font-family: 'Caveat', cursive; font-weight: 700; font-size: 15cqw; box-shadow: 0 1.5px 2px rgba(70,45,65,.18); position: relative;
+}
+.sticker-label::after { content: ''; position: absolute; inset: 3px; border: 1.5px dashed currentColor; border-radius: 999px; opacity: .45; }
+.sticker-back { opacity: .82; }
+.peek .sticker-front:not(.sticker-selected) { opacity: .2; transition: opacity .15s; }
+
+.sticker-selected { outline: 1.5px dashed #9C8BCF; outline-offset: 3px; border-radius: 6px; }
+.sticker-handle {
+  position: absolute; width: 32px; height: 32px; display: grid; place-items: center; touch-action: none; transform: translate(-50%, -50%); z-index: 3;
+}
+.sticker-handle > span {
+  width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid #9C8BCF; display: grid; place-items: center;
+  box-shadow: 0 1px 3px rgba(60,40,70,.3); color: #6B4E97;
+}
+.sticker-handle.rotate { cursor: grab; }
+.sticker-handle.resize { cursor: nwse-resize; }
+.sticker-handle.delete > span { border-color: #DD8590; color: #B94A4A; }
+@media (pointer: coarse) {
+  .sticker-handle { width: 44px; height: 44px; }
+  .sticker-handle > span { width: 24px; height: 24px; }
+}
+
+/* ---------- Misc ---------- */
+.scroll-thin { scrollbar-width: thin; scrollbar-color: #D6CCEF transparent; }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.hand { font-family: 'Caveat', cursive; }
+.tape-corner { position: absolute; width: 74px; height: 22px; background: rgba(214,204,239,.7); transform: rotate(-38deg); box-shadow: 0 1px 2px rgba(60,40,70,.15); }
+.safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+
+/* Home hero collage: one orchestrated entrance, uses the independent `scale` property so inline rotation survives */
+@keyframes sticker-in { from { scale: .35; opacity: 0; } to { scale: 1; opacity: 1; } }
+.hero-collage .sticker { animation: sticker-in .5s cubic-bezier(.2,1.3,.4,1) both; }
+.hero-collage .sticker:nth-child(1) { animation-delay: .25s; }
+.hero-collage .sticker:nth-child(2) { animation-delay: .4s; }
+.hero-collage .sticker:nth-child(3) { animation-delay: .55s; }
+.hero-collage .sticker:nth-child(4) { animation-delay: .7s; }
+.hero-collage .sticker:nth-child(5) { animation-delay: .85s; }
+.hero-collage .sticker:nth-child(6) { animation-delay: 1s; }
+.line-clamp-fallback { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }

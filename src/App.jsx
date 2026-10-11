@@ -22,6 +22,7 @@ import Appearance from './pages/Appearance.jsx'
 import AnchorSpace from './pages/AnchorSpace.jsx'
 import Auth from './pages/Auth.jsx'
 import Onboarding from './pages/Onboarding.jsx'
+import JournalStudio from './pages/JournalStudio.jsx'
 import { AuthProvider, useAuth } from './lib/AuthContext.jsx'
 
 function ProtectedShell() {
@@ -67,6 +68,7 @@ function ProtectedShell() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/companion" element={<Companion />} />
         <Route path="/journal" element={<Journal />} />
+        <Route path="/journal-studio" element={<JournalStudio />} />
         <Route path="/anchor" element={<AnchorSpace />} /> {/* <-- 2. ROUTE ADDED */}
         <Route path="/videos" element={<VideoReflections />} />
         <Route path="/timeline" element={<Timeline />} />
