@@ -27,3 +27,6 @@ ml/Mental_Health_Condition_Classification.csv
 # Python cache
 __pycache__/
 *.pyc
+
+# Prototype folder
+journal-studio-prototype/
