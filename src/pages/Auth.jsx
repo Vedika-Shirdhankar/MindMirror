@@ -36,14 +36,11 @@ export default function Auth({ isModal = false, onClose = null, initialMode = 'l
       {/* Logo mark */}
       <div className="flex flex-col items-center mb-8">
         <div className="relative mb-4">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
-            style={{
-              background: 'linear-gradient(135deg, rgba(139,130,236,0.25) 0%, rgba(100,216,180,0.15) 100%)',
-              border: '1px solid rgba(139,130,236,0.35)',
-              boxShadow: '0 0 40px rgba(139,130,236,0.2)',
-            }}>
-            <Heart size={26} style={{ color: '#AFA9EC' }} fill="#AFA9EC" />
-          </div>
+          <img
+            src="/mindmirror-logo.png"
+            alt="MindMirror Logo"
+            className="w-16 h-16 rounded-2xl object-cover shadow-lg shadow-primary/20 border border-white/40"
+          />
           {/* ambient glow */}
           <div className="absolute inset-0 rounded-2xl blur-[20px] -z-10 scale-125"
             style={{ background: 'rgba(139,130,236,0.2)' }} />

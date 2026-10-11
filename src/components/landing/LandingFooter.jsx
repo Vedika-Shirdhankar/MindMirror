@@ -1,4 +1,4 @@
-﻿// src/components/landing/LandingFooter.jsx
+// src/components/landing/LandingFooter.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Leaf } from 'lucide-react';
@@ -7,10 +7,12 @@ export default function LandingFooter() {
   return (
     <footer className="landing-v2-footer">
       <div className="landing-v2-footer-brand">
-        <span>
-          <Leaf size={16} />
-        </span>
-        MindMirror
+        <img
+          src="/mindmirror-logo.png"
+          alt="MindMirror Logo"
+          className="w-7 h-7 rounded-lg object-cover shadow-sm border border-white/20"
+        />
+        <span>MindMirror</span>
       </div>
       <p className="landing-footer-tag">A gentle sanctuary for every version of you.</p>
       <div className="landing-footer-links">
@@ -23,7 +25,7 @@ export default function LandingFooter() {
         <Link to="/for-you" className="hover:text-white transition-colors">For You</Link>
       </div>
       <span className="landing-v2-footer-copy">
-        © 2026 MindMirror · Private, Local & Kind
+        © 2026 MindMirror · Private & Kind
       </span>
     </footer>
   );

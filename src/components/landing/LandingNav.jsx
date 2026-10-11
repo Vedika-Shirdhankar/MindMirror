@@ -1,4 +1,4 @@
-﻿// src/components/landing/LandingNav.jsx
+// src/components/landing/LandingNav.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Leaf } from 'lucide-react';
@@ -25,10 +25,12 @@ export default function LandingNav({ onOpenAuth }) {
 
   return (
     <header className={`landing-v2-nav ${scrolled ? 'landing-v2-nav-scrolled' : ''}`}>
-      <Link to="/" className="landing-v2-logo">
-        <span className="landing-v2-logo-icon">
-          <Leaf size={17} strokeWidth={1.7} />
-        </span>
+      <Link to="/" className="landing-v2-logo flex items-center gap-2.5">
+        <img
+          src="/mindmirror-logo.png"
+          alt="MindMirror Logo"
+          className="w-8 h-8 rounded-xl object-cover shadow-sm border border-black/5"
+        />
         <span className="landing-v2-logo-text">MindMirror</span>
       </Link>
 

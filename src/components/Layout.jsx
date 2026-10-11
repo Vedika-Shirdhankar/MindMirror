@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   MessageCircle, BookOpen, Clock, BarChart2, TrendingUp,
   Layers, Mail, Settings, Heart, Lock, LogOut, PieChart, Gamepad2, Video, Scroll, Sparkles, Palette, Sun, Home,
-  Anchor, Leaf, Search, Bell
+  Anchor, Leaf, Search, Bell, PenSquare
 } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext.jsx'
 import { useTranslation } from 'react-i18next'
@@ -34,6 +34,7 @@ export default function Layout({ children, user }) {
     { to: '/',                 icon: Home,          label: t('nav.dashboard'), tagline: t('nav.dashboardTagline') },
     { to: '/companion',          icon: MessageCircle, label: t('nav.companion'), tagline: t('nav.companionTagline') },
     { to: '/journal',            icon: BookOpen,      label: t('nav.journal'), tagline: t('nav.journalTagline') },
+    { to: '/journal-studio',     icon: PenSquare,     label: 'Journal Studio', tagline: 'Creative journaling with stickers' },
     { to: '/anchor',             icon: Anchor,        label: t('nav.anchor'), tagline: t('nav.anchorTagline') }, 
     { to: '/life-report',        icon: Sparkles,      label: t('nav.lifeReport'), tagline: t('nav.lifeReportTagline') },
     { to: '/letter-from-mirror', icon: Scroll,        label: t('nav.letterFromMirror'), tagline: t('nav.letterFromMirrorTagline') },
@@ -72,9 +73,11 @@ export default function Layout({ children, user }) {
       <aside className="app-sidebar w-64 flex-shrink-0 flex flex-col py-6 px-4 border-r z-10 bg-white/55 backdrop-blur-xl border-black/5 shadow-[8px_0_30px_rgba(36,59,58,0.04)]">
         {/* Warm Logo Header */}
         <div className="flex items-center gap-3 px-2 mb-6">
-          <div className="w-9 h-9 rounded-2xl flex items-center justify-center bg-primary shadow-md shadow-primary/20">
-            <Heart size={16} color="white" fill="white" />
-          </div>
+          <img
+            src="/mindmirror-logo.png"
+            alt="MindMirror Logo"
+            className="w-10 h-10 rounded-2xl object-cover shadow-md shadow-primary/20 border border-white/40"
+          />
           <div>
             <span className="font-bold text-base text-text tracking-tight block">{t('app.name')}</span>
             <span className="text-[11px] text-text/50 font-medium block -mt-0.5">{t('app.tagline')}</span>
