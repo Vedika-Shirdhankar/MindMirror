@@ -13,10 +13,11 @@ Safety Notice:
 import os
 import json
 import logging
+import tempfile
 from contextlib import asynccontextmanager
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Any
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import torch
@@ -35,6 +36,34 @@ tokenizer: Optional[AutoTokenizer] = None
 model: Optional[AutoModelForSequenceClassification] = None
 id2label: Dict[int, str] = {}
 device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Faster-Whisper state
+whisper_model = None
+whisper_available: bool = False
+
+try:
+    from faster_whisper import WhisperModel
+    whisper_available = True
+except ImportError:
+    whisper_available = False
+    logger.info("faster_whisper not installed — local audio transcription endpoint will be optional.")
+
+
+def get_whisper_model():
+    global whisper_model, whisper_available
+    if not whisper_available:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="faster_whisper package is not installed on this server.",
+        )
+    if whisper_model is None:
+        model_size = os.getenv("WHISPER_MODEL_SIZE", "tiny")
+        compute_type = "float16" if torch.cuda.is_available() else "int8"
+        dev_str = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.info(f"Loading Faster-Whisper model ({model_size}) on {dev_str} ({compute_type})...")
+        whisper_model = WhisperModel(model_size, device=dev_str, compute_type=compute_type)
+        logger.info("Faster-Whisper model successfully loaded.")
+    return whisper_model
 
 
 def load_model_and_labels():
@@ -136,6 +165,18 @@ class PredictResponse(BaseModel):
     scores: Dict[str, float]
 
 
+class TranscribeRequest(BaseModel):
+    file_path: Optional[str] = Field(None, description="Local path to audio/video file")
+    language: Optional[str] = Field(None, description="Language code e.g. 'en'")
+
+
+class TranscribeResponse(BaseModel):
+    text: str
+    language: str
+    duration: float
+    segments: List[Dict[str, Any]]
+
+
 @app.get("/health")
 def health_check():
     """Health check endpoint to verify service and model availability."""
@@ -145,6 +186,8 @@ def health_check():
         "modelLoaded": is_loaded,
         "device": str(device),
         "numClasses": len(id2label),
+        "whisperAvailable": whisper_available,
+        "whisperLoaded": whisper_model is not None,
     }
 
 
@@ -210,6 +253,86 @@ def predict(payload: PredictRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Inference error: {str(err)}",
         )
+
+
+def run_whisper_transcription(target_path: str, language: Optional[str] = None) -> TranscribeResponse:
+    w_model = get_whisper_model()
+    if not target_path or not os.path.exists(target_path):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Audio/video file not found at path: {target_path}",
+        )
+    try:
+        segments_generator, info = w_model.transcribe(
+            target_path,
+            language=language,
+            beam_size=5,
+            vad_filter=True,
+        )
+
+        segments_list = []
+        full_text_parts = []
+        for seg in segments_generator:
+            segments_list.append({
+                "start": round(seg.start, 2),
+                "end": round(seg.end, 2),
+                "text": seg.text.strip(),
+            })
+            full_text_parts.append(seg.text.strip())
+
+        full_text = " ".join(full_text_parts)
+
+        return TranscribeResponse(
+            text=full_text,
+            language=info.language or "en",
+            duration=round(info.duration, 2),
+            segments=segments_list,
+        )
+    except Exception as err:
+        logger.error(f"Whisper transcription error: {err}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Transcription failed: {str(err)}",
+        )
+
+
+@app.post("/transcribe", response_model=TranscribeResponse)
+def transcribe_audio_path(payload: TranscribeRequest):
+    """
+    Offline Audio/Video transcription using Faster-Whisper (CTranslate2).
+    Accepts local file_path in JSON request body.
+    """
+    if not payload.file_path:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="file_path field is required in request body.",
+        )
+    return run_whisper_transcription(payload.file_path, payload.language)
+
+
+@app.post("/transcribe-upload", response_model=TranscribeResponse)
+async def transcribe_audio_file(
+    file: UploadFile = File(...),
+    language: Optional[str] = None,
+):
+    """
+    Offline Audio/Video transcription using Faster-Whisper (CTranslate2).
+    Accepts direct binary multipart file upload.
+    """
+    suffix = os.path.splitext(file.filename)[1] if file.filename else ".webm"
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            content = await file.read()
+            tmp.write(content)
+            temp_path = tmp.name
+        return run_whisper_transcription(temp_path, language)
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ const HF_MODEL_REPO = process.env.HF_MODEL_REPO || 'Vedika16S/mindmirror-distilb
 const HF_INFERENCE_URL = `https://api-inference.huggingface.co/models/${HF_MODEL_REPO}`;
 
 // Fallback: local Python ML service for dev (used only if HF_TOKEN is not set)
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://127.0.0.1:8000';
 const DEFAULT_TIMEOUT_MS = 10000;
 
 /**
@@ -204,8 +204,54 @@ async function checkMlHealth() {
   }
 }
 
+/**
+ * Transcribe local audio/video file using Python Faster-Whisper microservice.
+ *
+ * @param {string} filePath - Absolute path to audio/video file on disk
+ * @param {string} [language] - Optional language code (e.g. 'en')
+ * @returns {Promise<{ text: string, language: string, duration: number, segments: Array }>}
+ */
+async function transcribeWithWhisper(filePath, language = 'en') {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for transcription
+
+  try {
+    const response = await fetch(`${ML_SERVICE_URL}/transcribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file_path: filePath, language }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`Whisper ML service ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return {
+      text: data.text || '',
+      language: data.language || 'en',
+      duration: data.duration || 0,
+      segments: data.segments || [],
+    };
+  } catch (err) {
+    clearTimeout(timeoutId);
+    logger.warn({
+      message: 'Local Whisper transcription failed or unreachable',
+      error: err.name === 'AbortError' ? 'Request timed out' : err.message,
+      url: ML_SERVICE_URL,
+    });
+    throw err;
+  }
+}
+
 module.exports = {
   classifyJournal,
+  transcribeWithWhisper,
   checkMlHealth,
   ML_SERVICE_URL,
 };
+

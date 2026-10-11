@@ -124,12 +124,16 @@ async function googleAuth(req, res, next) {
         payload = ticket.getPayload();
       } catch (verifyErr) {
         // Fallback: verify via Google tokeninfo endpoint
-        const fetch = globalThis.fetch || require('node-fetch');
-        const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
-        if (!response.ok) {
-          return res.status(401).json({ error: 'Invalid Google credential token.' });
+        try {
+          const fetch = globalThis.fetch || require('node-fetch');
+          const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
+          if (!response.ok) {
+            return res.status(401).json({ error: 'Invalid Google credential token.' });
+          }
+          payload = await response.json();
+        } catch (fetchErr) {
+          return res.status(401).json({ error: 'Failed to verify Google token credentials.' });
         }
-        payload = await response.json();
       }
     } else if (accessToken) {
       const fetch = globalThis.fetch || require('node-fetch');

@@ -235,6 +235,20 @@ async function markResolved(req, res, next) {
   }
 }
 
+// PATCH /api/journal/:id/next-step  (toggles done / not done)
+async function toggleNextStep(req, res, next) {
+  try {
+    const entry = await JournalEntry.findOne({ _id: req.params.id, user: req.userId });
+    if (!entry || !entry.next_step?.text) return res.status(404).json({ error: 'Next step not found.' });
+    entry.next_step.done = !entry.next_step.done;
+    entry.next_step.doneAt = entry.next_step.done ? new Date() : null;
+    await entry.save();
+    res.json({ entry });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // PATCH /api/journal/:id/pin
 async function togglePin(req, res, next) {
   try {
@@ -343,4 +357,4 @@ async function semanticSearch(req, res, next) {
   }
 }
 
-module.exports = { getEntries, createEntry, deleteEntry, markResolved, togglePin, buildThoughtLadder, semanticSearch };
+module.exports = { getEntries, createEntry, deleteEntry, markResolved, toggleNextStep, togglePin, buildThoughtLadder, semanticSearch };

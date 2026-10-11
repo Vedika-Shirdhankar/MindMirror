@@ -61,6 +61,17 @@ const journalEntrySchema = new mongoose.Schema(
       scores: { type: mongoose.Schema.Types.Mixed, default: {} },
     },
 
+    // ── Action layer: one concrete next step per entry + rumination flag ──
+    next_step: {
+      text: { type: String, default: '', set: encrypt, get: decrypt },
+      done: { type: Boolean, default: false },
+      doneAt: { type: Date, default: null },
+    },
+    rumination: {
+      flagged: { type: Boolean, default: false },
+      similarCount: { type: Number, default: 0 },
+    },
+
     resolved: { type: Boolean, default: false },
     resolvedNote: { type: String, default: '', set: encrypt, get: decrypt },
     pinned: { type: Boolean, default: false },
