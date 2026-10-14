@@ -351,6 +351,30 @@ body {
 }
 
 /* ============================================================
+   SMART MOOD CALENDAR — Animations & Utilities
+============================================================ */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Calendar day cell hover glow */
+.calendar-day-cell:hover {
+  box-shadow: 0 4px 18px rgba(138, 118, 201, 0.18);
+}
+
+/* Mood dot pulse on hover */
+.mood-dot-pulse:hover {
+  transform: scale(1.3);
+  transition: transform 0.2s ease;
+}
+
+/* ============================================================
    LANDING PAGE V2 — ANIMATED SERENE NATURE THEME
 ============================================================ */
 

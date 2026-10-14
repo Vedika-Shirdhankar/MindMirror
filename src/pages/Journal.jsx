@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, CheckCircle, Sparkles, AlertTriangle, Loader, Loader2, TrendingUp, TrendingDown, Minus, Play, Search, X, Pin, PinOff, Filter, Mic, Activity, Check, Target, Repeat } from 'lucide-react'
 import * as api from '../lib/api.js'
@@ -296,9 +297,11 @@ const DRAFT_KEY = 'mm_journal_draft'
 
 export default function Journal() {
   const { t } = useTranslation()
+  const location = useLocation()
   const [entries, setEntries] = useState([])
   const [loadingList, setLoadingList] = useState(true)
   const [writing, setWriting] = useState(false)
+  const [entryDate, setEntryDate] = useState(null)
   const [text, setText] = useState('')
   const [coping, setCoping] = useState([])
   const [saving, setSaving] = useState(false)
@@ -329,14 +332,22 @@ export default function Journal() {
 
   useEffect(() => { loadEntries() }, [])
 
+  // If navigated with a preset date from SmartMoodCalendar
+  useEffect(() => {
+    if (location.state?.date) {
+      setEntryDate(location.state.date)
+      setWriting(true)
+    }
+  }, [location.state])
+
   // Restore an autosaved draft on load, and open the composer if one exists.
   useEffect(() => {
     const draft = localStorage.getItem(DRAFT_KEY)
-    if (draft?.trim()) {
+    if (draft?.trim() && !location.state?.date) {
       setText(draft)
       setWriting(true)
     }
-  }, [])
+  }, [location.state])
 
   // Autosave the draft as the user types (debounced by React's own batching).
   useEffect(() => {
@@ -368,7 +379,12 @@ export default function Journal() {
     setLastSupport(null)
     setLastAiError('')
     try {
-      const { entry, recommendedVideos, aiError, support } = await api.addEntry({ text: text.trim(), copingUsed: coping })
+      const { entry, recommendedVideos, aiError, support } = await api.addEntry({
+        text: text.trim(),
+        copingUsed: coping,
+        // If navigated here with a specific date (e.g. from Smart Mood Calendar), use it
+        date: entryDate || undefined,
+      })
       const entryWithRecs = { ...entry, recommendedVideos };
       setEntries(prev => [entryWithRecs, ...prev])
       if (aiError) setLastAiError(aiError)
@@ -378,6 +394,7 @@ export default function Journal() {
       }
       setText('')
       setCoping([])
+      setEntryDate(null)
       setWriting(false)
       localStorage.removeItem(DRAFT_KEY)
     } catch (e) {
@@ -391,6 +408,7 @@ export default function Journal() {
     setWriting(false)
     setText('')
     setCoping([])
+    setEntryDate(null)
     localStorage.removeItem(DRAFT_KEY)
   }
 

@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../lib/AuthContext.jsx'
 import * as api from '../lib/api.js'
 import { format, differenceInCalendarDays, subDays, parseISO } from 'date-fns'
+import SmartMoodCalendar from '../components/calendar/SmartMoodCalendar.jsx'
 
 // ─── Original, in-house affirmations & reflections (rotate daily) ──────────
 const AFFIRMATIONS = [
@@ -357,6 +358,11 @@ export default function Dashboard() {
           </ResponsiveContainer>
         )}
       </CardShell>
+
+      {/* ── Smart Mood Calendar ── */}
+      <div className="mb-6 fade-up">
+        <SmartMoodCalendar />
+      </div>
 
       {/* ── Recent journals ── */}
       <CardShell className="mb-6">

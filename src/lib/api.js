@@ -68,6 +68,80 @@ export const EMOTION_META = {
   calm:       { label: 'Calm',       emoji: '🌿' },
 };
 
+export const CALENDAR_MOOD_PALETTE = {
+  calm: {
+    id: 'calm',
+    label: 'Calm & Grounded',
+    color: '#529672',
+    bg: 'rgba(82, 150, 114, 0.15)',
+    border: 'rgba(82, 150, 114, 0.35)',
+    glow: 'rgba(82, 150, 114, 0.25)',
+    emoji: '🌿',
+    emotions: ['calm', 'relief'],
+  },
+  joy: {
+    id: 'joy',
+    label: 'Joy & Gratitude',
+    color: '#D4637B',
+    bg: 'rgba(212, 99, 123, 0.15)',
+    border: 'rgba(212, 99, 123, 0.35)',
+    glow: 'rgba(212, 99, 123, 0.25)',
+    emoji: '✨',
+    emotions: ['joy', 'gratitude', 'hope'],
+  },
+  reflective: {
+    id: 'reflective',
+    label: 'Reflective & Mixed',
+    color: '#8A76C9',
+    bg: 'rgba(138, 118, 201, 0.15)',
+    border: 'rgba(138, 118, 201, 0.35)',
+    glow: 'rgba(138, 118, 201, 0.25)',
+    emoji: '🪞',
+    emotions: ['numbness'],
+  },
+  anxiety: {
+    id: 'anxiety',
+    label: 'Anxiety & Overwhelm',
+    color: '#D9822B',
+    bg: 'rgba(217, 130, 43, 0.15)',
+    border: 'rgba(217, 130, 43, 0.35)',
+    glow: 'rgba(217, 130, 43, 0.25)',
+    emoji: '🌀',
+    emotions: ['anxiety', 'fear', 'overwhelm'],
+  },
+  sadness: {
+    id: 'sadness',
+    label: 'Low Mood & Tender',
+    color: '#655DC6',
+    bg: 'rgba(101, 93, 198, 0.15)',
+    border: 'rgba(101, 93, 198, 0.35)',
+    glow: 'rgba(101, 93, 198, 0.25)',
+    emoji: '💧',
+    emotions: ['sadness', 'shame', 'guilt', 'loneliness'],
+  },
+  frustration: {
+    id: 'frustration',
+    label: 'Frustration & Tension',
+    color: '#C64F42',
+    bg: 'rgba(198, 79, 66, 0.15)',
+    border: 'rgba(198, 79, 66, 0.35)',
+    glow: 'rgba(198, 79, 66, 0.25)',
+    emoji: '⚡',
+    emotions: ['anger', 'frustration'],
+  },
+};
+
+export function getMoodPaletteForEmotion(emotion) {
+  if (!emotion) return CALENDAR_MOOD_PALETTE.calm;
+  const em = String(emotion).toLowerCase().trim();
+  for (const key of Object.keys(CALENDAR_MOOD_PALETTE)) {
+    if (CALENDAR_MOOD_PALETTE[key].emotions.includes(em)) {
+      return CALENDAR_MOOD_PALETTE[key];
+    }
+  }
+  return CALENDAR_MOOD_PALETTE.reflective;
+}
+
 export const DISTORTION_LABELS = {
   catastrophizing: 'Catastrophizing',
   black_and_white_thinking: 'All-or-nothing thinking',
@@ -213,10 +287,10 @@ export async function getEntries() {
   return data.entries || [];
 }
 
-export async function addEntry({ text, copingUsed, mood }) {
+export async function addEntry({ text, copingUsed, mood, date }) {
   const data = await request('/journal', {
     method: 'POST',
-    body: JSON.stringify({ text, copingUsed, mood }),
+    body: JSON.stringify({ text, copingUsed, mood, date }),
   });
   return {
     entry: data.entry,
@@ -226,6 +300,23 @@ export async function addEntry({ text, copingUsed, mood }) {
     mlAnalysis: data.mlAnalysis,
     mlAvailable: data.mlAvailable,
   };
+}
+
+export async function getCalendarData(year, month, timezone) {
+  const tz = timezone || (typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC');
+  const params = new URLSearchParams();
+  if (year) params.append('year', year);
+  if (month) params.append('month', month);
+  if (tz) params.append('timezone', tz);
+  return request(`/journal/calendar?${params.toString()}`);
+}
+
+export async function generateMonthlyReflection(year, month, forceRegenerate = false) {
+  const timezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC';
+  return request('/journal/calendar/reflection', {
+    method: 'POST',
+    body: JSON.stringify({ year, month, timezone, forceRegenerate }),
+  });
 }
 
 export async function deleteEntry(id) {

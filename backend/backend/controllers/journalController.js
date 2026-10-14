@@ -6,6 +6,7 @@ const { CRISIS_RESOURCES } = require('../utils/crisisResources');
 const { generateEmbedding, cosineSimilarity } = require('../utils/embeddings');
 const { extractAndSaveActions } = require('../utils/actionExtractor');
 const { classifyJournal } = require('../services/mlService');
+const { cache } = require('../utils/cache');
 
 // GET /api/journal
 async function getEntries(req, res, next) {
@@ -25,7 +26,7 @@ async function getEntries(req, res, next) {
 async function createEntry(req, res, next) {
   let entry;
   try {
-    const { text, mood, copingUsed } = req.body;
+    const { text, mood, copingUsed, date } = req.body;
     if (typeof text !== "string") {
       return res.status(400).json({ error: "Text must be a string." });
     }
@@ -37,6 +38,21 @@ async function createEntry(req, res, next) {
     const rawMood = mood ?? 5;
     const safeMood = Math.min(10, Math.max(1, Number.isFinite(+rawMood) ? +rawMood : 5));
 
+    // Date validation: Allow past and current date, disallow future dates
+    let entryDate = new Date();
+    if (date) {
+      const parsedDate = new Date(date);
+      if (isNaN(parsedDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid date format provided.' });
+      }
+      // 12-hour buffer to account for timezone skew / end-of-day offsets
+      const maxAllowedTime = Date.now() + 12 * 60 * 60 * 1000;
+      if (parsedDate.getTime() > maxAllowedTime) {
+        return res.status(400).json({ error: 'Journal entries cannot be created for a future date.' });
+      }
+      entryDate = parsedDate;
+    }
+
     // ── 1. MANDATORY PERSISTENCE: Save journal entry immediately ──
     entry = await JournalEntry.create({
       user: req.userId,
@@ -45,7 +61,11 @@ async function createEntry(req, res, next) {
       copingUsed: copingUsed || [],
       sentiment: 'neutral',
       risk_level: 'none',
+      date: entryDate,
     });
+
+    // Invalidate cached monthly reflections for this user
+    cache.invalidatePrefix(`reflection:${req.userId}`);
 
     const { getApiKeys } = require('../utils/geminiHelper');
     const hasApiKeys = getApiKeys().length > 0;
@@ -207,6 +227,7 @@ async function deleteEntry(req, res, next) {
   try {
     const entry = await JournalEntry.findOneAndDelete({ _id: req.params.id, user: req.userId });
     if (!entry) return res.status(404).json({ error: 'Entry not found.' });
+    cache.invalidatePrefix(`reflection:${req.userId}`);
     res.json({ success: true });
   } catch (err) {
     next(err);
