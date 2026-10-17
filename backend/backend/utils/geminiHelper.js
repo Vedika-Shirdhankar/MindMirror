@@ -45,7 +45,8 @@ async function executeWithFallback(apiCallback) {
         /quota|too many requests|rate limit|resource_exhausted|high demand|service unavailable|unauthenticated|invalid api key/i.test(err.message || '');
 
       if (isRecoverableError && i < keys.length - 1) {
-        console.warn(`[GeminiHelper] Key #${i + 1} failed (${err.status || err.message}). Switching to fallback key #${i + 2}...`);
+        console.warn(`[GeminiHelper] Key #${i + 1} failed (${err.status || err.message}). Waiting 800ms before switching to fallback key #${i + 2}...`);
+        await new Promise((resolve) => setTimeout(resolve, 800));
         continue;
       }
       throw err;

@@ -48,6 +48,8 @@ app.set('trust proxy', 1);
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
   'https://mind-mirror-bay.vercel.app',
   ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map(s => s.trim()) : []),
 ];
@@ -62,7 +64,7 @@ const corsOptions = {
     }
 
     logger.warn({ message: 'CORS request rejected for origin', origin });
-    callback(new Error(`CORS not allowed for origin: ${origin}`));
+    callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

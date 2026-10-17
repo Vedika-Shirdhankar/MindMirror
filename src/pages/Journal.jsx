@@ -191,41 +191,53 @@ function AnalysisCard({ entry, onPlayVideo }) {
         </div>
       )}
 
-      {entry.ml_analysis?.label && (
-        <div className="mt-3 p-2.5 rounded-standard bg-white/[0.03] border border-white/10">
-          <div className="flex items-center justify-between gap-2 mb-1.5">
-            <span className="text-[10px] uppercase tracking-wider text-text/50 font-medium flex items-center gap-1.5">
-              <Activity size={12} className="text-primary" />
-              Language Pattern Signal
-            </span>
-            {entry.ml_analysis.confidence != null && (
-              <span className="text-[10px] text-text/40 font-mono">
-                Confidence: {Math.round(entry.ml_analysis.confidence * 100)}%
+      {entry.ml_analysis?.label && (() => {
+        // Don't show the signal if confidence is too low (below 70%)
+        const confidence = entry.ml_analysis.confidence ?? 0
+        if (confidence < 0.70) return null
+
+        // Don't show a negative ML label if Gemini itself says the entry is positive
+        // e.g. "I'm very happy today" should never be flagged as "Low Mood / Depressive"
+        const negativeLabels = ['depression', 'anxiety', 'stress', 'personality disorder', 'bipolar', 'suicidal']
+        const isNegativeLabel = negativeLabels.includes(entry.ml_analysis.label)
+        if (isNegativeLabel && entry.sentiment === 'positive') return null
+
+        return (
+          <div className="mt-3 p-2.5 rounded-standard bg-white/[0.03] border border-white/10">
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <span className="text-[10px] uppercase tracking-wider text-text/50 font-medium flex items-center gap-1.5">
+                <Activity size={12} className="text-primary" />
+                Language Pattern Signal
               </span>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className="text-xs px-2.5 py-0.5 rounded-full font-medium"
-              style={{
-                backgroundColor: ML_LABEL_MAP[entry.ml_analysis.label]?.bg || 'rgba(175, 169, 236, 0.15)',
-                color: ML_LABEL_MAP[entry.ml_analysis.label]?.color || '#AFA9EC',
-              }}
-            >
-              {ML_LABEL_MAP[entry.ml_analysis.label]?.label || entry.ml_analysis.label}
-            </span>
-            <p className="text-xs text-text/70 leading-relaxed">
-              Your journal contains language associated with{' '}
-              <strong className="font-medium text-text/90">
-                {entry.ml_analysis.label}
-              </strong>.
+              {entry.ml_analysis.confidence != null && (
+                <span className="text-[10px] text-text/40 font-mono">
+                  Confidence: {Math.round(entry.ml_analysis.confidence * 100)}%
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className="text-xs px-2.5 py-0.5 rounded-full font-medium"
+                style={{
+                  backgroundColor: ML_LABEL_MAP[entry.ml_analysis.label]?.bg || 'rgba(175, 169, 236, 0.15)',
+                  color: ML_LABEL_MAP[entry.ml_analysis.label]?.color || '#AFA9EC',
+                }}
+              >
+                {ML_LABEL_MAP[entry.ml_analysis.label]?.label || entry.ml_analysis.label}
+              </span>
+              <p className="text-xs text-text/70 leading-relaxed">
+                Your journal contains language associated with{' '}
+                <strong className="font-medium text-text/90">
+                  {ML_LABEL_MAP[entry.ml_analysis.label]?.label || entry.ml_analysis.label}
+                </strong>.
+              </p>
+            </div>
+            <p className="text-[10px] text-text/40 mt-1.5 italic">
+              * Text pattern signal provided for self-reflection; not a clinical diagnosis or medical evaluation.
             </p>
           </div>
-          <p className="text-[10px] text-text/40 mt-1.5 italic">
-            * Text pattern signal provided for self-reflection; not a clinical diagnosis or medical evaluation.
-          </p>
-        </div>
-      )}
+        )
+      })()}
 
       {entry.recommendedVideos?.length > 0 && (
         <div className="mt-4 pt-4 border-t border-white/5">

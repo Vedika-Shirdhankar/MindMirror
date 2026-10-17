@@ -153,10 +153,12 @@ async function googleAuth(req, res, next) {
     const { email, name, sub: googleId, picture } = payload;
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Find existing user by googleId or email
-    let user = await User.findOne({
-      $or: [{ googleId }, { email: normalizedEmail }],
-    });
+    // Find existing user by googleId or email safely
+    const lookupConditions = [{ email: normalizedEmail }];
+    if (googleId) {
+      lookupConditions.push({ googleId });
+    }
+    let user = await User.findOne({ $or: lookupConditions });
 
     let isNewUser = false;
 

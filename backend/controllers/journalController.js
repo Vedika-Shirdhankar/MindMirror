@@ -346,7 +346,7 @@ Return ONLY a JSON object (no markdown code blocks, no preamble, no commentary) 
 }`;
 
     const rawText = await executeWithFallback(async (genAI) => {
-      const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
+      const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-2.0-flash' });
       const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {

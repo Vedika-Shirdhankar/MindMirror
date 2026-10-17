@@ -156,7 +156,7 @@ async function analyzeJournalEntry(entryText, previousEntries, userApiKey, langu
 
   const rawText = await executeWithFallback(async (genAI) => {
     const model = genAI.getGenerativeModel({
-      model: config.gemini.model || 'gemini-3.6-flash',
+      model: config.gemini.model || 'gemini-2.0-flash',
       systemInstruction: buildSystemPrompt(previousEntries, language, supportPreferences),
     });
 
