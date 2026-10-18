@@ -352,6 +352,22 @@ export default function Journal() {
     }
   }, [location.state])
 
+  // If navigated from Companion memory recall citation to highlight a specific entry
+  useEffect(() => {
+    if (location.state?.highlightEntryId && entries.length > 0) {
+      setTimeout(() => {
+        const el = document.getElementById(`entry-${location.state.highlightEntryId}`)
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          el.classList.add('ring-2', 'ring-primary', 'transition-all', 'duration-500')
+          setTimeout(() => {
+            el.classList.remove('ring-2', 'ring-primary')
+          }, 3500)
+        }
+      }, 100)
+    }
+  }, [location.state, entries])
+
   // Restore an autosaved draft on load, and open the composer if one exists.
   useEffect(() => {
     const draft = localStorage.getItem(DRAFT_KEY)
@@ -672,7 +688,7 @@ export default function Journal() {
       ) : (
         <div className="flex flex-col gap-3">
           {displayedEntries.map(e => (
-            <div key={e._id} className={`rounded-3xl p-4 group transition-all ${e.resolved ? 'bg-accent/5 border border-accent/20' : 'bg-surface border border-white/5'}`}>
+            <div key={e._id} id={`entry-${e._id}`} className={`rounded-3xl p-4 group transition-all ${e.resolved ? 'bg-accent/5 border border-accent/20' : 'bg-surface border border-white/5'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">

@@ -7,6 +7,7 @@ const { generateEmbedding, cosineSimilarity } = require('../utils/embeddings');
 const { extractAndSaveActions } = require('../utils/actionExtractor');
 const { classifyJournal } = require('../services/mlService');
 const { cache } = require('../utils/cache');
+const { decrypt } = require('../utils/encryption');
 
 // GET /api/journal
 async function getEntries(req, res, next) {
@@ -334,45 +335,113 @@ Return ONLY a JSON object (no markdown code blocks, no preamble, no commentary) 
 }
 
 // POST /api/journal/search
-// Semantic search: embed the query, cosine-rank all user entries with embeddings.
+// Resilient Hybrid Search: Combines Gemini semantic vector retrieval with keyword,
+// theme, and text matching with AES-256-GCM field-level decryption.
 async function semanticSearch(req, res, next) {
   try {
     const { query } = req.body;
     if (!query?.trim()) return res.status(400).json({ error: 'Search query is required.' });
 
-    // Get query embedding
-    let queryVec;
+    const cleanQuery = query.trim();
+    const queryLower = cleanQuery.toLowerCase();
+    const terms = queryLower.split(/\s+/).filter(t => t.length > 1);
+
+    // 1. Attempt query embedding (non-blocking fallback if rate-limited or offline)
+    let queryVec = null;
     try {
-      queryVec = await generateEmbedding(query.trim());
+      queryVec = await generateEmbedding(cleanQuery);
     } catch (e) {
-      return res.status(503).json({ error: 'Embedding service unavailable. Check GEMINI_API_KEY.' });
+      // Embedding service offline or key missing — degrade to text matching gracefully
     }
 
-    // Fetch all entries that already have embeddings (select: false field needs explicit +embedding)
+    // 2. Fetch all entries for this user
     const entries = await JournalEntry.find({ user: req.userId })
       .select('+embedding text date themes mood_score mood summary sentiment resolved resolvedNote')
+      .sort({ date: -1 })
       .lean();
 
-    const scored = entries
-      .filter(e => e.embedding?.length)
-      .map(e => ({
+    if (!entries.length) {
+      return res.json({ results: [], total: 0 });
+    }
+
+    // 3. Score entries with hybrid weighting and decrypted plaintext
+    const scored = entries.map(e => {
+      // Decrypt field-level encrypted sensitive content
+      const plainText = decrypt(e.text) || '';
+      const plainSummary = decrypt(e.summary) || '';
+      const plainResolvedNote = decrypt(e.resolvedNote) || '';
+
+      let semanticScore = 0;
+      if (queryVec && Array.isArray(e.embedding) && e.embedding.length) {
+        try {
+          semanticScore = Math.max(0, cosineSimilarity(queryVec, e.embedding));
+        } catch {
+          semanticScore = 0;
+        }
+      }
+
+      // Keyword & phrase relevance
+      let keywordScore = 0;
+      const textLower = plainText.toLowerCase();
+      const summaryLower = plainSummary.toLowerCase();
+      const themesLower = (e.themes || []).map(t => String(t).toLowerCase());
+
+      // Exact full query substring match gets high weight
+      if (textLower.includes(queryLower)) {
+        keywordScore += 0.60;
+      } else if (summaryLower.includes(queryLower)) {
+        keywordScore += 0.45;
+      }
+
+      // Individual term overlap
+      let termMatches = 0;
+      for (const t of terms) {
+        if (textLower.includes(t)) termMatches++;
+        if (summaryLower.includes(t)) termMatches += 0.5;
+        if (themesLower.some(th => th.includes(t))) termMatches += 0.8;
+      }
+      if (terms.length > 0) {
+        keywordScore += (termMatches / terms.length) * 0.40;
+      }
+
+      // Hybrid composite: if vector available, blend 55% semantic + 45% keyword
+      const compositeScore = queryVec
+        ? (semanticScore * 0.55 + Math.min(1, keywordScore) * 0.45)
+        : Math.min(1, keywordScore);
+
+      return {
         _id: e._id,
-        text: e.text,
+        text: plainText,
         date: e.date,
-        themes: e.themes,
+        themes: e.themes || [],
         mood_score: e.mood_score ?? e.mood,
-        summary: e.summary,
+        summary: plainSummary,
         sentiment: e.sentiment,
         resolved: e.resolved,
-        resolvedNote: e.resolvedNote,
-        score: cosineSimilarity(queryVec, e.embedding),
-      }))
-      .filter(e => e.score > 0.5) // Only surface meaningfully similar results
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10)
-      .map(e => { delete e.embedding; return e; }); // never send vectors to client
+        resolvedNote: plainResolvedNote,
+        score: Math.round(compositeScore * 1000) / 1000,
+        semanticScore: Math.round(semanticScore * 1000) / 1000,
+        keywordScore: Math.round(keywordScore * 1000) / 1000,
+      };
+    });
 
-    res.json({ results: scored, total: scored.length });
+    // 4. Filter relevant results (composite score > 0.20 or at least one keyword match)
+    let filtered = scored
+      .filter(e => e.score >= 0.20 || e.keywordScore > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 15);
+
+    // If still empty but terms exist, fallback to substring search
+    if (!filtered.length && terms.length) {
+      filtered = scored
+        .filter(e => {
+          const tLower = (e.text || '').toLowerCase();
+          return terms.some(term => tLower.includes(term));
+        })
+        .slice(0, 10);
+    }
+
+    res.json({ results: filtered, total: filtered.length });
   } catch (err) {
     next(err);
   }
